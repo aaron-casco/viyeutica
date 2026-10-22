@@ -1,0 +1,13 @@
+{
+  "name": "Viyeutica",
+  "short_name": "Viyeutica",
+  "description": "Planificación y generación inteligente de horarios escolares.",
+  "start_url": "/viyeutica/",
+  "scope": "/viyeutica/",
+  "display": "standalone",
+  "background_color": "#f6f8fb",
+  "theme_color": "#062050",
+  "icons": [
+    {"src":"/viyeutica/brand/viyeutica-icon.svg","sizes":"any","type":"image/svg+xml"}
+  ]
+}
