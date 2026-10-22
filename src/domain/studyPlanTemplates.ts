@@ -137,6 +137,44 @@ function subjectByCode(subjects:Subject[],stage:EducationStage,code:string) {
   return subjects.find(subject=>subject.stage===stage && subject.code===code)
 }
 
+
+function normalizeLabel(value:string){
+  return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+}
+
+function normativeLoadOverride(
+  project:ViyeuticaProject,
+  stage:EducationStage,
+  level:string,
+  subjectName:string,
+){
+  const subjectKey=normalizeLabel(subjectName)
+  const candidates=project.normativeRules.filter(rule=>{
+    if(!rule.approved||rule.section!=='study_plan') return false
+    if(rule.stage&&rule.stage!==stage) return false
+    if(rule.level&&normalizeLabel(level)!==normalizeLabel(rule.level)) return false
+    if(!rule.subject) return false
+    const ruleKey=normalizeLabel(rule.subject)
+    return ruleKey.includes(subjectKey)||subjectKey.includes(ruleKey)||(
+      subjectKey.includes('ingles')&&ruleKey.includes('lengua extranjera')
+    )
+  })
+  const weekly=candidates.find(rule=>rule.kind==='weekly_minutes'&&rule.value!==null)
+    ?? candidates.find(rule=>rule.kind==='weekly_hours'&&rule.value!==null)
+  const session=candidates.find(rule=>rule.kind==='session_minutes'&&rule.value!==null)
+  if(!weekly&&!session) return null
+  const source=project.normativeSources.find(item=>item.id===(weekly??session)?.sourceId)
+  return {
+    weeklyMinutes:weekly
+      ? weekly.kind==='weekly_hours'
+        ? Math.round((weekly.value??0)*60)
+        : Math.round(weekly.value??0)
+      : null,
+    fixedSessionMinutes:session?Math.round(session.value??0):null,
+    note:`Fuente normativa aprobada: ${source?.name??'documento cargado'}, pág. ${(weekly??session)?.page}.`,
+  }
+}
+
 function addLoads(
   project:ViyeuticaProject,
   subjects:Subject[],
@@ -156,18 +194,19 @@ function addLoads(
       const requirement = stage==='Infantil'
         ? INFANT_SUBJECTS.find(item=>item.code===seed.code)?.teacherRequirement ?? 'any'
         : PRIMARY_SUBJECTS.find(item=>item.code===seed.code)?.teacherRequirement ?? 'any'
+      const normative=normativeLoadOverride(project,stage,group.level,subject.name)
       next.push({
         id:uid('plan'),
         groupId:group.id,
         subjectId:subject.id,
         weeklySessions:0,
-        weeklyMinutes:seed.weeklyMinutes,
+        weeklyMinutes:normative?.weeklyMinutes ?? seed.weeklyMinutes,
         mandatory:seed.mandatory ?? true,
         mode:seed.mode ?? 'ordinary',
         teacherRequirement:requirement,
         teacherId:null,
-        fixedSessionMinutes:seed.fixedSessionMinutes ?? null,
-        notes:[sourceNote,seed.note].filter(Boolean).join(' · '),
+        fixedSessionMinutes:normative?.fixedSessionMinutes ?? seed.fixedSessionMinutes ?? null,
+        notes:[sourceNote,seed.note,normative?.note].filter(Boolean).join(' · '),
         active:true,
       })
       added++
