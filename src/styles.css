@@ -247,3 +247,9 @@ button.wizard-step:focus-visible{outline:3px solid rgba(89,180,17,.22);outline-o
 .study-plan-page>.template-panel{border-radius:16px;padding:18px 20px}
 [data-theme="dark"] .template-action{background:#101925}
 [data-theme="dark"] .template-action:hover:not(:disabled){background:#172619;border-color:#426a32}
+
+
+/* === Verified study-plan template feedback === */
+.template-result{display:flex;align-items:flex-start;gap:8px;padding:11px 13px;border:1px solid #b9dca5;background:#f4faef;border-radius:11px;color:#3f771d;font-size:10px;font-weight:700;line-height:1.45}
+.template-result svg{flex:0 0 auto;margin-top:1px}
+[data-theme="dark"] .template-result{background:#172619;border-color:#3d6430;color:#9edc73}
