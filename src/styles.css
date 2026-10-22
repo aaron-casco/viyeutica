@@ -196,3 +196,19 @@
 @media(max-width:1180px){.schedule-editor-grid{grid-template-columns:1fr}.schedule-summary{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:780px){.schedule-config-row{grid-template-columns:1fr}.weekday-picker{grid-template-columns:repeat(6,1fr)}.mode-picker{grid-template-columns:repeat(2,1fr)}.timeline-row{grid-template-columns:18px 6px 74px 1fr}.timeline-row>.status-toggle,.timeline-row>.row-actions{grid-column:4}.schedule-summary{grid-template-columns:1fr 1fr}}
 @media(max-width:480px){.weekday-picker{grid-template-columns:repeat(3,1fr)}.schedule-summary{grid-template-columns:1fr}}
+
+
+/* === Navigable setup stepper === */
+button.wizard-step{font:inherit;color:inherit;text-align:left;cursor:pointer;appearance:none}
+button.wizard-step.available{opacity:1;background:var(--surface)}
+button.wizard-step.available .wizard-step-icon{background:#eef4fb;color:var(--navy2)}
+button.wizard-step.available:hover{transform:translateY(-1px);border-color:#9db9d5;box-shadow:0 5px 14px rgba(19,52,88,.08)}
+button.wizard-step.done{cursor:pointer}
+button.wizard-step.done:hover{transform:translateY(-1px);border-color:#a7d38b}
+button.wizard-step.active{cursor:default}
+button.wizard-step.active:hover{transform:none}
+button.wizard-step.locked,button.wizard-step:disabled{cursor:not-allowed}
+button.wizard-step:focus-visible{outline:3px solid rgba(89,180,17,.22);outline-offset:2px}
+[data-theme="dark"] button.wizard-step.available{background:var(--surface);border-color:var(--border)}
+[data-theme="dark"] button.wizard-step.available .wizard-step-icon{background:#172538;color:#91bde8}
+[data-theme="dark"] button.wizard-step.available:hover{border-color:#436589;box-shadow:0 5px 14px rgba(0,0,0,.22)}
