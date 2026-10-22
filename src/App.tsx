@@ -7,6 +7,8 @@ import {
 import { Logo } from './components/Logo'
 import { PlaceholderPage } from './components/PlaceholderPage'
 import { Dashboard } from './pages/Dashboard'
+import { SetupWizard } from './pages/SetupWizard'
+import { useProject } from './hooks/useProject'
 
 const navigation = [
   { path: '/', label: 'Inicio', icon: Gauge },
@@ -25,7 +27,6 @@ const navigation = [
 ]
 
 const descriptions: Record<string,string> = {
-  '/centro': 'Datos maestros del centro, etapas y estructura institucional.',
   '/cursos': 'Creación, histórico y estado de los cursos académicos.',
   '/profesorado': 'Plantilla docente, especialidades, jornadas, cargos y reducciones.',
   '/grupos': 'Cursos, líneas, grupos, tutorías, agrupamientos y desdobles.',
@@ -36,24 +37,38 @@ const descriptions: Record<string,string> = {
   '/generacion': 'Prevalidación, generación y comparación de propuestas.',
   '/auditoria': 'Comprobación independiente de coherencia, cargas y conflictos.',
   '/exportaciones': 'Excel, PDF e informes del horario y su auditoría.',
-  '/configuracion': 'Asistente guiado para preparar el curso académico.'
 }
+
 const getRoute = () => {
   const raw = window.location.hash.replace(/^#/,'') || '/'
   return raw.startsWith('/') ? raw : '/' + raw
 }
 
 export default function App() {
+  const project = useProject()
   const [route,setRoute] = useState(getRoute)
   const [sidebarOpen,setSidebarOpen] = useState(false)
   const [collapsed,setCollapsed] = useState(false)
+
   useEffect(() => {
     const fn = () => { setRoute(getRoute()); setSidebarOpen(false) }
     window.addEventListener('hashchange',fn)
     return () => window.removeEventListener('hashchange',fn)
   },[])
-  const active = useMemo(() => navigation.find(x => x.path === route) ?? navigation[0],[route])
+
+  const active = useMemo(() => {
+    if (route === '/configuracion') return { path: route, label: 'Configuración', icon: Settings }
+    return navigation.find(x => x.path === route) ?? navigation[0]
+  },[route])
+
   const go = (path:string) => { window.location.hash = path }
+  const centerName = project.center.name.trim() || 'Centro sin configurar'
+
+  const renderContent = () => {
+    if (route === '/') return <Dashboard navigate={go} project={project}/>
+    if (route === '/centro' || route === '/configuracion') return <SetupWizard project={project} navigate={go}/>
+    return <PlaceholderPage title={active.label} description={descriptions[route] ?? 'Módulo preparado para su implementación.'}/>
+  }
 
   return (
     <div className={'app-shell ' + (collapsed ? 'is-collapsed' : '')}>
@@ -67,26 +82,25 @@ export default function App() {
         <nav className="nav-list">
           {navigation.map(item => {
             const Icon=item.icon
-            return <button key={item.path} className={'nav-item ' + (route===item.path?'active':'')} onClick={() => go(item.path)} title={collapsed?item.label:undefined}><Icon size={19}/><span>{item.label}</span></button>
+            const isActive = route === item.path || (route === '/configuracion' && item.path === '/configuracion')
+            return <button key={item.path} className={'nav-item ' + (isActive?'active':'')} onClick={() => go(item.path)} title={collapsed?item.label:undefined}><Icon size={19}/><span>{item.label}</span></button>
           })}
         </nav>
-        <div className="sidebar-user"><span className="avatar">AD</span><div><strong>Administrador</strong><small>Centro demo</small></div><ChevronDown size={16}/></div>
+        <div className="sidebar-user"><span className="avatar">AD</span><div><strong>Administrador</strong><small>{centerName}</small></div><ChevronDown size={16}/></div>
       </aside>
       <main className="main-area">
         <header className="topbar">
           <div className="topbar-left">
             <button className="icon-button menu-button" onClick={() => setSidebarOpen(true)} aria-label="Abrir navegación"><Menu size={21}/></button>
-            <div><span className="topbar-context">Centro de demostración</span><strong>{active.label}</strong></div>
+            <div><span className="topbar-context">{centerName}</span><strong>{active.label}</strong></div>
           </div>
           <div className="topbar-actions">
-            <button className="course-selector"><CalendarDays size={16}/><span>2026/2027</span><ChevronDown size={15}/></button>
+            <button className="course-selector"><CalendarDays size={16}/><span>{project.academicYear.label}</span><ChevronDown size={15}/></button>
             <button className="icon-button notification-button" aria-label="Notificaciones"><Bell size={19}/><span className="notification-dot"/></button>
             <span className="top-avatar">AD</span>
           </div>
         </header>
-        <div className="content-area">
-          {route==='/' ? <Dashboard navigate={go}/> : <PlaceholderPage title={active.label} description={descriptions[route] ?? 'Módulo preparado para su implementación.'}/>}
-        </div>
+        <div className="content-area">{renderContent()}</div>
       </main>
       <nav className="mobile-bottom-nav">
         <button className={route==='/'?'active':''} onClick={() => go('/')}><Gauge size={20}/><span>Inicio</span></button>
