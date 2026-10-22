@@ -15,6 +15,8 @@ export function loadProject(): ViyeuticaProject {
       center: { ...structuredClone(EMPTY_PROJECT.center), ...(parsed.center ?? {}) },
       academicYear: { ...EMPTY_PROJECT.academicYear, ...(parsed.academicYear ?? {}) },
       groups: Array.isArray(parsed.groups) ? parsed.groups : [],
+      subjects: Array.isArray(parsed.subjects) ? parsed.subjects : [],
+      studyPlan: Array.isArray(parsed.studyPlan) ? parsed.studyPlan : [],
       schedule: {
         ...structuredClone(EMPTY_PROJECT.schedule),
         ...(parsed.schedule ?? {}),
