@@ -15,6 +15,7 @@ import {
 } from '../domain/project'
 import { saveProject } from '../store/projectStorage'
 import { WizardStepper } from '../components/WizardStepper'
+import { TemplatePanel } from '../components/TemplatePanel'
 
 interface SubjectDraft {
   name:string
@@ -268,6 +269,20 @@ export function StudyPlanPage({
       <Summary label="Sesiones semanales" value={weeklyTotal?String(weeklyTotal):'—'} detail="suma de cargas activas"/>
     </section>
 
+    <TemplatePanel
+      title="Plan desde otro grupo"
+      description="Usa un grupo ya configurado como plantilla para otro grupo de la misma estructura. No sobrescribe materias que ya existan en el destino."
+      actions={[
+        {
+          id:'copy-group-plan',
+          label:'Usar grupo como plantilla',
+          description:activeEntries.length?'Seleccionar origen y destino':'Configura primero al menos una carga semanal',
+          disabled:activeEntries.length===0,
+          onApply:()=>document.getElementById('copy-plan-template')?.scrollIntoView({behavior:'smooth',block:'center'}),
+        },
+      ]}
+    />
+
     <section className="study-plan-grid">
       <form className="form-card" onSubmit={submitSubject}>
         <div className="form-card-heading">
@@ -343,7 +358,7 @@ export function StudyPlanPage({
 function CopyPlan({groups,onCopy}:{groups:ViyeuticaProject['groups'];onCopy:(source:string,target:string)=>void}) {
   const [source,setSource]=useState('')
   const [target,setTarget]=useState('')
-  return <section className="copy-plan-card"><div><Copy size={22}/><span><strong>Copiar cargas entre grupos</strong><small>Útil para líneas paralelas con el mismo plan. No sobrescribe materias que ya existan en el destino.</small></span></div><select value={source} onChange={e=>setSource(e.target.value)}><option value="">Grupo origen</option>{groups.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select><select value={target} onChange={e=>setTarget(e.target.value)}><option value="">Grupo destino</option>{groups.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select><button className="btn ghost-inline" onClick={()=>onCopy(source,target)}>Copiar</button></section>
+  return <section className="copy-plan-card" id="copy-plan-template"><div><Copy size={22}/><span><strong>Plantilla desde otro grupo</strong><small>Selecciona un grupo origen y otro destino. Se copiarán solo las materias que todavía no existan en el destino.</small></span></div><select value={source} onChange={e=>setSource(e.target.value)}><option value="">Grupo origen</option>{groups.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select><select value={target} onChange={e=>setTarget(e.target.value)}><option value="">Grupo destino</option>{groups.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select><button className="btn ghost-inline" onClick={()=>onCopy(source,target)}>Aplicar plantilla</button></section>
 }
 function Summary({label,value,detail}:{label:string;value:string;detail:string}){return <article className="structure-summary-card"><span>{label}</span><strong>{value}</strong><small>{detail}</small></article>}
 function Field({label,required,children}:{label:string;required?:boolean;children:React.ReactNode}){return <label className="form-field"><span>{label}{required&&<em>*</em>}</span>{children}</label>}
