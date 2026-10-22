@@ -4,6 +4,9 @@ export type EducationStage = 'Infantil' | 'Primaria' | 'ESO' | 'Bachillerato'
 export type Weekday = 'L' | 'M' | 'X' | 'J' | 'V' | 'S'
 export type ScheduleMode = 'morning' | 'afternoon' | 'split' | 'custom'
 export type TimeBlockType = 'teaching' | 'break' | 'complementary' | 'other'
+export type SubjectType = 'common' | 'specific' | 'optional' | 'other'
+export type StudyPlanMode = 'ordinary' | 'split' | 'co_teaching' | 'alternative' | 'other'
+export type TeacherRequirement = 'tutor' | 'specialist' | 'any' | 'specific'
 
 export interface CenterData {
   name: string
@@ -54,12 +57,38 @@ export interface ScheduleConfig {
   blocks: TimeBlock[]
 }
 
+export interface Subject {
+  id: string
+  name: string
+  code: string
+  stage: EducationStage
+  type: SubjectType
+  defaultSessionMinutes: number | null
+  active: boolean
+}
+
+export interface StudyPlanEntry {
+  id: string
+  groupId: string
+  subjectId: string
+  weeklySessions: number
+  mandatory: boolean
+  mode: StudyPlanMode
+  teacherRequirement: TeacherRequirement
+  teacherId: string | null
+  fixedSessionMinutes: number | null
+  notes: string
+  active: boolean
+}
+
 export interface ViyeuticaProject {
   schemaVersion: 1
   center: CenterData
   academicYear: AcademicYear
   groups: SchoolGroup[]
   schedule: ScheduleConfig
+  subjects: Subject[]
+  studyPlan: StudyPlanEntry[]
   updatedAt: string | null
 }
 
@@ -100,6 +129,8 @@ export const EMPTY_PROJECT: ViyeuticaProject = {
   academicYear: DEFAULT_ACADEMIC_YEAR,
   groups: [],
   schedule: EMPTY_SCHEDULE,
+  subjects: [],
+  studyPlan: [],
   updatedAt: null,
 }
 
@@ -152,4 +183,33 @@ export function validateSchedule(schedule: ScheduleConfig) {
 
 export function isScheduleComplete(project: ViyeuticaProject) {
   return isStructureComplete(project) && validateSchedule(project.schedule).length === 0
+}
+
+
+export function validateStudyPlan(project: ViyeuticaProject) {
+  const errors: string[] = []
+  const activeGroups = project.groups.filter(group => group.active)
+  const activeSubjects = new Set(project.subjects.filter(subject => subject.active).map(subject => subject.id))
+  const activeEntries = project.studyPlan.filter(entry => entry.active)
+
+  if (!project.subjects.some(subject => subject.active)) errors.push('Añade al menos una materia activa.')
+  if (!activeEntries.length) errors.push('Añade al menos una carga semanal al plan de estudios.')
+
+  for (const group of activeGroups) {
+    if (!activeEntries.some(entry => entry.groupId === group.id && activeSubjects.has(entry.subjectId))) {
+      errors.push(`El grupo "${group.name}" no tiene materias configuradas.`)
+    }
+  }
+
+  for (const entry of activeEntries) {
+    if (entry.weeklySessions <= 0) errors.push('Todas las cargas semanales deben ser mayores que cero.')
+    if (!activeSubjects.has(entry.subjectId)) errors.push('Existe una carga vinculada a una materia inactiva o inexistente.')
+    if (!activeGroups.some(group => group.id === entry.groupId)) errors.push('Existe una carga vinculada a un grupo inactivo o inexistente.')
+  }
+
+  return [...new Set(errors)]
+}
+
+export function isStudyPlanComplete(project: ViyeuticaProject) {
+  return isScheduleComplete(project) && validateStudyPlan(project).length === 0
 }
