@@ -16,6 +16,10 @@ import {
 import { saveProject } from '../store/projectStorage'
 import { WizardStepper } from '../components/WizardStepper'
 import { TemplatePanel } from '../components/TemplatePanel'
+import {
+  applyInfantExtremaduraTemplate,
+  applyPrimaryExtremaduraTemplate,
+} from '../domain/studyPlanTemplates'
 
 interface SubjectDraft {
   name:string
@@ -29,6 +33,7 @@ interface EntryDraft {
   groupId:string
   subjectId:string
   weeklySessions:string
+  weeklyMinutes:string
   mandatory:boolean
   mode:StudyPlanMode
   teacherRequirement:TeacherRequirement
@@ -40,7 +45,7 @@ const emptySubject:SubjectDraft={
   name:'',code:'',stage:'',type:'common',defaultSessionMinutes:'',
 }
 const emptyEntry:EntryDraft={
-  groupId:'',subjectId:'',weeklySessions:'1',mandatory:true,mode:'ordinary',
+  groupId:'',subjectId:'',weeklySessions:'1',weeklyMinutes:'',mandatory:true,mode:'ordinary',
   teacherRequirement:'any',fixedSessionMinutes:'',notes:'',
 }
 const uid=(prefix:string)=>prefix+'_'+crypto.randomUUID()
@@ -78,13 +83,15 @@ export function StudyPlanPage({
   const [editingEntry,setEditingEntry]=useState<string|null>(null)
   const [subjectError,setSubjectError]=useState('')
   const [entryError,setEntryError]=useState('')
+  const [templateMessage,setTemplateMessage]=useState('')
 
   const activeGroups=project.groups.filter(group=>group.active)
   const activeSubjects=project.subjects.filter(subject=>subject.active)
   const activeEntries=project.studyPlan.filter(entry=>entry.active)
   const validation=useMemo(()=>validateStudyPlan(project),[project])
   const coveredGroups=new Set(activeEntries.map(entry=>entry.groupId)).size
-  const weeklyTotal=activeEntries.reduce((sum,entry)=>sum+entry.weeklySessions,0)
+  const weeklySessionTotal=activeEntries.reduce((sum,entry)=>sum+(entry.weeklySessions||0),0)
+  const weeklyMinuteTotal=activeEntries.reduce((sum,entry)=>sum+(entry.weeklyMinutes??0),0)
 
   const persist=(patch:Partial<ViyeuticaProject>)=>saveProject({...project,...patch})
 
@@ -97,6 +104,18 @@ export function StudyPlanPage({
     setEntryDraft(emptyEntry)
     setEditingEntry(null)
     setEntryError('')
+  }
+
+  const applyTemplate=(kind:'infantil'|'primaria')=>{
+    const result=kind==='infantil'
+      ? applyInfantExtremaduraTemplate(project)
+      : applyPrimaryExtremaduraTemplate(project)
+    saveProject(result.project)
+    setTemplateMessage(
+      result.addedEntries
+        ? `Plantilla aplicada: ${result.addedEntries} cargas nuevas y ${result.addedSubjects} materias nuevas. ${result.skippedEntries ? `${result.skippedEntries} cargas existentes se conservaron sin cambios.` : ''}`
+        : 'La plantilla no añadió cargas nuevas porque los grupos ya tienen esas materias configuradas.'
+    )
   }
 
   const submitSubject=(event:FormEvent)=>{
@@ -162,9 +181,14 @@ export function StudyPlanPage({
       setEntryError('Selecciona un grupo y una materia.')
       return
     }
-    const weekly=Number(entryDraft.weeklySessions)
-    if(!Number.isFinite(weekly)||weekly<=0){
-      setEntryError('Las sesiones semanales deben ser mayores que cero.')
+    const weekly=entryDraft.weeklySessions===''?0:Number(entryDraft.weeklySessions)
+    const weeklyMinutes=entryDraft.weeklyMinutes===''?null:Number(entryDraft.weeklyMinutes)
+    if((!Number.isFinite(weekly)||weekly<0) || (weeklyMinutes!==null && (!Number.isFinite(weeklyMinutes)||weeklyMinutes<=0))){
+      setEntryError('Revisa la carga semanal indicada.')
+      return
+    }
+    if(weekly<=0 && (weeklyMinutes??0)<=0){
+      setEntryError('Indica sesiones semanales o minutos semanales.')
       return
     }
     const subject=project.subjects.find(item=>item.id===entryDraft.subjectId)
@@ -193,6 +217,7 @@ export function StudyPlanPage({
       groupId:entryDraft.groupId,
       subjectId:entryDraft.subjectId,
       weeklySessions:weekly,
+      weeklyMinutes,
       mandatory:entryDraft.mandatory,
       mode:entryDraft.mode,
       teacherRequirement:entryDraft.teacherRequirement,
@@ -213,7 +238,8 @@ export function StudyPlanPage({
     setEntryDraft({
       groupId:entry.groupId,
       subjectId:entry.subjectId,
-      weeklySessions:String(entry.weeklySessions),
+      weeklySessions:entry.weeklySessions>0?String(entry.weeklySessions):'',
+      weeklyMinutes:entry.weeklyMinutes?String(entry.weeklyMinutes):'',
       mandatory:entry.mandatory,
       mode:entry.mode,
       teacherRequirement:entry.teacherRequirement,
@@ -266,13 +292,27 @@ export function StudyPlanPage({
       <Summary label="Materias activas" value={String(activeSubjects.length)} detail="catálogo del centro"/>
       <Summary label="Cargas configuradas" value={String(activeEntries.length)} detail="grupo + materia"/>
       <Summary label="Grupos cubiertos" value={`${coveredGroups}/${activeGroups.length}`} detail="con al menos una materia"/>
-      <Summary label="Sesiones semanales" value={weeklyTotal?String(weeklyTotal):'—'} detail="suma de cargas activas"/>
+      <Summary label="Carga objetivo" value={weeklyMinuteTotal?formatWeeklyMinutes(weeklyMinuteTotal):(weeklySessionTotal?String(weeklySessionTotal):'—')} detail={weeklyMinuteTotal?'minutos semanales acumulados':'sesiones configuradas'}/>
     </section>
 
     <TemplatePanel
-      title="Plan desde otro grupo"
-      description="Usa un grupo ya configurado como plantilla para otro grupo de la misma estructura. No sobrescribe materias que ya existan en el destino."
+      title="Plantillas de plan de estudios"
+      description="Bases editables para el curso 2026/2027. Las plantillas añaden solo materias/cargas que aún no existan y conservan cualquier configuración previa."
       actions={[
+        {
+          id:'extremadura-infantil',
+          label:'Infantil · Extremadura 2026/27',
+          description:project.center.stages.includes('Infantil')?'Aplicar a 3, 4 y 5 años':'El centro no tiene Infantil activa',
+          disabled:!project.center.stages.includes('Infantil'),
+          onApply:()=>applyTemplate('infantil'),
+        },
+        {
+          id:'extremadura-primaria',
+          label:'Primaria · Extremadura 2026/27',
+          description:project.center.stages.includes('Primaria')?'Aplicar a 1.º–6.º según ciclo':'El centro no tiene Primaria activa',
+          disabled:!project.center.stages.includes('Primaria'),
+          onApply:()=>applyTemplate('primaria'),
+        },
         {
           id:'copy-group-plan',
           label:'Usar grupo como plantilla',
@@ -282,6 +322,7 @@ export function StudyPlanPage({
         },
       ]}
     />
+    {templateMessage&&<div className="template-result"><CheckCircle2 size={16}/><span>{templateMessage}</span></div>}
 
     <section className="study-plan-grid">
       <form className="form-card" onSubmit={submitSubject}>
@@ -314,7 +355,8 @@ export function StudyPlanPage({
         <div className="form-grid two">
           <Field label="Grupo" required><select value={entryDraft.groupId} onChange={e=>setEntryDraft({...entryDraft,groupId:e.target.value,subjectId:''})}><option value="">Selecciona...</option>{activeGroups.map(group=><option key={group.id} value={group.id}>{group.name}</option>)}</select></Field>
           <Field label="Materia" required><select value={entryDraft.subjectId} disabled={!entryDraft.groupId} onChange={e=>setEntryDraft({...entryDraft,subjectId:e.target.value})}><option value="">Selecciona...</option>{groupSubjects(entryDraft.groupId).map(subject=><option key={subject.id} value={subject.id}>{subject.name}</option>)}</select></Field>
-          <Field label="Sesiones semanales" required><input type="number" min="0.25" step="0.25" value={entryDraft.weeklySessions} onChange={e=>setEntryDraft({...entryDraft,weeklySessions:e.target.value})}/></Field>
+          <Field label="Sesiones semanales"><input type="number" min="0" step="0.25" value={entryDraft.weeklySessions} onChange={e=>setEntryDraft({...entryDraft,weeklySessions:e.target.value})} placeholder="Opcional"/></Field>
+          <Field label="Carga semanal (min)"><input type="number" min="1" step="5" value={entryDraft.weeklyMinutes} onChange={e=>setEntryDraft({...entryDraft,weeklyMinutes:e.target.value})} placeholder="Opcional / normativa"/></Field>
           <Field label="Organización"><select value={entryDraft.mode} onChange={e=>setEntryDraft({...entryDraft,mode:e.target.value as StudyPlanMode})}>{planModes.map(x=><option key={x.value} value={x.value}>{x.label}</option>)}</select></Field>
           <Field label="Requisito docente"><select value={entryDraft.teacherRequirement} onChange={e=>setEntryDraft({...entryDraft,teacherRequirement:e.target.value as TeacherRequirement})}>{teacherRequirements.map(x=><option key={x.value} value={x.value}>{x.label}</option>)}</select></Field>
           <Field label="Duración fija de sesión (min)"><input type="number" min="1" max="240" value={entryDraft.fixedSessionMinutes} onChange={e=>setEntryDraft({...entryDraft,fixedSessionMinutes:e.target.value})} placeholder="Opcional"/></Field>
@@ -344,10 +386,10 @@ export function StudyPlanPage({
 
     <section className="groups-table-card">
       <div className="groups-table-heading"><div><span className="panel-kicker">Cargas</span><h2>Plan semanal por grupo</h2></div></div>
-      {project.studyPlan.length===0?<Empty text="Todavía no hay cargas semanales configuradas."/>:<div className="groups-table-wrap"><table className="groups-table plan-table"><thead><tr><th>Grupo</th><th>Materia</th><th>Ses./sem.</th><th>Organización</th><th>Docente</th><th>Duración</th><th>Estado</th><th/></tr></thead><tbody>{project.studyPlan.map(entry=>{
+      {project.studyPlan.length===0?<Empty text="Todavía no hay cargas semanales configuradas."/>:<div className="groups-table-wrap"><table className="groups-table plan-table"><thead><tr><th>Grupo</th><th>Materia</th><th>Ses./sem.</th><th>Carga semanal</th><th>Organización</th><th>Docente</th><th>Duración</th><th>Estado</th><th/></tr></thead><tbody>{project.studyPlan.map(entry=>{
         const group=project.groups.find(x=>x.id===entry.groupId)
         const subject=project.subjects.find(x=>x.id===entry.subjectId)
-        return <tr key={entry.id} className={!entry.active?'is-inactive':''}><td><strong>{group?.name??'Grupo eliminado'}</strong></td><td>{subject?.name??'Materia eliminada'}</td><td>{entry.weeklySessions}</td><td>{planModeLabel(entry.mode)}</td><td>{teacherRequirementLabel(entry.teacherRequirement)}</td><td>{entry.fixedSessionMinutes?`${entry.fixedSessionMinutes} min`:'—'}</td><td><button className={'status-toggle '+(entry.active?'active':'')} onClick={()=>toggleEntry(entry.id)}>{entry.active?'Activa':'Inactiva'}</button></td><td><div className="row-actions"><button onClick={()=>editEntry(entry)}><Pencil size={15}/></button><button className="danger" onClick={()=>removeEntry(entry.id)}><Trash2 size={15}/></button></div></td></tr>
+        return <tr key={entry.id} className={!entry.active?'is-inactive':''}><td><strong>{group?.name??'Grupo eliminado'}</strong></td><td>{subject?.name??'Materia eliminada'}</td><td>{entry.weeklySessions>0?entry.weeklySessions:'—'}</td><td>{entry.weeklyMinutes?formatWeeklyMinutes(entry.weeklyMinutes):'—'}</td><td>{planModeLabel(entry.mode)}</td><td>{teacherRequirementLabel(entry.teacherRequirement)}</td><td>{entry.fixedSessionMinutes?`${entry.fixedSessionMinutes} min`:'—'}</td><td><button className={'status-toggle '+(entry.active?'active':'')} onClick={()=>toggleEntry(entry.id)}>{entry.active?'Activa':'Inactiva'}</button></td><td><div className="row-actions"><button onClick={()=>editEntry(entry)}><Pencil size={15}/></button><button className="danger" onClick={()=>removeEntry(entry.id)}><Trash2 size={15}/></button></div></td></tr>
       })}</tbody></table></div>}
     </section>
 
@@ -366,3 +408,9 @@ function Empty({text}:{text:string}){return <div className="groups-empty"><BookO
 function subjectTypeLabel(v:SubjectType){return subjectTypes.find(x=>x.value===v)?.label??v}
 function planModeLabel(v:StudyPlanMode){return planModes.find(x=>x.value===v)?.label??v}
 function teacherRequirementLabel(v:TeacherRequirement){return teacherRequirements.find(x=>x.value===v)?.label??v}
+
+function formatWeeklyMinutes(minutes:number){
+  const hours=Math.floor(minutes/60)
+  const rest=minutes%60
+  return hours ? (rest ? `${hours} h ${rest} min` : `${hours} h`) : `${rest} min`
+}
