@@ -7,13 +7,14 @@ export function loadProject(): ViyeuticaProject {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY)
     if (!raw) return structuredClone(EMPTY_PROJECT)
-    const parsed = JSON.parse(raw) as ViyeuticaProject
+    const parsed = JSON.parse(raw) as Partial<ViyeuticaProject>
     if (parsed.schemaVersion !== 1) return structuredClone(EMPTY_PROJECT)
     return {
       ...structuredClone(EMPTY_PROJECT),
       ...parsed,
-      center: { ...structuredClone(EMPTY_PROJECT.center), ...parsed.center },
-      academicYear: { ...EMPTY_PROJECT.academicYear, ...parsed.academicYear },
+      center: { ...structuredClone(EMPTY_PROJECT.center), ...(parsed.center ?? {}) },
+      academicYear: { ...EMPTY_PROJECT.academicYear, ...(parsed.academicYear ?? {}) },
+      groups: Array.isArray(parsed.groups) ? parsed.groups : [],
     }
   } catch {
     return structuredClone(EMPTY_PROJECT)
