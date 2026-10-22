@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   Bell, BookOpen, CalendarClock, CalendarDays, ChevronDown, ClipboardCheck,
-  FileOutput, Gauge, GraduationCap, LayoutGrid, Menu, PanelLeftClose, Settings,
+  FileOutput, Gauge, GraduationCap, LayoutGrid, Menu, PanelLeftClose,
   ShieldCheck, SlidersHorizontal, Sparkles, Users, X,
 } from 'lucide-react'
 import { Logo } from './components/Logo'
@@ -17,36 +17,37 @@ import { useTheme } from './hooks/useTheme'
 
 const navigation = [
   { path: '/', label: 'Inicio', icon: Gauge },
-  { path: '/centro', label: 'Centro', icon: GraduationCap },
   { path: '/cursos', label: 'Curso académico', icon: CalendarDays },
-  { path: '/profesorado', label: 'Profesorado', icon: Users },
-  { path: '/grupos', label: 'Grupos', icon: LayoutGrid },
+  { path: '/centro', label: 'Centro', icon: GraduationCap },
+  { path: '/grupos', label: 'Estructura y grupos', icon: LayoutGrid },
   { path: '/jornada', label: 'Jornada y sesiones', icon: CalendarClock },
-  { path: '/materias', label: 'Materias', icon: BookOpen },
-  { path: '/disponibilidad', label: 'Disponibilidad', icon: CalendarClock },
-  { path: '/reglas', label: 'Reglas', icon: SlidersHorizontal },
-  { path: '/horarios', label: 'Horarios', icon: ClipboardCheck },
+  { path: '/materias', label: 'Plan de estudios', icon: BookOpen },
+  { path: '/profesorado', label: 'Profesorado', icon: Users },
+  { path: '/asignaciones', label: 'Asignaciones', icon: SlidersHorizontal },
+  { path: '/reglas', label: 'Reglas', icon: ShieldCheck },
+  { path: '/prevalidacion', label: 'Prevalidación', icon: ClipboardCheck },
   { path: '/generacion', label: 'Generación', icon: Sparkles },
+  { path: '/horarios', label: 'Horarios', icon: CalendarDays },
   { path: '/auditoria', label: 'Auditoría', icon: ShieldCheck },
   { path: '/exportaciones', label: 'Exportaciones', icon: FileOutput },
-  { path: '/configuracion', label: 'Configuración', icon: Settings },
 ]
 
 const descriptions: Record<string,string> = {
   '/cursos': 'Creación, histórico y estado de los cursos académicos.',
   '/profesorado': 'Plantilla docente, especialidades, jornadas, cargos y reducciones.',
-  '/materias': 'Plan de estudios, cargas horarias y requisitos docentes.',
-  '/disponibilidad': 'Franjas disponibles, itinerancias, bloqueos y preferencias.',
+  '/asignaciones': 'Relación entre grupos, materias, profesorado y responsabilidades docentes.',
   '/reglas': 'Restricciones legales, reglas del centro y preferencias ponderadas.',
+  '/prevalidacion': 'Comprobación de integridad antes de ejecutar la generación automática.',
   '/horarios': 'Vista semanal por grupos, profesores y recursos.',
-  '/generacion': 'Prevalidación, generación y comparación de propuestas.',
+  '/generacion': 'Generación y comparación de propuestas de horario.',
   '/auditoria': 'Comprobación independiente de coherencia, cargas y conflictos.',
   '/exportaciones': 'Excel, PDF e informes del horario y su auditoría.',
 }
 
 const getRoute = () => {
   const raw = window.location.hash.replace(/^#/,'') || '/'
-  return raw.startsWith('/') ? raw : '/' + raw
+  const normalized = raw.startsWith('/') ? raw : '/' + raw
+  return normalized === '/configuracion' ? '/centro' : normalized
 }
 
 export default function App() {
@@ -62,17 +63,17 @@ export default function App() {
     return () => window.removeEventListener('hashchange',fn)
   },[])
 
-  const active = useMemo(() => {
-    if (route === '/configuracion') return { path: route, label: 'Configuración', icon: Settings }
-    return navigation.find(x => x.path === route) ?? navigation[0]
-  },[route])
+  const active = useMemo(
+    () => navigation.find(item => item.path === route) ?? navigation[0],
+    [route],
+  )
 
   const go = (path:string) => { window.location.hash = path }
   const centerName = project.center.name.trim() || 'Centro sin configurar'
 
   const renderContent = () => {
     if (route === '/') return <Dashboard navigate={go} project={project}/>
-    if (route === '/centro' || route === '/configuracion') return <SetupWizard project={project} navigate={go}/>
+    if (route === '/centro') return <SetupWizard project={project} navigate={go}/>
     if (route === '/grupos') return <GroupsPage project={project} navigate={go}/>
     if (route === '/jornada') return <SchedulePage project={project} navigate={go}/>
     if (route === '/materias') return <StudyPlanPage project={project} navigate={go}/>
@@ -85,14 +86,14 @@ export default function App() {
       <aside className={'sidebar ' + (sidebarOpen ? 'mobile-open' : '')}>
         <div className="sidebar-brand">
           <Logo compact={collapsed}/>
-          <button className="icon-button collapse-button" onClick={() => setCollapsed(v => !v)} aria-label="Contraer navegación"><PanelLeftClose size={19}/></button>
+          <button className="icon-button collapse-button" onClick={() => setCollapsed(value => !value)} aria-label="Contraer navegación"><PanelLeftClose size={19}/></button>
           <button className="icon-button mobile-close" onClick={() => setSidebarOpen(false)} aria-label="Cerrar"><X size={19}/></button>
         </div>
         <nav className="nav-list">
           {navigation.map(item => {
             const Icon=item.icon
-            const isActive = route === item.path || (route === '/configuracion' && item.path === '/configuracion')
-            return <button key={item.path} className={'nav-item ' + (isActive?'active':'')} onClick={() => go(item.path)} title={collapsed?item.label:undefined}><Icon size={19}/><span>{item.label}</span></button>
+            const isActive=route===item.path
+            return <button key={item.path} className={'nav-item '+(isActive?'active':'')} onClick={() => go(item.path)} title={collapsed?item.label:undefined}><Icon size={19}/><span>{item.label}</span></button>
           })}
         </nav>
         <div className="sidebar-user"><span className="avatar">AD</span><div><strong>Administrador</strong><small>{centerName}</small></div><ChevronDown size={16}/></div>
@@ -114,10 +115,10 @@ export default function App() {
       </main>
       <nav className="mobile-bottom-nav">
         <button className={route==='/'?'active':''} onClick={() => go('/')}><Gauge size={20}/><span>Inicio</span></button>
-        <button className={route==='/grupos'||route==='/jornada'?'active':''} onClick={() => go('/jornada')}><CalendarClock size={20}/><span>Jornada</span></button>
-        <button className="mobile-plus" onClick={() => go('/configuracion')}><Sparkles size={23}/></button>
-        <button className={route==='/horarios'?'active':''} onClick={() => go('/horarios')}><ClipboardCheck size={20}/><span>Horarios</span></button>
-        <button className={route==='/configuracion'?'active':''} onClick={() => go('/configuracion')}><Settings size={20}/><span>Ajustes</span></button>
+        <button className={route==='/centro'?'active':''} onClick={() => go('/centro')}><GraduationCap size={20}/><span>Centro</span></button>
+        <button className={route==='/grupos'?'active':''} onClick={() => go('/grupos')}><LayoutGrid size={20}/><span>Grupos</span></button>
+        <button className={route==='/jornada'?'active':''} onClick={() => go('/jornada')}><CalendarClock size={20}/><span>Jornada</span></button>
+        <button className={route==='/materias'?'active':''} onClick={() => go('/materias')}><BookOpen size={20}/><span>Plan</span></button>
       </nav>
     </div>
   )
