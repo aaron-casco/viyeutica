@@ -230,3 +230,20 @@ button.wizard-step:focus-visible{outline:3px solid rgba(89,180,17,.22);outline-o
 @media(max-width:1050px){.study-plan-grid{grid-template-columns:1fr}.copy-plan-card{grid-template-columns:1fr 1fr}.copy-plan-card>div{grid-column:1/-1}}
 @media(max-width:780px){.metric-grid-five{grid-template-columns:1fr 1fr}.copy-plan-card{grid-template-columns:1fr}.copy-plan-card>div{grid-column:auto}}
 @media(max-width:430px){.metric-grid-five{grid-template-columns:1fr}}
+
+
+/* === Shared template controls === */
+.template-panel{display:flex;flex-direction:column;gap:7px}
+.template-panel>svg{color:var(--green2)}
+.template-panel>.panel-kicker{margin-top:1px}
+.template-panel>strong{margin:0;font-size:16px}
+.template-actions{display:flex;flex-direction:column;gap:7px;margin-top:6px}
+.template-action{width:100%;text-align:left;border:1px solid var(--border);border-radius:10px;background:var(--field-bg,#fff);color:inherit;padding:10px 11px;cursor:pointer;transition:border-color .15s,transform .15s,background .15s}
+.template-action:hover:not(:disabled){transform:translateY(-1px);border-color:#9bc879;background:#f7fbf4}
+.template-action span,.template-action small{display:block}
+.template-action span{font-size:10.5px;font-weight:800}
+.template-action small{margin-top:3px;font-size:8.8px;line-height:1.4;color:var(--muted)}
+.template-action:disabled{opacity:.46;cursor:not-allowed}
+.study-plan-page>.template-panel{border-radius:16px;padding:18px 20px}
+[data-theme="dark"] .template-action{background:#101925}
+[data-theme="dark"] .template-action:hover:not(:disabled){background:#172619;border-color:#426a32}
