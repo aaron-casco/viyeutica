@@ -11,6 +11,7 @@ import { Dashboard } from './pages/Dashboard'
 import { SetupWizard } from './pages/SetupWizard'
 import { GroupsPage } from './pages/GroupsPage'
 import { SchedulePage } from './pages/SchedulePage'
+import { StudyPlanPage } from './pages/StudyPlanPage'
 import { useProject } from './hooks/useProject'
 import { useTheme } from './hooks/useTheme'
 
@@ -74,6 +75,7 @@ export default function App() {
     if (route === '/centro' || route === '/configuracion') return <SetupWizard project={project} navigate={go}/>
     if (route === '/grupos') return <GroupsPage project={project} navigate={go}/>
     if (route === '/jornada') return <SchedulePage project={project} navigate={go}/>
+    if (route === '/materias') return <StudyPlanPage project={project} navigate={go}/>
     return <PlaceholderPage title={active.label} description={descriptions[route] ?? 'Módulo preparado para su implementación.'}/>
   }
 
