@@ -2,7 +2,6 @@ import { useMemo, useState, type FormEvent } from 'react'
 import {
   ArrowLeft, BookOpen, CalendarClock, CheckCircle2, GraduationCap, LayoutGrid,
   Pencil, Plus, Save, ShieldCheck, SlidersHorizontal, Sparkles, Trash2, Users,
-  WandSparkles,
 } from 'lucide-react'
 import {
   EDUCATION_LEVELS,
@@ -14,6 +13,7 @@ import {
 } from '../domain/project'
 import { saveProject } from '../store/projectStorage'
 import { WizardStepper } from '../components/WizardStepper'
+import { TemplatePanel } from '../components/TemplatePanel'
 
 interface GroupDraft {
   stage: EducationStage | ''
@@ -160,7 +160,7 @@ export function GroupsPage({
       <GraduationCap size={34}/>
       <h1>Primero configura el centro</h1>
       <p>Las etapas seleccionadas en el paso 1 determinan qué niveles puede ofrecer Viyeutica.</p>
-      <button className="btn primary" onClick={() => navigate('/configuracion')}>Ir a Datos del centro</button>
+      <button className="btn primary" onClick={() => navigate('/centro')}>Ir a Datos del centro</button>
     </section>
   }
 
@@ -242,12 +242,13 @@ export function GroupsPage({
           <strong>{complete?'Estructura válida':'Estructura incompleta'}</strong>
           <p>{complete?'Todas las etapas seleccionadas tienen al menos un grupo activo.':'Crea al menos un grupo en cada etapa seleccionada.'}</p>
         </article>
-        <article className="aside-card standard-generator">
-          <WandSparkles size={21}/>
-          <strong>Crear estructura estándar</strong>
-          <p>Añade una línea A para todos los niveles ordinarios de las etapas seleccionadas. Después podrás borrar o añadir líneas.</p>
-          <button className="btn ghost wide" type="button" onClick={generateStandard}>Generar grupos que faltan</button>
-        </article>
+        <TemplatePanel
+          title="Estructura estándar"
+          description="Genera una línea A para todos los niveles ordinarios de las etapas seleccionadas. No elimina ni sobrescribe grupos existentes."
+          actions={[
+            {id:'standard-a',label:'Cargar plantilla estándar',description:'Una línea A por nivel',onApply:generateStandard},
+          ]}
+        />
       </aside>
     </section>
 
