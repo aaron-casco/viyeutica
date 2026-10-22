@@ -17,18 +17,7 @@ import {
   type Weekday,
 } from '../domain/project'
 import { saveProject } from '../store/projectStorage'
-
-const stepMeta = [
-  [1,'Centro',GraduationCap],
-  [2,'Estructura',LayoutGrid],
-  [3,'Jornada',CalendarClock],
-  [4,'Plan de estudios',BookOpen],
-  [5,'Profesorado',Users],
-  [6,'Asignaciones',SlidersHorizontal],
-  [7,'Reglas',ShieldCheck],
-  [8,'Prevalidación',CheckCircle2],
-  [9,'Generar',Sparkles],
-] as const
+import { WizardStepper } from '../components/WizardStepper'
 
 const days: {id:Weekday; short:string; label:string}[] = [
   {id:'L',short:'L',label:'Lunes'},
@@ -168,16 +157,7 @@ export function SchedulePage({project,navigate}:{project:ViyeuticaProject;naviga
       <div className="wizard-progress-summary"><strong>3 <span>de 9</span></strong><small>Jornada y sesiones</small></div>
     </section>
 
-    <section className="wizard-stepper">
-      {stepMeta.map(([number,label,Icon])=>{
-        const done=number<3||(number===3&&complete)
-        const active=number===3
-        return <div className={'wizard-step '+(active?'active':done?'done':'locked')} key={number}>
-          <span className="wizard-step-icon">{done&&!active?<CheckCircle2 size={16}/>:<Icon size={16}/>}</span>
-          <span><strong>{number}. {label}</strong><small>{active?(complete?'Completo':'En curso'):done?'Completo':'Próximamente'}</small></span>
-        </div>
-      })}
-    </section>
+    <WizardStepper currentStep={3} project={project} navigate={navigate}/>
 
     <section className="schedule-summary">
       <Summary label="Días lectivos" value={String(schedule.activeDays.length)} detail={schedule.activeDays.join(' · ')||'Sin días'}/>
