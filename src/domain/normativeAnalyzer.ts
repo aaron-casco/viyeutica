@@ -1,5 +1,3 @@
-import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist'
-import workerUrl from 'pdfjs-dist/build/pdf.worker.mjs?url'
 import type {
   EducationStage,
   NormativeRule,
@@ -7,8 +5,6 @@ import type {
   NormativeSection,
   NormativeSource,
 } from './project'
-
-GlobalWorkerOptions.workerSrc = workerUrl
 
 const uid=(prefix:string)=>prefix+'_'+crypto.randomUUID()
 
@@ -148,6 +144,12 @@ async function sha256(file:File){
 }
 
 async function extractPdf(file:File){
+  const [{ GlobalWorkerOptions, getDocument }, workerModule] = await Promise.all([
+    import('pdfjs-dist/legacy/build/pdf.mjs'),
+    import('pdfjs-dist/legacy/build/pdf.worker.mjs?url'),
+  ])
+  GlobalWorkerOptions.workerSrc = workerModule.default
+
   const data=new Uint8Array(await file.arrayBuffer())
   const pdf=await getDocument({data}).promise
   const pages:{page:number;text:string}[]=[]
