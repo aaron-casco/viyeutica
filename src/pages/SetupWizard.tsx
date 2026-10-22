@@ -12,6 +12,7 @@ import {
 } from '../domain/project'
 import { saveProject } from '../store/projectStorage'
 import { WizardStepper } from '../components/WizardStepper'
+import { TemplatePanel } from '../components/TemplatePanel'
 
 const stages: EducationStage[] = ['Infantil', 'Primaria', 'ESO', 'Bachillerato']
 const ownershipOptions: { value: Ownership; label: string }[] = [
@@ -54,6 +55,17 @@ export function SetupWizard({
       ? form.stages.filter(item => item !== stage)
       : [...form.stages, stage]
     setField('stages', next)
+  }
+
+  const applyCenterTemplate = (centerType: CenterType, templateStages: EducationStage[]) => {
+    setSaved(false)
+    setErrors({})
+    setForm(current => ({
+      ...current,
+      centerType,
+      ownership: current.ownership || 'publico',
+      stages: templateStages,
+    }))
   }
 
   const validate = () => {
@@ -172,6 +184,16 @@ export function SetupWizard({
         </section>
 
         <aside className="wizard-aside">
+          <TemplatePanel
+            title="Tipo de centro"
+            description="Rellena tipo, titularidad pública si aún no está indicada y etapas habituales. No modifica nombre, código ni ubicación."
+            actions={[
+              {id:'ceip',label:'Plantilla CEIP',description:'Infantil + Primaria',onApply:()=>applyCenterTemplate('CEIP',['Infantil','Primaria'])},
+              {id:'ies',label:'Plantilla IES',description:'ESO + Bachillerato',onApply:()=>applyCenterTemplate('IES',['ESO','Bachillerato'])},
+              {id:'ceipso',label:'Plantilla CEIPSO',description:'Infantil + Primaria + ESO',onApply:()=>applyCenterTemplate('CEIPSO',['Infantil','Primaria','ESO'])},
+              {id:'cra',label:'Plantilla CRA',description:'Infantil + Primaria',onApply:()=>applyCenterTemplate('CRA',['Infantil','Primaria'])},
+            ]}
+          />
           <article className="aside-card">
             <span className="panel-kicker">Curso activo</span>
             <strong>{project.academicYear.label}</strong>
