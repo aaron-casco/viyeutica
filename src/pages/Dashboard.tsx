@@ -20,7 +20,7 @@ export function Dashboard({
   const teachingSessions = project.schedule.blocks.filter(block => block.active && block.type === 'teaching').length
 
   const setup = [
-    ['Datos del centro', centerDone ? 'done' : 'progress'],
+    ['Centro', centerDone ? 'done' : 'progress'],
     ['Estructura y grupos', structureDone ? 'done' : centerDone ? 'progress' : 'pending'],
     ['Jornada y sesiones', scheduleDone ? 'done' : structureDone ? 'progress' : 'pending'],
     ['Plan de estudios', studyPlanDone ? 'done' : scheduleDone ? 'progress' : 'pending'],
@@ -29,7 +29,7 @@ export function Dashboard({
   ] as const
 
   const progress = studyPlanDone ? 44 : scheduleDone ? 33 : structureDone ? 22 : centerDone ? 11 : 0
-  const nextRoute = !centerDone ? '/configuracion' : !structureDone ? '/grupos' : !scheduleDone ? '/jornada' : '/materias'
+  const nextRoute = !centerDone ? '/centro' : !structureDone ? '/grupos' : !scheduleDone ? '/jornada' : '/materias'
 
   return <div className="dashboard-stack">
     <section className="hero-card">
@@ -95,8 +95,8 @@ export function Dashboard({
         <div className="panel-heading"><div><span className="panel-kicker">Accesos</span><h2>Trabajo frecuente</h2></div></div>
         <div className="quick-grid">
           <Quick icon={<Users/>} label="Profesorado" onClick={() => navigate('/profesorado')}/>
-          <Quick icon={<LayoutGrid/>} label="Grupos" onClick={() => navigate('/grupos')}/>
-          <Quick icon={<CalendarClock/>} label="Jornada" onClick={() => navigate('/jornada')}/>
+          <Quick icon={<LayoutGrid/>} label="Estructura y grupos" onClick={() => navigate('/grupos')}/>
+          <Quick icon={<CalendarClock/>} label="Jornada y sesiones" onClick={() => navigate('/jornada')}/>
           <Quick icon={<ShieldCheck/>} label="Auditoría" onClick={() => navigate('/auditoria')}/>
         </div>
       </article>
