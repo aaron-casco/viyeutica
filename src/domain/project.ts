@@ -72,6 +72,7 @@ export interface StudyPlanEntry {
   groupId: string
   subjectId: string
   weeklySessions: number
+  weeklyMinutes?: number | null
   mandatory: boolean
   mode: StudyPlanMode
   teacherRequirement: TeacherRequirement
@@ -202,7 +203,9 @@ export function validateStudyPlan(project: ViyeuticaProject) {
   }
 
   for (const entry of activeEntries) {
-    if (entry.weeklySessions <= 0) errors.push('Todas las cargas semanales deben ser mayores que cero.')
+    const hasSessions = entry.weeklySessions > 0
+    const hasMinutes = (entry.weeklyMinutes ?? 0) > 0
+    if (!hasSessions && !hasMinutes) errors.push('Todas las cargas semanales deben indicar sesiones o minutos.')
     if (!activeSubjects.has(entry.subjectId)) errors.push('Existe una carga vinculada a una materia inactiva o inexistente.')
     if (!activeGroups.some(group => group.id === entry.groupId)) errors.push('Existe una carga vinculada a un grupo inactivo o inexistente.')
   }
