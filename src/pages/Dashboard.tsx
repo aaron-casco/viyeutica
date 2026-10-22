@@ -2,7 +2,7 @@ import {
   AlertTriangle, ArrowRight, BookOpenCheck, CalendarClock, CalendarDays, CheckCircle2,
   Clock3, GraduationCap, LayoutGrid, ShieldCheck, Sparkles, Users,
 } from 'lucide-react'
-import { isCenterComplete, isStructureComplete, isScheduleComplete, type ViyeuticaProject } from '../domain/project'
+import { isCenterComplete, isStructureComplete, isScheduleComplete, isStudyPlanComplete, type ViyeuticaProject } from '../domain/project'
 
 export function Dashboard({
   navigate,
@@ -14,6 +14,7 @@ export function Dashboard({
   const centerDone = isCenterComplete(project.center)
   const structureDone = isStructureComplete(project)
   const scheduleDone = isScheduleComplete(project)
+  const studyPlanDone = isStudyPlanComplete(project)
   const activeGroups = project.groups.filter(group => group.active)
   const students = activeGroups.reduce((sum,group) => sum + (group.students ?? 0),0)
   const teachingSessions = project.schedule.blocks.filter(block => block.active && block.type === 'teaching').length
@@ -22,20 +23,22 @@ export function Dashboard({
     ['Datos del centro', centerDone ? 'done' : 'progress'],
     ['Estructura y grupos', structureDone ? 'done' : centerDone ? 'progress' : 'pending'],
     ['Jornada y sesiones', scheduleDone ? 'done' : structureDone ? 'progress' : 'pending'],
-    ['Plan de estudios','pending'],
+    ['Plan de estudios', studyPlanDone ? 'done' : scheduleDone ? 'progress' : 'pending'],
     ['Profesorado','pending'],
     ['Reglas y prevalidación','pending'],
   ] as const
 
-  const progress = scheduleDone ? 33 : structureDone ? 22 : centerDone ? 11 : 0
-  const nextRoute = !centerDone ? '/configuracion' : !structureDone ? '/grupos' : '/jornada'
+  const progress = studyPlanDone ? 44 : scheduleDone ? 33 : structureDone ? 22 : centerDone ? 11 : 0
+  const nextRoute = !centerDone ? '/configuracion' : !structureDone ? '/grupos' : !scheduleDone ? '/jornada' : '/materias'
 
   return <div className="dashboard-stack">
     <section className="hero-card">
       <div>
         <span className="eyebrow"><Sparkles size={15}/> Viyeutica 0.4</span>
-        <h1>{scheduleDone ? 'La rejilla temporal del centro ya está lista.' : structureDone ? 'Ahora toca definir la jornada escolar.' : centerDone ? 'Ahora toca construir la estructura académica.' : 'Configura el centro antes de construir el horario.'}</h1>
-        <p>{scheduleDone
+        <h1>{studyPlanDone ? 'El plan de estudios ya está definido.' : scheduleDone ? 'La rejilla temporal del centro ya está lista.' : structureDone ? 'Ahora toca definir la jornada escolar.' : centerDone ? 'Ahora toca construir la estructura académica.' : 'Configura el centro antes de construir el horario.'}</h1>
+        <p>{studyPlanDone
+          ? `${project.center.name} · plan de estudios configurado para ${activeGroups.length} grupos activos.`
+          : scheduleDone
           ? `${project.center.name} · ${activeGroups.length} grupos · ${teachingSessions} sesiones lectivas diarias configuradas.`
           : structureDone
             ? 'Define días lectivos, sesiones, recreos y duraciones. Esa será la base temporal del generador.'
@@ -43,17 +46,18 @@ export function Dashboard({
               ? 'Define niveles, líneas y grupos reales. Viyeutica utilizará esta estructura para jornada, materias, profesorado y solver.'
               : 'Introduce los datos maestros del centro. Viyeutica los conservará en este navegador y los reutilizará en todo el flujo.'}</p>
         <div className="hero-actions">
-          <button className="btn primary" onClick={() => navigate(nextRoute)}>{scheduleDone ? 'Revisar jornada' : 'Continuar configuración'} <ArrowRight size={17}/></button>
+          <button className="btn primary" onClick={() => navigate(nextRoute)}>{studyPlanDone ? 'Revisar plan de estudios' : 'Continuar configuración'} <ArrowRight size={17}/></button>
           <button className="btn secondary" onClick={() => navigate('/horarios')}>Ver módulo de horarios</button>
         </div>
       </div>
       <div className="hero-mark hero-logo-full"><img src="./brand/viyeutica-logo.svg" alt="Logo de Viyeutica"/></div>
     </section>
 
-    <section className="metric-grid">
+    <section className="metric-grid metric-grid-five">
       <Metric icon={<LayoutGrid/>} label="Grupos" value={activeGroups.length ? String(activeGroups.length) : '—'} detail={activeGroups.length ? 'unidades activas' : 'pendientes de configurar'}/>
       <Metric icon={<Users/>} label="Alumnado" value={students ? String(students) : '—'} detail={students ? 'total agregado' : 'datos opcionales por grupo'}/>
       <Metric icon={<CalendarClock/>} label="Sesiones" value={teachingSessions ? String(teachingSessions) : '—'} detail={teachingSessions ? 'tramos lectivos diarios' : 'jornada pendiente'}/>
+      <Metric icon={<BookOpenCheck/>} label="Plan" value={project.studyPlan.filter(entry=>entry.active).length ? String(project.studyPlan.filter(entry=>entry.active).length) : '—'} detail="cargas grupo + materia"/>
       <Metric icon={<CalendarDays/>} label="Curso" value={project.academicYear.label} detail="curso académico activo"/>
     </section>
 
@@ -73,16 +77,18 @@ export function Dashboard({
       </article>
 
       <article className="panel">
-        <div className="panel-heading"><div><span className="panel-kicker">Siguiente paso</span><h2>{!centerDone ? 'Completar los datos del centro' : !structureDone ? 'Definir grupos y unidades' : !scheduleDone ? 'Configurar jornada y sesiones' : 'Preparar el plan de estudios'}</h2></div><GraduationCap className="panel-heading-icon" size={24}/></div>
+        <div className="panel-heading"><div><span className="panel-kicker">Siguiente paso</span><h2>{!centerDone ? 'Completar los datos del centro' : !structureDone ? 'Definir grupos y unidades' : !scheduleDone ? 'Configurar jornada y sesiones' : !studyPlanDone ? 'Preparar el plan de estudios' : 'Configurar profesorado'}</h2></div><GraduationCap className="panel-heading-icon" size={24}/></div>
         <p className="panel-copy">{!centerDone
           ? 'Primero necesitamos identificar el centro, su ubicación y las etapas que imparte.'
           : !structureDone
             ? 'Crea la estructura real por etapas, niveles y líneas.'
             : !scheduleDone
               ? 'Define los días lectivos y todos los tramos temporales, incluyendo sesiones y recreos.'
-              : 'El siguiente bloque relacionará cada nivel con sus materias y cargas semanales.'}</p>
-        <div className="notice amber"><AlertTriangle size={17}/><span>{scheduleDone ? 'El Paso 4 será el siguiente módulo.' : 'Completa este paso antes de seguir.'}</span></div>
-        <button className="btn primary wide" onClick={() => navigate(nextRoute)}>{scheduleDone ? 'Revisar jornada' : 'Continuar'} <ArrowRight size={16}/></button>
+              : !studyPlanDone
+                ? 'Relaciona cada grupo con sus materias, cargas semanales y requisitos docentes.'
+                : 'El siguiente bloque creará la plantilla docente, especialidades, jornadas, cargos y reducciones.'}</p>
+        <div className="notice amber"><AlertTriangle size={17}/><span>{studyPlanDone ? 'El Paso 5 — Profesorado será el siguiente módulo.' : 'Completa este paso antes de seguir.'}</span></div>
+        <button className="btn primary wide" onClick={() => navigate(nextRoute)}>{studyPlanDone ? 'Revisar plan' : 'Continuar'} <ArrowRight size={16}/></button>
       </article>
 
       <article className="panel">
