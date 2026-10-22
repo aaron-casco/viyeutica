@@ -10,6 +10,7 @@ import { ThemeToggle } from './components/ThemeToggle'
 import { Dashboard } from './pages/Dashboard'
 import { SetupWizard } from './pages/SetupWizard'
 import { GroupsPage } from './pages/GroupsPage'
+import { SchedulePage } from './pages/SchedulePage'
 import { useProject } from './hooks/useProject'
 import { useTheme } from './hooks/useTheme'
 
@@ -19,6 +20,7 @@ const navigation = [
   { path: '/cursos', label: 'Curso académico', icon: CalendarDays },
   { path: '/profesorado', label: 'Profesorado', icon: Users },
   { path: '/grupos', label: 'Grupos', icon: LayoutGrid },
+  { path: '/jornada', label: 'Jornada y sesiones', icon: CalendarClock },
   { path: '/materias', label: 'Materias', icon: BookOpen },
   { path: '/disponibilidad', label: 'Disponibilidad', icon: CalendarClock },
   { path: '/reglas', label: 'Reglas', icon: SlidersHorizontal },
@@ -71,6 +73,7 @@ export default function App() {
     if (route === '/') return <Dashboard navigate={go} project={project}/>
     if (route === '/centro' || route === '/configuracion') return <SetupWizard project={project} navigate={go}/>
     if (route === '/grupos') return <GroupsPage project={project} navigate={go}/>
+    if (route === '/jornada') return <SchedulePage project={project} navigate={go}/>
     return <PlaceholderPage title={active.label} description={descriptions[route] ?? 'Módulo preparado para su implementación.'}/>
   }
 
@@ -109,7 +112,7 @@ export default function App() {
       </main>
       <nav className="mobile-bottom-nav">
         <button className={route==='/'?'active':''} onClick={() => go('/')}><Gauge size={20}/><span>Inicio</span></button>
-        <button className={route==='/grupos'?'active':''} onClick={() => go('/grupos')}><LayoutGrid size={20}/><span>Grupos</span></button>
+        <button className={route==='/grupos'||route==='/jornada'?'active':''} onClick={() => go('/jornada')}><CalendarClock size={20}/><span>Jornada</span></button>
         <button className="mobile-plus" onClick={() => go('/configuracion')}><Sparkles size={23}/></button>
         <button className={route==='/horarios'?'active':''} onClick={() => go('/horarios')}><ClipboardCheck size={20}/><span>Horarios</span></button>
         <button className={route==='/configuracion'?'active':''} onClick={() => go('/configuracion')}><Settings size={20}/><span>Ajustes</span></button>
