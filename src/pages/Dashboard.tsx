@@ -2,7 +2,7 @@ import {
   AlertTriangle, ArrowRight, BookOpenCheck, CalendarDays, CheckCircle2,
   Clock3, GraduationCap, LayoutGrid, ShieldCheck, Sparkles, Users,
 } from 'lucide-react'
-import { isCenterComplete, type ViyeuticaProject } from '../domain/project'
+import { isCenterComplete, isStructureComplete, type ViyeuticaProject } from '../domain/project'
 
 export function Dashboard({
   navigate,
@@ -12,35 +12,42 @@ export function Dashboard({
   project: ViyeuticaProject
 }) {
   const centerDone = isCenterComplete(project.center)
+  const structureDone = isStructureComplete(project)
+  const activeGroups = project.groups.filter(group => group.active)
+  const students = activeGroups.reduce((sum,group) => sum + (group.students ?? 0),0)
+
   const setup = [
     ['Datos del centro', centerDone ? 'done' : 'progress'],
-    ['Estructura y grupos','pending'],
+    ['Estructura y grupos', structureDone ? 'done' : centerDone ? 'progress' : 'pending'],
     ['Jornada y sesiones','pending'],
     ['Plan de estudios','pending'],
     ['Profesorado','pending'],
     ['Reglas y prevalidación','pending'],
   ] as const
-  const progress = centerDone ? 11 : 0
+
+  const progress = structureDone ? 22 : centerDone ? 11 : 0
 
   return <div className="dashboard-stack">
     <section className="hero-card">
       <div>
-        <span className="eyebrow"><Sparkles size={15}/> Viyeutica 0.2</span>
-        <h1>{centerDone ? 'El centro ya está creado. Sigamos construyendo su horario.' : 'Configura el centro antes de construir el horario.'}</h1>
-        <p>{centerDone
-          ? `${project.center.name} · ${project.academicYear.label}. El siguiente bloque será la estructura de grupos y unidades.`
-          : 'Introduce los datos maestros del centro. Viyeutica los conservará en este navegador y los reutilizará en todo el flujo.'}</p>
+        <span className="eyebrow"><Sparkles size={15}/> Viyeutica 0.3</span>
+        <h1>{structureDone ? 'La estructura del centro ya está definida.' : centerDone ? 'Ahora toca construir la estructura académica.' : 'Configura el centro antes de construir el horario.'}</h1>
+        <p>{structureDone
+          ? `${project.center.name} · ${activeGroups.length} grupos activos · curso ${project.academicYear.label}.`
+          : centerDone
+            ? 'Define niveles, líneas y grupos reales. Viyeutica utilizará esta estructura para jornada, materias, profesorado y solver.'
+            : 'Introduce los datos maestros del centro. Viyeutica los conservará en este navegador y los reutilizará en todo el flujo.'}</p>
         <div className="hero-actions">
-          <button className="btn primary" onClick={() => navigate('/configuracion')}>{centerDone ? 'Revisar configuración' : 'Empezar configuración'} <ArrowRight size={17}/></button>
+          <button className="btn primary" onClick={() => navigate(!centerDone ? '/configuracion' : '/grupos')}>{!centerDone ? 'Empezar configuración' : structureDone ? 'Revisar grupos' : 'Configurar grupos'} <ArrowRight size={17}/></button>
           <button className="btn secondary" onClick={() => navigate('/horarios')}>Ver módulo de horarios</button>
         </div>
       </div>
-      <div className="hero-mark"><img src="./brand/viyeutica-icon.svg" alt="Símbolo de Viyeutica"/></div>
+      <div className="hero-mark hero-logo-full"><img src="./brand/viyeutica-logo.webp" alt="Logo de Viyeutica"/></div>
     </section>
 
     <section className="metric-grid">
-      <Metric icon={<LayoutGrid/>} label="Grupos" value="—" detail="se configurarán en el paso 2"/>
-      <Metric icon={<Users/>} label="Profesorado" value="—" detail="se configurará en el paso 5"/>
+      <Metric icon={<LayoutGrid/>} label="Grupos" value={activeGroups.length ? String(activeGroups.length) : '—'} detail={activeGroups.length ? 'unidades activas' : 'pendientes de configurar'}/>
+      <Metric icon={<Users/>} label="Alumnado" value={students ? String(students) : '—'} detail={students ? 'total agregado' : 'datos opcionales por grupo'}/>
       <Metric icon={<BookOpenCheck/>} label="Materias" value="—" detail="plan de estudios pendiente"/>
       <Metric icon={<CalendarDays/>} label="Curso" value={project.academicYear.label} detail="curso académico activo"/>
     </section>
@@ -50,7 +57,7 @@ export function Dashboard({
         <div className="panel-heading"><div><span className="panel-kicker">Preparación</span><h2>Configuración del curso</h2></div><span className="status-pill warning">{progress}%</span></div>
         <div className="progress-track"><span style={{width:progress+'%'}}/></div>
         <div className="setup-list">{setup.map(([label,state]) => <div className="setup-row" key={label}><span className={'setup-dot '+state}>{state==='done'?<CheckCircle2 size={16}/>:state==='progress'?<Clock3 size={16}/>:<span/>}</span><span>{label}</span><span className={'setup-state '+state}>{state==='done'?'Completo':state==='progress'?'En progreso':'Pendiente'}</span></div>)}</div>
-        <button className="text-action" onClick={() => navigate('/configuracion')}>Abrir asistente <ArrowRight size={16}/></button>
+        <button className="text-action" onClick={() => navigate(!centerDone?'/configuracion':'/grupos')}>Continuar configuración <ArrowRight size={16}/></button>
       </article>
 
       <article className="panel">
@@ -61,12 +68,14 @@ export function Dashboard({
       </article>
 
       <article className="panel">
-        <div className="panel-heading"><div><span className="panel-kicker">Siguiente paso</span><h2>{centerDone ? 'Definir grupos y unidades' : 'Completar los datos del centro'}</h2></div><GraduationCap className="panel-heading-icon" size={24}/></div>
-        <p className="panel-copy">{centerDone
-          ? 'Crearemos la estructura académica real: etapas, niveles, líneas, grupos, alumnado agregado y tutorías.'
-          : 'El generador no debe trabajar con supuestos. Primero necesitamos identificar el centro, su ubicación y las etapas que imparte.'}</p>
-        <div className="notice amber"><AlertTriangle size={17}/><span>{centerDone ? 'El paso 2 todavía no está implementado.' : 'Los campos obligatorios deben completarse antes de continuar.'}</span></div>
-        <button className="btn primary wide" onClick={() => navigate(centerDone ? '/grupos' : '/configuracion')}>{centerDone ? 'Ir a grupos' : 'Configurar centro'} <ArrowRight size={16}/></button>
+        <div className="panel-heading"><div><span className="panel-kicker">Siguiente paso</span><h2>{!centerDone ? 'Completar los datos del centro' : !structureDone ? 'Definir grupos y unidades' : 'Configurar jornada y sesiones'}</h2></div><GraduationCap className="panel-heading-icon" size={24}/></div>
+        <p className="panel-copy">{!centerDone
+          ? 'El generador no debe trabajar con supuestos. Primero necesitamos identificar el centro, su ubicación y las etapas que imparte.'
+          : !structureDone
+            ? 'Crea la estructura real por etapas, niveles y líneas. Puedes generar una base estándar y ajustarla.'
+            : 'El próximo bloque definirá días lectivos, tramos horarios, recreos, duración de sesiones y mañana/tarde.'}</p>
+        <div className="notice amber"><AlertTriangle size={17}/><span>{structureDone ? 'El paso 3 será el siguiente módulo que implementemos.' : 'Completa este paso antes de continuar con la jornada.'}</span></div>
+        <button className="btn primary wide" onClick={() => navigate(!centerDone?'/configuracion':'/grupos')}>{structureDone ? 'Revisar estructura' : centerDone ? 'Configurar grupos' : 'Configurar centro'} <ArrowRight size={16}/></button>
       </article>
 
       <article className="panel">
