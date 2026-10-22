@@ -162,3 +162,37 @@
 @media(max-width:1180px){.groups-layout{grid-template-columns:1fr}.structure-summary{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:780px){.theme-toggle{width:56px;height:30px}.theme-orb{width:22px;height:22px}.theme-toggle.is-dark .theme-orb{transform:translateX(26px)}.structure-summary{grid-template-columns:1fr 1fr}.groups-table-heading{align-items:flex-start;flex-direction:column}}
 @media(max-width:430px){.structure-summary{grid-template-columns:1fr}}
+
+
+/* === Step 3: Jornada y sesiones === */
+.schedule-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.schedule-config-card,.timeline-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow)}
+.schedule-config-card{padding:4px 20px}
+.schedule-config-row{display:grid;grid-template-columns:minmax(240px,.8fr) 1.2fr;align-items:center;gap:24px;padding:18px 0;border-bottom:1px solid var(--border)}
+.schedule-config-row:last-child{border-bottom:0}
+.schedule-config-row h2{font-size:15px;margin:3px 0 4px}
+.schedule-config-row p{margin:0;color:var(--muted);font-size:10px;line-height:1.5}
+.weekday-picker{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.weekday-picker button{height:42px;border:1px solid var(--border);border-radius:11px;background:var(--surface);color:var(--muted);font-weight:850;cursor:pointer}
+.weekday-picker button.active{background:var(--navy);border-color:var(--navy);color:#fff}
+.mode-picker{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;padding:4px;background:#eef2f6;border-radius:12px}
+.mode-picker button{min-height:36px;border:0;border-radius:9px;background:transparent;color:#68778b;font-size:10px;font-weight:800;cursor:pointer}
+.mode-picker button.active{background:#fff;color:#0c315f;box-shadow:0 3px 10px rgba(20,40,70,.08)}
+.schedule-editor-grid{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:16px;align-items:start}
+.stage-scope-picker{display:flex;flex-wrap:wrap;gap:7px}
+.stage-scope-picker button{border:1px solid var(--border);border-radius:99px;background:var(--surface);color:var(--muted);padding:7px 10px;font-size:9.5px;font-weight:750;cursor:pointer}
+.stage-scope-picker button.active{background:#eef9e9;border-color:#a8d589;color:#3b8313}
+.duration-preview{margin-top:14px;display:flex;align-items:center;gap:7px;color:var(--muted);font-size:10px}.duration-preview strong{color:var(--navy2)}
+.timeline-list{padding:8px 16px 16px}
+.timeline-row{display:grid;grid-template-columns:24px 8px 92px minmax(0,1fr) auto auto;align-items:center;gap:12px;min-height:68px;border-bottom:1px solid var(--border)}
+.timeline-row:last-child{border-bottom:0}.timeline-row.is-inactive{opacity:.45}
+.timeline-grip{color:#a3adba}.timeline-type{width:7px;height:42px;border-radius:6px;background:#8aa0bb}
+.timeline-type.teaching{background:#4f9fda}.timeline-type.break{background:#e6b84d}.timeline-type.complementary{background:#8f70ce}.timeline-type.other{background:#8a98a8}
+.timeline-time strong,.timeline-time span{display:block}.timeline-time strong{font-size:12px}.timeline-time span{font-size:10px;color:var(--muted);margin-top:2px}
+.timeline-main strong,.timeline-main span{display:block}.timeline-main strong{font-size:11px}.timeline-main span{font-size:9.5px;color:var(--muted);margin-top:3px}
+[data-theme="dark"] .mode-picker{background:#0d1520}[data-theme="dark"] .mode-picker button.active{background:#1a2635;color:#dfeaf7}
+[data-theme="dark"] .weekday-picker button{background:#101925}[data-theme="dark"] .weekday-picker button.active{background:#1e4d82;border-color:#346797}
+[data-theme="dark"] .stage-scope-picker button{background:#101925}[data-theme="dark"] .stage-scope-picker button.active{background:#19301b;border-color:#426a32;color:#8ed85a}
+@media(max-width:1180px){.schedule-editor-grid{grid-template-columns:1fr}.schedule-summary{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:780px){.schedule-config-row{grid-template-columns:1fr}.weekday-picker{grid-template-columns:repeat(6,1fr)}.mode-picker{grid-template-columns:repeat(2,1fr)}.timeline-row{grid-template-columns:18px 6px 74px 1fr}.timeline-row>.status-toggle,.timeline-row>.row-actions{grid-column:4}.schedule-summary{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.weekday-picker{grid-template-columns:repeat(3,1fr)}.schedule-summary{grid-template-columns:1fr}}
