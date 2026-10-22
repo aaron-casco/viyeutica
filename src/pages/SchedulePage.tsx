@@ -124,6 +124,7 @@ export function SchedulePage({project,navigate}:{project:ViyeuticaProject;naviga
   }
 
   const createPreset=()=>{
+    if (schedule.blocks.length && !window.confirm('La plantilla sustituirá los tramos actuales de la jornada. ¿Quieres continuar?')) return
     const preset:TimeBlock[]=[
       ['1.ª sesión','09:00','10:00','teaching'],
       ['2.ª sesión','10:00','11:00','teaching'],
