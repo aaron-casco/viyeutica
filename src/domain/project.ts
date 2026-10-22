@@ -7,6 +7,8 @@ export type TimeBlockType = 'teaching' | 'break' | 'complementary' | 'other'
 export type SubjectType = 'common' | 'specific' | 'optional' | 'other'
 export type StudyPlanMode = 'ordinary' | 'split' | 'co_teaching' | 'alternative' | 'other'
 export type TeacherRequirement = 'tutor' | 'specialist' | 'any' | 'specific'
+export type NormativeSection = 'center' | 'structure' | 'schedule' | 'study_plan' | 'staff' | 'assignments' | 'rules' | 'general'
+export type NormativeRuleKind = 'weekly_hours' | 'weekly_minutes' | 'session_minutes' | 'weekly_periods' | 'teacher_periods' | 'stage_rule' | 'subject_rule' | 'other'
 
 export interface CenterData {
   name: string
@@ -82,6 +84,36 @@ export interface StudyPlanEntry {
   active: boolean
 }
 
+export interface NormativeSource {
+  id: string
+  name: string
+  mimeType: string
+  size: number
+  pageCount: number
+  extractedChars: number
+  sha256: string
+  addedAt: string
+  stages: EducationStage[]
+  ruleCount: number
+}
+
+export interface NormativeRule {
+  id: string
+  sourceId: string
+  section: NormativeSection
+  kind: NormativeRuleKind
+  label: string
+  value: number | null
+  unit: 'hours' | 'minutes' | 'periods' | null
+  stage: EducationStage | null
+  level: string | null
+  subject: string | null
+  page: number
+  excerpt: string
+  confidence: number
+  approved: boolean
+}
+
 export interface ViyeuticaProject {
   schemaVersion: 1
   center: CenterData
@@ -90,6 +122,8 @@ export interface ViyeuticaProject {
   schedule: ScheduleConfig
   subjects: Subject[]
   studyPlan: StudyPlanEntry[]
+  normativeSources: NormativeSource[]
+  normativeRules: NormativeRule[]
   updatedAt: string | null
 }
 
@@ -132,6 +166,8 @@ export const EMPTY_PROJECT: ViyeuticaProject = {
   schedule: EMPTY_SCHEDULE,
   subjects: [],
   studyPlan: [],
+  normativeSources: [],
+  normativeRules: [],
   updatedAt: null,
 }
 
