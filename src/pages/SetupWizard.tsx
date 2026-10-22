@@ -1,8 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import {
-  ArrowLeft, ArrowRight, BookOpen, CalendarClock, Check, CheckCircle2,
-  GraduationCap, LayoutGrid, LockKeyhole, Save, ShieldCheck, SlidersHorizontal,
-  Sparkles, Users,
+  ArrowLeft, ArrowRight, Check, CheckCircle2, Save, Sparkles,
 } from 'lucide-react'
 import {
   isCenterComplete,
@@ -13,18 +11,7 @@ import {
   type ViyeuticaProject,
 } from '../domain/project'
 import { saveProject } from '../store/projectStorage'
-
-const steps = [
-  { n: 1, label: 'Centro', icon: GraduationCap },
-  { n: 2, label: 'Estructura', icon: LayoutGrid },
-  { n: 3, label: 'Jornada', icon: CalendarClock },
-  { n: 4, label: 'Plan de estudios', icon: BookOpen },
-  { n: 5, label: 'Profesorado', icon: Users },
-  { n: 6, label: 'Asignaciones', icon: SlidersHorizontal },
-  { n: 7, label: 'Reglas', icon: ShieldCheck },
-  { n: 8, label: 'Prevalidación', icon: CheckCircle2 },
-  { n: 9, label: 'Generar', icon: Sparkles },
-]
+import { WizardStepper } from '../components/WizardStepper'
 
 const stages: EducationStage[] = ['Infantil', 'Primaria', 'ESO', 'Bachillerato']
 const ownershipOptions: { value: Ownership; label: string }[] = [
@@ -109,18 +96,7 @@ export function SetupWizard({
         </div>
       </section>
 
-      <section className="wizard-stepper" aria-label="Pasos de configuración">
-        {steps.map(step => {
-          const Icon = step.icon
-          const active = step.n === 1
-          return (
-            <div className={'wizard-step ' + (active ? 'active' : 'locked')} key={step.n}>
-              <span className="wizard-step-icon">{active ? <Icon size={17}/> : <LockKeyhole size={14}/>}</span>
-              <span><strong>{step.n}. {step.label}</strong><small>{active ? 'En curso' : 'Próximamente'}</small></span>
-            </div>
-          )
-        })}
-      </section>
+      <WizardStepper currentStep={1} project={project} navigate={navigate}/>
 
       <form className="wizard-layout" onSubmit={submit}>
         <section className="form-card">
