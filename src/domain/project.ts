@@ -20,11 +20,34 @@ export interface AcademicYear {
   endYear: number
 }
 
+export interface SchoolGroup {
+  id: string
+  name: string
+  stage: EducationStage
+  level: string
+  line: string
+  students: number | null
+  classroom: string
+  combined: boolean
+  linkedGroupIds: string[]
+  tutorTeacherId: string | null
+  notes: string
+  active: boolean
+}
+
 export interface ViyeuticaProject {
   schemaVersion: 1
   center: CenterData
   academicYear: AcademicYear
+  groups: SchoolGroup[]
   updatedAt: string | null
+}
+
+export const EDUCATION_LEVELS: Record<EducationStage,string[]> = {
+  Infantil: ['3 años','4 años','5 años'],
+  Primaria: ['1.º Primaria','2.º Primaria','3.º Primaria','4.º Primaria','5.º Primaria','6.º Primaria'],
+  ESO: ['1.º ESO','2.º ESO','3.º ESO','4.º ESO'],
+  Bachillerato: ['1.º Bachillerato','2.º Bachillerato'],
 }
 
 export const EMPTY_CENTER: CenterData = {
@@ -49,6 +72,7 @@ export const EMPTY_PROJECT: ViyeuticaProject = {
   schemaVersion: 1,
   center: EMPTY_CENTER,
   academicYear: DEFAULT_ACADEMIC_YEAR,
+  groups: [],
   updatedAt: null,
 }
 
@@ -63,4 +87,10 @@ export function isCenterComplete(center: CenterData) {
     center.locality.trim() &&
     center.stages.length,
   )
+}
+
+export function isStructureComplete(project: ViyeuticaProject) {
+  if (!isCenterComplete(project.center)) return false
+  const activeGroups = project.groups.filter(group => group.active)
+  return project.center.stages.every(stage => activeGroups.some(group => group.stage === stage))
 }
