@@ -2,7 +2,7 @@ import { useMemo, useState, type FormEvent } from 'react'
 import {
   ArrowLeft, BookOpen, CalendarClock, CheckCircle2, Clock3, Copy, GraduationCap,
   GripVertical, LayoutGrid, Pencil, Plus, Save, ShieldCheck, SlidersHorizontal,
-  Sparkles, Trash2, Users, WandSparkles,
+  Sparkles, Trash2, Users,
 } from 'lucide-react'
 import {
   isScheduleComplete,
@@ -18,6 +18,7 @@ import {
 } from '../domain/project'
 import { saveProject } from '../store/projectStorage'
 import { WizardStepper } from '../components/WizardStepper'
+import { TemplatePanel } from '../components/TemplatePanel'
 
 const days: {id:Weekday; short:string; label:string}[] = [
   {id:'L',short:'L',label:'Lunes'},
@@ -227,12 +228,13 @@ export function SchedulePage({project,navigate}:{project:ViyeuticaProject;naviga
           <strong>{validation.length===0&&blocks.length?'Jornada válida':validation.length?`${validation.length} incidencias`:'Sin tramos'}</strong>
           <p>{validation[0]??'No hay solapamientos ni intervalos temporales inválidos.'}</p>
         </article>
-        <article className="aside-card standard-generator">
-          <WandSparkles size={21}/>
-          <strong>Ejemplo editable</strong>
-          <p>Crea una jornada continua 09:00–14:00 con cinco sesiones y recreo. Es solo una base de trabajo, no una regla normativa.</p>
-          <button className="btn ghost wide" type="button" onClick={createPreset}>Crear ejemplo 09:00–14:00</button>
-        </article>
+        <TemplatePanel
+          title="Jornada de ejemplo"
+          description="Carga una base editable 09:00–14:00 con cinco sesiones y recreo. Es una plantilla de trabajo, no una regla normativa."
+          actions={[
+            {id:'morning-9-14',label:'Cargar plantilla 09:00–14:00',description:'5 sesiones + recreo',onApply:createPreset},
+          ]}
+        />
       </aside>
     </section>
 
