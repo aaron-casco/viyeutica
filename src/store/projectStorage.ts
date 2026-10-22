@@ -15,6 +15,12 @@ export function loadProject(): ViyeuticaProject {
       center: { ...structuredClone(EMPTY_PROJECT.center), ...(parsed.center ?? {}) },
       academicYear: { ...EMPTY_PROJECT.academicYear, ...(parsed.academicYear ?? {}) },
       groups: Array.isArray(parsed.groups) ? parsed.groups : [],
+      schedule: {
+        ...structuredClone(EMPTY_PROJECT.schedule),
+        ...(parsed.schedule ?? {}),
+        activeDays: Array.isArray(parsed.schedule?.activeDays) ? parsed.schedule!.activeDays : [...EMPTY_PROJECT.schedule.activeDays],
+        blocks: Array.isArray(parsed.schedule?.blocks) ? parsed.schedule!.blocks : [],
+      },
     }
   } catch {
     return structuredClone(EMPTY_PROJECT)
