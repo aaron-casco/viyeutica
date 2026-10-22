@@ -6,6 +6,7 @@ import {
   isCenterComplete,
   isScheduleComplete,
   isStructureComplete,
+  isStudyPlanComplete,
   type ViyeuticaProject,
 } from '../domain/project'
 
@@ -13,7 +14,7 @@ const steps = [
   { number:1, label:'Centro', icon:GraduationCap, route:'/configuracion' },
   { number:2, label:'Estructura', icon:LayoutGrid, route:'/grupos' },
   { number:3, label:'Jornada', icon:CalendarClock, route:'/jornada' },
-  { number:4, label:'Plan de estudios', icon:BookOpen, route:null },
+  { number:4, label:'Plan de estudios', icon:BookOpen, route:'/materias' },
   { number:5, label:'Profesorado', icon:Users, route:null },
   { number:6, label:'Asignaciones', icon:SlidersHorizontal, route:null },
   { number:7, label:'Reglas', icon:ShieldCheck, route:null },
@@ -34,6 +35,7 @@ export function WizardStepper({
     1:isCenterComplete(project.center),
     2:isStructureComplete(project),
     3:isScheduleComplete(project),
+    4:isStudyPlanComplete(project),
   }
 
   return (
