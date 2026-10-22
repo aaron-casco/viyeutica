@@ -1,0 +1,100 @@
+import { useEffect, useMemo, useState } from 'react'
+import {
+  Bell, BookOpen, CalendarClock, CalendarDays, ChevronDown, ClipboardCheck,
+  FileOutput, Gauge, GraduationCap, LayoutGrid, Menu, PanelLeftClose, Settings,
+  ShieldCheck, SlidersHorizontal, Sparkles, Users, X,
+} from 'lucide-react'
+import { Logo } from './components/Logo'
+import { PlaceholderPage } from './components/PlaceholderPage'
+import { Dashboard } from './pages/Dashboard'
+
+const navigation = [
+  { path: '/', label: 'Inicio', icon: Gauge },
+  { path: '/centro', label: 'Centro', icon: GraduationCap },
+  { path: '/cursos', label: 'Curso académico', icon: CalendarDays },
+  { path: '/profesorado', label: 'Profesorado', icon: Users },
+  { path: '/grupos', label: 'Grupos', icon: LayoutGrid },
+  { path: '/materias', label: 'Materias', icon: BookOpen },
+  { path: '/disponibilidad', label: 'Disponibilidad', icon: CalendarClock },
+  { path: '/reglas', label: 'Reglas', icon: SlidersHorizontal },
+  { path: '/horarios', label: 'Horarios', icon: ClipboardCheck },
+  { path: '/generacion', label: 'Generación', icon: Sparkles },
+  { path: '/auditoria', label: 'Auditoría', icon: ShieldCheck },
+  { path: '/exportaciones', label: 'Exportaciones', icon: FileOutput },
+  { path: '/configuracion', label: 'Configuración', icon: Settings },
+]
+
+const descriptions: Record<string,string> = {
+  '/centro': 'Datos maestros del centro, etapas y estructura institucional.',
+  '/cursos': 'Creación, histórico y estado de los cursos académicos.',
+  '/profesorado': 'Plantilla docente, especialidades, jornadas, cargos y reducciones.',
+  '/grupos': 'Cursos, líneas, grupos, tutorías, agrupamientos y desdobles.',
+  '/materias': 'Plan de estudios, cargas horarias y requisitos docentes.',
+  '/disponibilidad': 'Franjas disponibles, itinerancias, bloqueos y preferencias.',
+  '/reglas': 'Restricciones legales, reglas del centro y preferencias ponderadas.',
+  '/horarios': 'Vista semanal por grupos, profesores y recursos.',
+  '/generacion': 'Prevalidación, generación y comparación de propuestas.',
+  '/auditoria': 'Comprobación independiente de coherencia, cargas y conflictos.',
+  '/exportaciones': 'Excel, PDF e informes del horario y su auditoría.',
+  '/configuracion': 'Asistente guiado para preparar el curso académico.'
+}
+const getRoute = () => {
+  const raw = window.location.hash.replace(/^#/,'') || '/'
+  return raw.startsWith('/') ? raw : '/' + raw
+}
+
+export default function App() {
+  const [route,setRoute] = useState(getRoute)
+  const [sidebarOpen,setSidebarOpen] = useState(false)
+  const [collapsed,setCollapsed] = useState(false)
+  useEffect(() => {
+    const fn = () => { setRoute(getRoute()); setSidebarOpen(false) }
+    window.addEventListener('hashchange',fn)
+    return () => window.removeEventListener('hashchange',fn)
+  },[])
+  const active = useMemo(() => navigation.find(x => x.path === route) ?? navigation[0],[route])
+  const go = (path:string) => { window.location.hash = path }
+
+  return (
+    <div className={'app-shell ' + (collapsed ? 'is-collapsed' : '')}>
+      <div className={'mobile-overlay ' + (sidebarOpen ? 'show' : '')} onClick={() => setSidebarOpen(false)} />
+      <aside className={'sidebar ' + (sidebarOpen ? 'mobile-open' : '')}>
+        <div className="sidebar-brand">
+          <Logo compact={collapsed}/>
+          <button className="icon-button collapse-button" onClick={() => setCollapsed(v => !v)} aria-label="Contraer navegación"><PanelLeftClose size={19}/></button>
+          <button className="icon-button mobile-close" onClick={() => setSidebarOpen(false)} aria-label="Cerrar"><X size={19}/></button>
+        </div>
+        <nav className="nav-list">
+          {navigation.map(item => {
+            const Icon=item.icon
+            return <button key={item.path} className={'nav-item ' + (route===item.path?'active':'')} onClick={() => go(item.path)} title={collapsed?item.label:undefined}><Icon size={19}/><span>{item.label}</span></button>
+          })}
+        </nav>
+        <div className="sidebar-user"><span className="avatar">AD</span><div><strong>Administrador</strong><small>Centro demo</small></div><ChevronDown size={16}/></div>
+      </aside>
+      <main className="main-area">
+        <header className="topbar">
+          <div className="topbar-left">
+            <button className="icon-button menu-button" onClick={() => setSidebarOpen(true)} aria-label="Abrir navegación"><Menu size={21}/></button>
+            <div><span className="topbar-context">Centro de demostración</span><strong>{active.label}</strong></div>
+          </div>
+          <div className="topbar-actions">
+            <button className="course-selector"><CalendarDays size={16}/><span>2026/2027</span><ChevronDown size={15}/></button>
+            <button className="icon-button notification-button" aria-label="Notificaciones"><Bell size={19}/><span className="notification-dot"/></button>
+            <span className="top-avatar">AD</span>
+          </div>
+        </header>
+        <div className="content-area">
+          {route==='/' ? <Dashboard navigate={go}/> : <PlaceholderPage title={active.label} description={descriptions[route] ?? 'Módulo preparado para su implementación.'}/>}
+        </div>
+      </main>
+      <nav className="mobile-bottom-nav">
+        <button className={route==='/'?'active':''} onClick={() => go('/')}><Gauge size={20}/><span>Inicio</span></button>
+        <button className={route==='/cursos'?'active':''} onClick={() => go('/cursos')}><CalendarDays size={20}/><span>Curso</span></button>
+        <button className="mobile-plus" onClick={() => go('/configuracion')}><Sparkles size={23}/></button>
+        <button className={route==='/horarios'?'active':''} onClick={() => go('/horarios')}><ClipboardCheck size={20}/><span>Horarios</span></button>
+        <button className={route==='/configuracion'?'active':''} onClick={() => go('/configuracion')}><Settings size={20}/><span>Ajustes</span></button>
+      </nav>
+    </div>
+  )
+}
