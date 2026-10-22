@@ -6,9 +6,12 @@ import {
 } from 'lucide-react'
 import { Logo } from './components/Logo'
 import { PlaceholderPage } from './components/PlaceholderPage'
+import { ThemeToggle } from './components/ThemeToggle'
 import { Dashboard } from './pages/Dashboard'
 import { SetupWizard } from './pages/SetupWizard'
+import { GroupsPage } from './pages/GroupsPage'
 import { useProject } from './hooks/useProject'
+import { useTheme } from './hooks/useTheme'
 
 const navigation = [
   { path: '/', label: 'Inicio', icon: Gauge },
@@ -29,7 +32,6 @@ const navigation = [
 const descriptions: Record<string,string> = {
   '/cursos': 'Creación, histórico y estado de los cursos académicos.',
   '/profesorado': 'Plantilla docente, especialidades, jornadas, cargos y reducciones.',
-  '/grupos': 'Cursos, líneas, grupos, tutorías, agrupamientos y desdobles.',
   '/materias': 'Plan de estudios, cargas horarias y requisitos docentes.',
   '/disponibilidad': 'Franjas disponibles, itinerancias, bloqueos y preferencias.',
   '/reglas': 'Restricciones legales, reglas del centro y preferencias ponderadas.',
@@ -46,6 +48,7 @@ const getRoute = () => {
 
 export default function App() {
   const project = useProject()
+  const {theme,toggleTheme} = useTheme()
   const [route,setRoute] = useState(getRoute)
   const [sidebarOpen,setSidebarOpen] = useState(false)
   const [collapsed,setCollapsed] = useState(false)
@@ -67,6 +70,7 @@ export default function App() {
   const renderContent = () => {
     if (route === '/') return <Dashboard navigate={go} project={project}/>
     if (route === '/centro' || route === '/configuracion') return <SetupWizard project={project} navigate={go}/>
+    if (route === '/grupos') return <GroupsPage project={project} navigate={go}/>
     return <PlaceholderPage title={active.label} description={descriptions[route] ?? 'Módulo preparado para su implementación.'}/>
   }
 
@@ -95,6 +99,7 @@ export default function App() {
             <div><span className="topbar-context">{centerName}</span><strong>{active.label}</strong></div>
           </div>
           <div className="topbar-actions">
+            <ThemeToggle theme={theme} onToggle={toggleTheme}/>
             <button className="course-selector"><CalendarDays size={16}/><span>{project.academicYear.label}</span><ChevronDown size={15}/></button>
             <button className="icon-button notification-button" aria-label="Notificaciones"><Bell size={19}/><span className="notification-dot"/></button>
             <span className="top-avatar">AD</span>
@@ -104,7 +109,7 @@ export default function App() {
       </main>
       <nav className="mobile-bottom-nav">
         <button className={route==='/'?'active':''} onClick={() => go('/')}><Gauge size={20}/><span>Inicio</span></button>
-        <button className={route==='/cursos'?'active':''} onClick={() => go('/cursos')}><CalendarDays size={20}/><span>Curso</span></button>
+        <button className={route==='/grupos'?'active':''} onClick={() => go('/grupos')}><LayoutGrid size={20}/><span>Grupos</span></button>
         <button className="mobile-plus" onClick={() => go('/configuracion')}><Sparkles size={23}/></button>
         <button className={route==='/horarios'?'active':''} onClick={() => go('/horarios')}><ClipboardCheck size={20}/><span>Horarios</span></button>
         <button className={route==='/configuracion'?'active':''} onClick={() => go('/configuracion')}><Settings size={20}/><span>Ajustes</span></button>
