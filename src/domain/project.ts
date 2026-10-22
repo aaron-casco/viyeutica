@@ -1,6 +1,9 @@
 export type Ownership = 'publico' | 'concertado' | 'privado' | ''
 export type CenterType = 'CEIP' | 'IES' | 'CEIPSO' | 'CRA' | 'COLEGIO' | 'OTRO' | ''
 export type EducationStage = 'Infantil' | 'Primaria' | 'ESO' | 'Bachillerato'
+export type Weekday = 'L' | 'M' | 'X' | 'J' | 'V' | 'S'
+export type ScheduleMode = 'morning' | 'afternoon' | 'split' | 'custom'
+export type TimeBlockType = 'teaching' | 'break' | 'complementary' | 'other'
 
 export interface CenterData {
   name: string
@@ -35,11 +38,28 @@ export interface SchoolGroup {
   active: boolean
 }
 
+export interface TimeBlock {
+  id: string
+  label: string
+  start: string
+  end: string
+  type: TimeBlockType
+  stageScope: EducationStage[]
+  active: boolean
+}
+
+export interface ScheduleConfig {
+  activeDays: Weekday[]
+  mode: ScheduleMode
+  blocks: TimeBlock[]
+}
+
 export interface ViyeuticaProject {
   schemaVersion: 1
   center: CenterData
   academicYear: AcademicYear
   groups: SchoolGroup[]
+  schedule: ScheduleConfig
   updatedAt: string | null
 }
 
@@ -68,11 +88,18 @@ export const DEFAULT_ACADEMIC_YEAR: AcademicYear = {
   endYear: 2027,
 }
 
+export const EMPTY_SCHEDULE: ScheduleConfig = {
+  activeDays: ['L','M','X','J','V'],
+  mode: 'morning',
+  blocks: [],
+}
+
 export const EMPTY_PROJECT: ViyeuticaProject = {
   schemaVersion: 1,
   center: EMPTY_CENTER,
   academicYear: DEFAULT_ACADEMIC_YEAR,
   groups: [],
+  schedule: EMPTY_SCHEDULE,
   updatedAt: null,
 }
 
@@ -93,4 +120,36 @@ export function isStructureComplete(project: ViyeuticaProject) {
   if (!isCenterComplete(project.center)) return false
   const activeGroups = project.groups.filter(group => group.active)
   return project.center.stages.every(stage => activeGroups.some(group => group.stage === stage))
+}
+
+export function minutesFromTime(value: string) {
+  const [hours,minutes] = value.split(':').map(Number)
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return NaN
+  return hours * 60 + minutes
+}
+
+export function timeBlockDuration(block: TimeBlock) {
+  return minutesFromTime(block.end) - minutesFromTime(block.start)
+}
+
+export function validateSchedule(schedule: ScheduleConfig) {
+  const errors: string[] = []
+  if (!schedule.activeDays.length) errors.push('Selecciona al menos un día lectivo.')
+  const active = schedule.blocks.filter(block => block.active)
+  if (!active.some(block => block.type === 'teaching')) errors.push('Añade al menos una sesión lectiva.')
+  const sorted = [...active].sort((a,b) => minutesFromTime(a.start) - minutesFromTime(b.start))
+  for (const block of sorted) {
+    if (!block.label.trim()) errors.push('Todos los tramos necesitan un nombre.')
+    if (timeBlockDuration(block) <= 0) errors.push(`El tramo "${block.label}" tiene una hora final no válida.`)
+  }
+  for (let index=1; index<sorted.length; index++) {
+    if (minutesFromTime(sorted[index].start) < minutesFromTime(sorted[index-1].end)) {
+      errors.push(`Existe un solapamiento entre "${sorted[index-1].label}" y "${sorted[index].label}".`)
+    }
+  }
+  return [...new Set(errors)]
+}
+
+export function isScheduleComplete(project: ViyeuticaProject) {
+  return isStructureComplete(project) && validateSchedule(project.schedule).length === 0
 }
