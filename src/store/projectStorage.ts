@@ -17,6 +17,8 @@ export function loadProject(): ViyeuticaProject {
       groups: Array.isArray(parsed.groups) ? parsed.groups : [],
       subjects: Array.isArray(parsed.subjects) ? parsed.subjects : [],
       studyPlan: Array.isArray(parsed.studyPlan) ? parsed.studyPlan : [],
+      normativeSources: Array.isArray(parsed.normativeSources) ? parsed.normativeSources : [],
+      normativeRules: Array.isArray(parsed.normativeRules) ? parsed.normativeRules : [],
       schedule: {
         ...structuredClone(EMPTY_PROJECT.schedule),
         ...(parsed.schedule ?? {}),
