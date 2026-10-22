@@ -11,15 +11,15 @@ import {
 } from '../domain/project'
 
 const steps = [
-  { number:1, label:'Centro', icon:GraduationCap, route:'/configuracion' },
-  { number:2, label:'Estructura', icon:LayoutGrid, route:'/grupos' },
-  { number:3, label:'Jornada', icon:CalendarClock, route:'/jornada' },
+  { number:1, label:'Centro', icon:GraduationCap, route:'/centro' },
+  { number:2, label:'Estructura y grupos', icon:LayoutGrid, route:'/grupos' },
+  { number:3, label:'Jornada y sesiones', icon:CalendarClock, route:'/jornada' },
   { number:4, label:'Plan de estudios', icon:BookOpen, route:'/materias' },
   { number:5, label:'Profesorado', icon:Users, route:null },
   { number:6, label:'Asignaciones', icon:SlidersHorizontal, route:null },
   { number:7, label:'Reglas', icon:ShieldCheck, route:null },
   { number:8, label:'Prevalidación', icon:CheckCircle2, route:null },
-  { number:9, label:'Generar', icon:Sparkles, route:null },
+  { number:9, label:'Generación', icon:Sparkles, route:null },
 ] as const
 
 export function WizardStepper({
