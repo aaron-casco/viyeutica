@@ -469,3 +469,23 @@ button.wizard-step:focus-visible{outline:3px solid rgba(89,180,17,.22);outline-o
 [data-theme="dark"] .timetable-controls select{background:var(--field-bg)}[data-theme="dark"] .timetable-warning{background:#2a2414;border-color:#5d5127}[data-theme="dark"] .timetable-warning p{color:#d6c784}
 @media(max-width:900px){.timetable-controls{grid-template-columns:1fr}.timetable-view-switch{order:2}.timetable-control-block.entity{order:3}}
 @media(max-width:650px){.timetable-view-switch{display:grid;grid-template-columns:1fr 1fr}.timetable-warning{flex-direction:column}.timetable-warning .btn{width:100%}}
+
+
+/* === Auditoría === */
+.audit-page{display:flex;flex-direction:column;gap:16px}
+.audit-status{display:flex;align-items:center;gap:9px;padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:var(--surface)}
+.audit-status.passed>svg{color:var(--green2)}.audit-status.failed>svg{color:#c6534d}
+.audit-status strong,.audit-status small{display:block}.audit-status strong{font-size:9.5px}.audit-status small{margin-top:2px;color:var(--muted);font-size:8px}
+.audit-controls{display:grid;grid-template-columns:minmax(260px,.8fr) 1.2fr;gap:12px;align-items:end;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow)}
+.audit-controls label{display:grid;gap:5px}.audit-controls select{height:40px;border:1px solid var(--border);border-radius:10px;background:var(--field-bg,#fff);color:inherit;padding:0 10px;font-size:9px}
+.audit-engine-note{display:flex;align-items:flex-start;gap:9px;padding:10px 12px;border-radius:11px;background:#f4f8fc}.audit-engine-note>svg{color:#4e82b4;flex:0 0 auto}.audit-engine-note strong,.audit-engine-note small{display:block}.audit-engine-note strong{font-size:9.5px}.audit-engine-note small{margin-top:2px;color:var(--muted);font-size:8.4px;line-height:1.4}
+.audit-success{display:flex;align-items:flex-start;gap:10px;padding:14px 15px;border:1px solid #9dce7b;background:#f2faec;border-radius:13px}.audit-success>svg{color:var(--green2);flex:0 0 auto}.audit-success>div{flex:1}.audit-success strong{font-size:10px}.audit-success p{margin:3px 0 0;color:#55783e;font-size:8.8px;line-height:1.45}
+.audit-sections{display:grid;gap:12px}.audit-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow)}
+.audit-card-heading{padding:14px 16px;border-bottom:1px solid var(--border)}.audit-card-heading h2{margin:3px 0 2px;font-size:14px}.audit-card-heading p{margin:0;color:var(--muted);font-size:8.6px}
+.audit-empty{display:flex;align-items:center;gap:7px;padding:13px 16px;color:var(--green2);font-size:9px;font-weight:800}
+.audit-list{display:grid}.audit-list article{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:11px;align-items:start;padding:12px 16px;border-bottom:1px solid var(--border)}.audit-list article:last-child{border-bottom:0}
+.audit-icon{width:32px;height:32px;border-radius:9px;display:grid;place-items:center}.audit-icon.error{background:#fff0ef;color:#b3443f}.audit-icon.warning{background:#fff6df;color:#9b7418}.audit-icon.info{background:#eef5fb;color:#4e82b4}
+.audit-meta{display:flex;align-items:center;gap:6px;margin-bottom:4px}.audit-meta span{padding:3px 6px;border-radius:999px;background:#eef3f7;color:#607087;font-size:7.8px;font-weight:800}.audit-meta code{font-size:7.8px;color:var(--muted)}
+.audit-main>strong{font-size:10px}.audit-main p{margin:4px 0 0;color:var(--muted);font-size:8.8px}.audit-main small{display:block;margin-top:4px;color:var(--muted);font-size:8.2px}
+[data-theme="dark"] .audit-controls select{background:var(--field-bg)}[data-theme="dark"] .audit-engine-note{background:#17202c}[data-theme="dark"] .audit-success{background:#182718;border-color:#3f6135}.audit-meta span{background:#eef3f7}[data-theme="dark"] .audit-meta span{background:#202b39;color:#aebbd0}
+@media(max-width:760px){.audit-controls{grid-template-columns:1fr}.audit-list article{grid-template-columns:auto minmax(0,1fr)}.audit-list article>.btn{grid-column:1/-1;width:100%}.audit-success{flex-direction:column}.audit-success .btn{width:100%}}
