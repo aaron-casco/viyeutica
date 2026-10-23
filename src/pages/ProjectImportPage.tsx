@@ -1,8 +1,14 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ArrowUpToLine, CheckCircle2, Eye, FileJson, Save, ShieldAlert, Trash2, TriangleAlert } from 'lucide-react'
 import { EMPTY_PROJECT, type ViyeuticaProject } from '../domain/project'
 import { saveProject } from '../store/projectStorage'
 import { AppModal } from '../components/AppModal'
+import {
+  deleteStoredProjectJson,
+  loadStoredProjectJsons,
+  storeProjectJson,
+  type StoredProjectJson,
+} from '../store/jsonFileStorage'
 
 type ImportEnvelope = {
   format?: string
@@ -59,6 +65,10 @@ export function ProjectImportPage({project,navigate}:{project:ViyeuticaProject;n
   const [pendingMode,setPendingMode]=useState<'same'|'next'|null>(null)
   const [jsonPreview,setJsonPreview]=useState('')
   const [showJsonModal,setShowJsonModal]=useState(false)
+  const [storedJsons,setStoredJsons]=useState<StoredProjectJson[]>([])
+  const [storedPreview,setStoredPreview]=useState<StoredProjectJson|null>(null)
+
+  useEffect(()=>setStoredJsons(loadStoredProjectJsons()),[])
 
   const readFile=async(file:File)=>{
     setError('');setDone('')
@@ -68,6 +78,8 @@ export function ProjectImportPage({project,navigate}:{project:ViyeuticaProject;n
       const envelope=(parsed as ImportEnvelope).project ? parsed as ImportEnvelope : {project:parsed as Partial<ViyeuticaProject>}
       if(envelope.format && envelope.format!=='viyeutica-school-project') throw new Error('El JSON no tiene un formato Viyeutica reconocido.')
       const normalized=normalizeProject(envelope.project??{})
+      await storeProjectJson(file,rawText)
+      setStoredJsons(loadStoredProjectJsons())
       setCandidate(normalized)
       setReview(envelope.reviewRequired??[])
       setFilename(file.name)
@@ -90,6 +102,12 @@ export function ProjectImportPage({project,navigate}:{project:ViyeuticaProject;n
     setShowJsonModal(false)
     setError('')
     setDone('')
+  }
+
+  const removeStoredJson=(id:string)=>{
+    deleteStoredProjectJson(id)
+    setStoredJsons(loadStoredProjectJsons())
+    if(storedPreview?.id===id)setStoredPreview(null)
   }
 
   const requestApply=(mode:'same'|'next')=>{
@@ -141,6 +159,35 @@ export function ProjectImportPage({project,navigate}:{project:ViyeuticaProject;n
         <button className="btn ghost-inline" onClick={exportCurrent}>Descargar JSON</button>
       </article>
     </section>
+
+    {storedPreview&&<AppModal
+      title={storedPreview.name}
+      icon={<FileJson size={22}/>}
+      onClose={()=>setStoredPreview(null)}
+      wide
+      footer={<button className="btn secondary-light" onClick={()=>setStoredPreview(null)}>Cerrar</button>}
+    >
+      <div className="json-document-viewer"><pre>{formatStoredJson(storedPreview.rawText)}</pre></div>
+    </AppModal>}
+
+    {storedJsons.length>0&&<section className="stored-json-section">
+      <div className="groups-table-heading">
+        <div><span className="panel-kicker">JSON cargados</span><h2>Archivos disponibles en este navegador</h2></div>
+      </div>
+      <div className="stored-json-list">
+        {storedJsons.map(item=><article key={item.id} className="stored-json-item">
+          <div className="stored-json-icon"><FileJson size={20}/></div>
+          <div className="stored-json-copy">
+            <strong>{item.name}</strong>
+            <small>{formatBytes(item.size)} · cargado {new Date(item.addedAt).toLocaleString('es-ES')}</small>
+          </div>
+          <div className="stored-json-actions">
+            <button title="Ver JSON" aria-label={'Ver '+item.name} onClick={()=>setStoredPreview(item)}><Eye size={16}/></button>
+            <button className="row-delete" title="Eliminar JSON" aria-label={'Eliminar '+item.name} onClick={()=>removeStoredJson(item.id)}><Trash2 size={16}/></button>
+          </div>
+        </article>)}
+      </div>
+    </section>}
 
     {error&&<div className="inline-error">{error}</div>}
     {done&&<div className="template-result"><CheckCircle2 size={16}/><span>{done}</span></div>}
@@ -197,3 +244,14 @@ export function ProjectImportPage({project,navigate}:{project:ViyeuticaProject;n
 }
 
 function Kpi({label,value}:{label:string;value:string}){return <article><span>{label}</span><strong>{value}</strong></article>}
+
+
+function formatStoredJson(raw:string){
+  try{return JSON.stringify(JSON.parse(raw),null,2)}catch{return raw}
+}
+
+function formatBytes(value:number){
+  if(value<1024)return value+' B'
+  if(value<1024*1024)return (value/1024).toFixed(1)+' KB'
+  return (value/(1024*1024)).toFixed(1)+' MB'
+}
