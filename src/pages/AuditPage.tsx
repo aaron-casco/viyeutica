@@ -138,11 +138,18 @@ function describeIssue(issue:AuditIssue,project:ViyeuticaProject){
 }
 
 function routeForIssue(issue:AuditIssue){
-  if(issue.category==='Disponibilidad'||issue.category==='Franjas fijas')return '/asignaciones'
-  if(issue.category==='Cobertura'||issue.category==='Carga semanal')return '/asignaciones'
-  if(issue.category==='Reglas')return '/reglas'
-  if(issue.category==='Integridad')return '/prevalidacion'
-  return '/horarios'
+  const params=new URLSearchParams()
+  if(issue.teacherId)params.set('teacherId',issue.teacherId)
+  if(issue.groupId)params.set('groupId',issue.groupId)
+  if(issue.subjectId)params.set('subjectId',issue.subjectId)
+  if(issue.day)params.set('day',issue.day)
+  if(issue.sessionId)params.set('sessionId',issue.sessionId)
+  if(issue.code)params.set('auditCode',issue.code)
+  const query=params.toString()
+  if(issue.category==='Disponibilidad'||issue.category==='Franjas fijas'||issue.category==='Cobertura'||issue.category==='Carga semanal')return '/asignaciones'+(query?'?'+query:'')
+  if(issue.category==='Reglas')return '/reglas'+(query?'?'+query:'')
+  if(issue.category==='Integridad')return '/prevalidacion'+(query?'?'+query:'')
+  return '/horarios'+(query?'?'+query:'')
 }
 
 function Summary({label,value,detail}:{label:string;value:string;detail:string}) {
