@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  AlertTriangle, CalendarDays, CheckCircle2, GraduationCap, Plus, Sparkles, UserRound,
+  AlertTriangle, CalendarDays, CheckCircle2, ExternalLink, GraduationCap, Plus, Sparkles, UserRound,
 } from 'lucide-react'
 import {
   latestGeneration,
@@ -28,7 +28,7 @@ export function TimetablesPage({
 }) {
   const runs=uniqueGenerationRuns(project.generationRuns)
   const latest=latestGeneration(project)
-  const [runId,setRunId]=useState(latest?.id??'')
+  const [runId]=useState(project.selectedGenerationRunId??latest?.id??'')
   const [mode,setMode]=useState<ViewMode>('group')
   const [selectedEntityIds,setSelectedEntityIds]=useState<string[]>(['all'])
   const [focusSlot,setFocusSlot]=useState<{day:string;sessionId:string}|null>(null)
@@ -36,7 +36,8 @@ export function TimetablesPage({
   const [emptySlot,setEmptySlot]=useState<{groupId:string;day:Weekday;sessionId:string}|null>(null)
   const [slotMessage,setSlotMessage]=useState('')
 
-  const run=runs.find(item=>item.id===runId)??latest
+  const run=runs.find(item=>item.id===runId)??runs.find(item=>item.id===project.selectedGenerationRunId)??latest
+  const runNumber=run?Math.max(1,runs.findIndex(item=>item.id===run.id)+1):0
   const groups=project.groups.filter(group=>group.active)
   const teachers=project.teachers.filter(teacher=>teacher.active)
   const teachingBlocks=project.schedule.blocks.filter(block=>block.active&&block.type==='teaching')
@@ -145,28 +146,32 @@ export function TimetablesPage({
       </div>
     </section>
 
-    <section className="timetable-controls">
-      <div className="timetable-control-block">
-        <span className="panel-kicker">Propuesta</span>
-        <select value={run.id} onChange={event=>setRunId(event.target.value)}>
-          {[...runs].reverse().map((item,index)=><option key={item.id} value={item.id}>
-            Propuesta {runs.length-index} · {item.status==='complete'?'completa':item.status==='partial'?'parcial':'fallida'}
-          </option>)}
-        </select>
+    <section className="timetable-controls timetable-controls-stacked">
+      <div className="timetable-controls-main">
+        <div className="timetable-control-block timetable-active-proposal">
+          <span className="panel-kicker">Propuesta</span>
+          <div className="timetable-proposal-value">
+            <strong>Propuesta {runNumber}</strong>
+            <small>{run.status==='complete'?'completa':run.status==='partial'?'parcial':'fallida'}</small>
+            <button type="button" title="Cambiar propuesta en Generación" aria-label="Cambiar propuesta en Generación" onClick={()=>navigate('/generacion')}>
+              <ExternalLink size={16}/>
+            </button>
+          </div>
+        </div>
+
+        <div className="timetable-view-switch">
+          <button className={mode==='group'?'active':''} onClick={()=>{
+            setMode('group')
+            setSelectedEntityIds(['all'])
+          }}><GraduationCap size={16}/> Por grupo</button>
+          <button className={mode==='teacher'?'active':''} onClick={()=>{
+            setMode('teacher')
+            setSelectedEntityIds(['all'])
+          }}><UserRound size={16}/> Por docente</button>
+        </div>
       </div>
 
-      <div className="timetable-view-switch">
-        <button className={mode==='group'?'active':''} onClick={()=>{
-          setMode('group')
-          setSelectedEntityIds(['all'])
-        }}><GraduationCap size={16}/> Por grupo</button>
-        <button className={mode==='teacher'?'active':''} onClick={()=>{
-          setMode('teacher')
-          setSelectedEntityIds(['all'])
-        }}><UserRound size={16}/> Por docente</button>
-      </div>
-
-      <div className="timetable-control-block entity timetable-entity-tags-block">
+      <div className="timetable-control-block entity timetable-entity-tags-block timetable-tags-row">
         <span className="panel-kicker">{mode==='group'?'Grupos':'Docentes'}</span>
         <div className="timetable-entity-tags">
           <button
