@@ -569,3 +569,38 @@ export interface AuditResult {
   infos: number
   issues: AuditIssue[]
 }
+
+
+export function generationSignature(run: GenerationRun) {
+  return run.entries
+    .map(entry => [entry.assignmentId,entry.groupId,entry.subjectId,entry.teacherId,entry.day,entry.sessionId].join('|'))
+    .sort()
+    .join('||')
+}
+
+export function uniqueGenerationRuns(runs: GenerationRun[]) {
+  const seen=new Set<string>()
+  const unique:GenerationRun[]=[]
+  for(const run of runs){
+    const signature=generationSignature(run)
+    if(seen.has(signature)) continue
+    seen.add(signature)
+    unique.push(run)
+  }
+  return unique
+}
+
+export function generationDifference(a:GenerationRun,b:GenerationRun) {
+  const aSet=new Set(a.entries.map(entry=>[entry.assignmentId,entry.day,entry.sessionId].join('|')))
+  const bSet=new Set(b.entries.map(entry=>[entry.assignmentId,entry.day,entry.sessionId].join('|')))
+  let onlyA=0
+  let onlyB=0
+  for(const key of aSet) if(!bSet.has(key)) onlyA++
+  for(const key of bSet) if(!aSet.has(key)) onlyB++
+  return {
+    differentPlacements:Math.max(onlyA,onlyB),
+    onlyA,
+    onlyB,
+    identical:onlyA===0&&onlyB===0,
+  }
+}
