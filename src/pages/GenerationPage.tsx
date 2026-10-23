@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import {
   AlertTriangle, CalendarDays, CheckCircle2, Info, RefreshCcw, Sparkles,
-  Trash2, Trophy, X, XCircle,
+  Trash2, Trophy, XCircle,
 } from 'lucide-react'
 import {
   isPrevalidationComplete,
@@ -13,6 +13,7 @@ import {
 import { generateSchedule } from '../domain/generationEngine'
 import { saveProject } from '../store/projectStorage'
 import { WizardStepper } from '../components/WizardStepper'
+import { AppModal } from '../components/AppModal'
 
 const dayLabels:Record<Weekday,string>={
   L:'Lunes',M:'Martes',X:'Miércoles',J:'Jueves',V:'Viernes',S:'Sábado',
@@ -163,7 +164,7 @@ export function GenerationPage({
       </>}
     >
       <p>Se eliminará el historial de propuestas generadas, pero <strong>no se modificarán</strong> el centro, profesorado, asignaciones, reglas ni normativa.</p>
-    </Modal>}
+    </AppModal>}
 
     {showIssuesModal&&selectedRun&&<GenerationIssuesModal
       project={project}
@@ -290,7 +291,7 @@ function GenerationIssuesModal({
   navigate:(path:string)=>void
 }){
   const issues=humanGenerationIssues(run,project)
-  return <Modal
+  return <AppModal
     title="Incidencias de generación"
     icon={<AlertTriangle size={22}/>}
     onClose={onClose}
@@ -317,27 +318,5 @@ function GenerationIssuesModal({
         </div>
       </article>)}
     </div>
-  </Modal>
-}
-
-function Modal({
-  title,icon,onClose,children,footer,wide=false,
-}:{
-  title:string
-  icon:React.ReactNode
-  onClose:()=>void
-  children:React.ReactNode
-  footer?:React.ReactNode
-  wide?:boolean
-}){
-  return <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
-    <section className={'app-modal '+(wide?'wide':'')} role="dialog" aria-modal="true" aria-label={title} onMouseDown={event=>event.stopPropagation()}>
-      <header className="app-modal-header">
-        <div>{icon}<h2>{title}</h2></div>
-        <button className="modal-close" onClick={onClose} aria-label="Cerrar"><X size={18}/></button>
-      </header>
-      <div className="app-modal-body">{children}</div>
-      {footer&&<footer className="app-modal-footer">{footer}</footer>}
-    </section>
-  </div>
+  </AppModal>
 }
