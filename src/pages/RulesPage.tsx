@@ -96,7 +96,7 @@ export function RulesPage({
     const weight=draft.ruleType==='SOFT'
       ? Number(draft.weight)
       : null
-    if(draft.ruleType==='SOFT'&&(!Number.isFinite(weight)||weight<=0)){
+    if(draft.ruleType==='SOFT'&&(weight===null||!Number.isFinite(weight)||weight<=0)){
       setError('Las reglas SOFT necesitan un peso mayor que cero.')
       return
     }
