@@ -1,0 +1,440 @@
+import { useMemo, useState, type FormEvent } from 'react'
+import {
+  CheckCircle2, FileCheck2, Pencil, Plus, Save, ShieldAlert, ShieldCheck,
+  SlidersHorizontal, Trash2,
+} from 'lucide-react'
+import {
+  isAssignmentsComplete,
+  validateRules,
+  type CenterRule,
+  type NormativeRule,
+  type ViyeuticaProject,
+} from '../domain/project'
+import { saveProject } from '../store/projectStorage'
+import { WizardStepper } from '../components/WizardStepper'
+import { TemplatePanel } from '../components/TemplatePanel'
+
+type RuleType=CenterRule['ruleType']
+
+interface Draft {
+  scope:string
+  ruleType:RuleType
+  code:string
+  description:string
+  weight:string
+  parameters:string
+}
+
+const emptyDraft:Draft={
+  scope:'center',
+  ruleType:'HARD',
+  code:'',
+  description:'',
+  weight:'',
+  parameters:'{}',
+}
+
+const scopes=[
+  ['center','Centro'],
+  ['group','Grupo'],
+  ['teacher','Profesorado'],
+  ['subject','Materia'],
+  ['schedule','Jornada'],
+  ['assignment','Asignación'],
+  ['resource','Recurso'],
+] as const
+
+const uid=()=> 'rule_'+crypto.randomUUID()
+
+function safeParseParameters(value:string){
+  const parsed=JSON.parse(value)
+  if(parsed===null||Array.isArray(parsed)||typeof parsed!=='object') throw new Error('Los parámetros deben ser un objeto JSON.')
+  return parsed as Record<string,unknown>
+}
+
+export function RulesPage({
+  project,
+  navigate,
+}:{
+  project:ViyeuticaProject
+  navigate:(path:string)=>void
+}) {
+  const [draft,setDraft]=useState<Draft>(emptyDraft)
+  const [editingId,setEditingId]=useState<string|null>(null)
+  const [error,setError]=useState('')
+  const [templateMessage,setTemplateMessage]=useState('')
+  const [filter,setFilter]=useState<'all'|'HARD'|'SOFT'>('all')
+
+  const validation=useMemo(()=>validateRules(project),[project])
+  const activeRules=project.rules.filter(rule=>rule.active)
+  const hardCount=activeRules.filter(rule=>rule.ruleType==='HARD').length
+  const softCount=activeRules.filter(rule=>rule.ruleType==='SOFT').length
+  const normativeCount=activeRules.filter(rule=>rule.source==='normative').length
+  const importedCount=activeRules.filter(rule=>rule.source==='imported').length
+
+  const persist=(rules:CenterRule[])=>saveProject({...project,rules})
+
+  const reset=()=>{
+    setDraft(emptyDraft)
+    setEditingId(null)
+    setError('')
+  }
+
+  const submit=(event:FormEvent)=>{
+    event.preventDefault()
+    if(!draft.code.trim()||!draft.description.trim()){
+      setError('Indica código y descripción.')
+      return
+    }
+    let parameters:Record<string,unknown>
+    try{
+      parameters=safeParseParameters(draft.parameters)
+    }catch(err){
+      setError(err instanceof Error?err.message:'Parámetros JSON no válidos.')
+      return
+    }
+    const weight=draft.ruleType==='SOFT'
+      ? Number(draft.weight)
+      : null
+    if(draft.ruleType==='SOFT'&&(!Number.isFinite(weight)||weight<=0)){
+      setError('Las reglas SOFT necesitan un peso mayor que cero.')
+      return
+    }
+    const duplicate=project.rules.some(rule=>rule.id!==editingId&&rule.code.trim().toLowerCase()===draft.code.trim().toLowerCase())
+    if(duplicate){
+      setError('Ya existe una regla con ese código.')
+      return
+    }
+
+    const previous=editingId?project.rules.find(rule=>rule.id===editingId):undefined
+    const rule:CenterRule={
+      id:editingId??uid(),
+      scope:draft.scope,
+      ruleType:draft.ruleType,
+      code:draft.code.trim(),
+      description:draft.description.trim(),
+      parameters,
+      weight,
+      source:previous?.source??'manual',
+      normativeRuleId:previous?.normativeRuleId??null,
+      active:true,
+      reviewRequired:false,
+    }
+    persist(editingId
+      ? project.rules.map(item=>item.id===editingId?rule:item)
+      : [...project.rules,rule]
+    )
+    reset()
+  }
+
+  const edit=(rule:CenterRule)=>{
+    setEditingId(rule.id)
+    setDraft({
+      scope:rule.scope,
+      ruleType:rule.ruleType,
+      code:rule.code,
+      description:rule.description,
+      weight:rule.weight?String(rule.weight):'',
+      parameters:JSON.stringify(rule.parameters??{},null,2),
+    })
+    setError('')
+    window.scrollTo({top:0,behavior:'smooth'})
+  }
+
+  const remove=(id:string)=>persist(project.rules.filter(rule=>rule.id!==id))
+  const toggle=(id:string)=>persist(project.rules.map(rule=>rule.id===id?{...rule,active:!rule.active}:rule))
+
+  const markImportedReviewed=()=>{
+    const count=project.rules.filter(rule=>rule.source==='imported'||rule.reviewRequired).length
+    if(!count){
+      setTemplateMessage('No hay reglas importadas pendientes de revisión.')
+      return
+    }
+    persist(project.rules.map(rule=>
+      rule.source==='imported'||rule.reviewRequired
+        ? {...rule,source:'imported',reviewRequired:false}
+        : rule
+    ))
+    setTemplateMessage(`${count} reglas importadas marcadas como revisadas. Comprueba individualmente su vigencia antes de generar.`)
+  }
+
+  const createNormativeRules=()=>{
+    const approved=project.normativeRules.filter(rule=>rule.approved)
+    const existingNormIds=new Set(project.rules.map(rule=>rule.normativeRuleId).filter(Boolean))
+    const additions:CenterRule[]=[]
+    for(const normative of approved){
+      if(existingNormIds.has(normative.id)) continue
+      additions.push(convertNormativeRule(normative))
+    }
+    if(!additions.length){
+      setTemplateMessage('No hay reglas normativas aprobadas nuevas para incorporar.')
+      return
+    }
+    persist([...project.rules,...additions])
+    setTemplateMessage(`Se han creado ${additions.length} reglas desde normativa aprobada. Quedan marcadas para revisión antes de considerarlas definitivas.`)
+  }
+
+  const addBaseRules=()=>{
+    const seeds:CenterRule[]=[
+      {
+        id:uid(),
+        scope:'teacher',
+        ruleType:'HARD',
+        code:'NO_TEACHER_OVERLAP',
+        description:'Un docente no puede estar asignado a dos actividades simultáneas.',
+        parameters:{},
+        weight:null,
+        source:'manual',
+        active:true,
+        reviewRequired:false,
+      },
+      {
+        id:uid(),
+        scope:'group',
+        ruleType:'HARD',
+        code:'NO_GROUP_OVERLAP',
+        description:'Un grupo no puede tener dos actividades simultáneas.',
+        parameters:{},
+        weight:null,
+        source:'manual',
+        active:true,
+        reviewRequired:false,
+      },
+      {
+        id:uid(),
+        scope:'teacher',
+        ruleType:'HARD',
+        code:'RESPECT_TEACHER_AVAILABILITY',
+        description:'Las asignaciones deben respetar la disponibilidad e indisponibilidad docente registrada.',
+        parameters:{},
+        weight:null,
+        source:'manual',
+        active:true,
+        reviewRequired:false,
+      },
+      {
+        id:uid(),
+        scope:'schedule',
+        ruleType:'HARD',
+        code:'RESPECT_FIXED_SLOTS',
+        description:'Las franjas fijadas deben mantenerse en el día y sesión indicados.',
+        parameters:{},
+        weight:null,
+        source:'manual',
+        active:true,
+        reviewRequired:false,
+      },
+      {
+        id:uid(),
+        scope:'teacher',
+        ruleType:'SOFT',
+        code:'REDUCE_GAPS',
+        description:'Minimizar huecos innecesarios en el horario individual del profesorado.',
+        parameters:{},
+        weight:5,
+        source:'manual',
+        active:true,
+        reviewRequired:false,
+      },
+    ]
+    const existingCodes=new Set(project.rules.map(rule=>rule.code))
+    const additions=seeds.filter(seed=>!existingCodes.has(seed.code))
+    persist([...project.rules,...additions])
+    setTemplateMessage(additions.length?`Se han añadido ${additions.length} reglas base editables.`:'Las reglas base ya existen.')
+  }
+
+  if(!isAssignmentsComplete(project)){
+    return <section className="empty-state-card">
+      <ShieldCheck size={34}/>
+      <h1>Completa primero Asignaciones</h1>
+      <p>Las reglas necesitan una estructura docente y curricular coherente para poder validarse.</p>
+      <button className="btn primary" onClick={()=>navigate('/asignaciones')}>Ir a Asignaciones</button>
+    </section>
+  }
+
+  const visible=project.rules.filter(rule=>filter==='all'||rule.ruleType===filter)
+
+  return <div className="wizard-page rules-page">
+    <section className="wizard-intro">
+      <div>
+        <span className="eyebrow dark"><ShieldCheck size={15}/> Paso 7 · Restricciones y preferencias</span>
+        <h1>Reglas</h1>
+        <p>Define qué condiciones son obligatorias (HARD) y qué preferencias debe optimizar el generador (SOFT). Cada regla se guarda de forma estructurada para el solver y la auditoría.</p>
+      </div>
+      <div className="wizard-progress-summary"><strong>7 <span>de 9</span></strong><small>Reglas</small></div>
+    </section>
+
+    <WizardStepper currentStep={7} project={project} navigate={navigate}/>
+
+    <section className="structure-summary">
+      <Summary label="Reglas activas" value={String(activeRules.length)} detail="total aplicable"/>
+      <Summary label="HARD" value={String(hardCount)} detail="obligatorias"/>
+      <Summary label="SOFT" value={String(softCount)} detail="preferencias ponderadas"/>
+      <Summary label="Normativa / importadas" value={`${normativeCount}/${importedCount}`} detail="por procedencia"/>
+    </section>
+
+    <section className="rules-layout">
+      <form className="form-card" onSubmit={submit}>
+        <div className="form-card-heading">
+          <div className="form-card-number">07</div>
+          <div>
+            <span className="panel-kicker">{editingId?'Edición':'Nueva restricción'}</span>
+            <h2>{editingId?'Editar regla':'Crear regla'}</h2>
+            <p>Una regla HARD invalida una solución si se incumple. Una SOFT aporta penalización al score.</p>
+          </div>
+        </div>
+
+        <div className="form-grid two">
+          <Field label="Tipo" required>
+            <select value={draft.ruleType} onChange={e=>setDraft({...draft,ruleType:e.target.value as RuleType})}>
+              <option value="HARD">HARD · obligatoria</option>
+              <option value="SOFT">SOFT · preferencia</option>
+            </select>
+          </Field>
+          <Field label="Ámbito" required>
+            <select value={draft.scope} onChange={e=>setDraft({...draft,scope:e.target.value})}>
+              {scopes.map(([value,label])=><option key={value} value={value}>{label}</option>)}
+            </select>
+          </Field>
+          <Field label="Código" required>
+            <input value={draft.code} onChange={e=>setDraft({...draft,code:e.target.value.toUpperCase().replace(/\s+/g,'_')})} placeholder="Ej. NO_TEACHER_OVERLAP"/>
+          </Field>
+          <Field label="Peso">
+            <input type="number" min="1" disabled={draft.ruleType==='HARD'} value={draft.ruleType==='HARD'?'':draft.weight} onChange={e=>setDraft({...draft,weight:e.target.value})} placeholder={draft.ruleType==='SOFT'?'Ej. 5':'No aplica'}/>
+          </Field>
+        </div>
+        <Field label="Descripción" required>
+          <textarea value={draft.description} onChange={e=>setDraft({...draft,description:e.target.value})} placeholder="Describe de forma inequívoca la condición..."/>
+        </Field>
+        <Field label="Parámetros JSON">
+          <textarea className="rule-json-editor" value={draft.parameters} onChange={e=>setDraft({...draft,parameters:e.target.value})}/>
+        </Field>
+
+        {error&&<div className="inline-error">{error}</div>}
+
+        <div className="form-actions">
+          <button type="button" className="btn secondary-light" onClick={()=>navigate('/asignaciones')}>Paso anterior</button>
+          <div className="form-actions-right">
+            {editingId&&<button type="button" className="btn ghost-inline" onClick={reset}>Cancelar</button>}
+            <button className="btn primary" type="submit"><Save size={16}/>{editingId?'Guardar cambios':'Añadir regla'}</button>
+          </div>
+        </div>
+      </form>
+
+      <aside className="wizard-aside">
+        <article className={'aside-card validation '+(validation.length===0&&activeRules.length?'ready':'')}>
+          <span className="panel-kicker">Prevalidación</span>
+          <strong>{validation.length===0&&activeRules.length?'Reglas preparadas':validation.length?`${validation.length} incidencias`:'Sin reglas'}</strong>
+          <p>{validation[0]??'Las reglas activas tienen una estructura válida.'}</p>
+        </article>
+
+        <TemplatePanel
+          title="Plantillas de reglas"
+          description="Combina reglas base del motor, reglas importadas del curso anterior y reglas obtenidas de normativa aprobada."
+          actions={[
+            {
+              id:'base-rules',
+              label:'Añadir reglas base',
+              description:'Solapes, disponibilidad, franjas fijas y reducción de huecos',
+              onApply:addBaseRules,
+            },
+            {
+              id:'imported-rules',
+              label:'Revisar reglas importadas',
+              description:project.rules.some(rule=>rule.source==='imported'||rule.reviewRequired)?'Hay reglas del curso anterior':'No hay reglas importadas pendientes',
+              disabled:!project.rules.some(rule=>rule.source==='imported'||rule.reviewRequired),
+              onApply:markImportedReviewed,
+            },
+            {
+              id:'normative-rules',
+              label:'Incorporar normativa aprobada',
+              description:project.normativeRules.some(rule=>rule.approved)?'Crear reglas trazables desde Normativa':'No hay reglas normativas aprobadas',
+              disabled:!project.normativeRules.some(rule=>rule.approved),
+              onApply:createNormativeRules,
+            },
+          ]}
+        />
+      </aside>
+    </section>
+
+    {templateMessage&&<div className="template-result"><CheckCircle2 size={16}/><span>{templateMessage}</span></div>}
+
+    <section className="groups-table-card">
+      <div className="groups-table-heading">
+        <div><span className="panel-kicker">Motor de restricciones</span><h2>Reglas configuradas</h2></div>
+        <div className="rule-filter">
+          <button className={filter==='all'?'active':''} onClick={()=>setFilter('all')}>Todas</button>
+          <button className={filter==='HARD'?'active hard':''} onClick={()=>setFilter('HARD')}>HARD</button>
+          <button className={filter==='SOFT'?'active soft':''} onClick={()=>setFilter('SOFT')}>SOFT</button>
+        </div>
+      </div>
+
+      {visible.length===0
+        ? <div className="groups-empty"><ShieldAlert size={28}/><strong>No hay reglas en esta vista</strong><p>Añade una regla o aplica una plantilla.</p></div>
+        : <div className="rules-list">{visible.map(rule=><article className={'rule-card '+rule.ruleType.toLowerCase()+(!rule.active?' inactive':'')} key={rule.id}>
+            <div className="rule-type-badge">{rule.ruleType}</div>
+            <div className="rule-card-main">
+              <div className="rule-title-row"><strong>{rule.code}</strong><span>{scopeLabel(rule.scope)}</span>{rule.source&&<span>{sourceLabel(rule.source)}</span>}{rule.reviewRequired&&<span className="review-tag">Revisar</span>}</div>
+              <p>{rule.description}</p>
+              <small>Parámetros: <code>{JSON.stringify(rule.parameters)}</code>{rule.ruleType==='SOFT'&&<> · Peso <strong>{rule.weight??'—'}</strong></>}</small>
+              {rule.source==='normative'&&rule.normativeRuleId&&<NormativeTrace project={project} id={rule.normativeRuleId}/>}
+            </div>
+            <div className="rule-card-actions">
+              <button className={'status-toggle '+(rule.active?'active':'')} onClick={()=>toggle(rule.id)}>{rule.active?'Activa':'Inactiva'}</button>
+              <button title="Editar" onClick={()=>edit(rule)}><Pencil size={15}/></button>
+              <button title="Eliminar" className="danger" onClick={()=>remove(rule.id)}><Trash2 size={15}/></button>
+            </div>
+          </article>)}</div>}
+    </section>
+
+    <section className="notice amber rules-notice">
+      <FileCheck2 size={18}/>
+      <span><strong>Trazabilidad:</strong> una regla procedente de normativa mantiene el identificador de la regla aprobada que la originó. La Auditoría podrá explicar posteriormente por qué se aplicó.</span>
+    </section>
+  </div>
+}
+
+function convertNormativeRule(rule:NormativeRule):CenterRule {
+  const code=('NORM_'+rule.section+'_'+rule.kind+'_'+rule.id.slice(-6)).toUpperCase()
+  return {
+    id:uid(),
+    scope:scopeFromNormative(rule),
+    ruleType:'HARD',
+    code,
+    description:rule.excerpt||rule.label,
+    parameters:{
+      kind:rule.kind,
+      value:rule.value,
+      unit:rule.unit,
+      stage:rule.stage,
+      level:rule.level,
+      subject:rule.subject,
+      page:rule.page,
+    },
+    weight:null,
+    source:'normative',
+    normativeRuleId:rule.id,
+    active:true,
+    reviewRequired:true,
+  }
+}
+
+function scopeFromNormative(rule:NormativeRule){
+  if(rule.section==='staff') return 'teacher'
+  if(rule.section==='study_plan') return 'subject'
+  if(rule.section==='schedule') return 'schedule'
+  if(rule.section==='assignments') return 'assignment'
+  if(rule.section==='structure') return 'group'
+  return 'center'
+}
+
+function Summary({label,value,detail}:{label:string;value:string;detail:string}){return <article className="structure-summary-card"><span>{label}</span><strong>{value}</strong><small>{detail}</small></article>}
+function Field({label,required,children}:{label:string;required?:boolean;children:React.ReactNode}){return <label className="form-field"><span>{label}{required&&<em>*</em>}</span>{children}</label>}
+function scopeLabel(scope:string){return scopes.find(([value])=>value===scope)?.[1]??scope}
+function sourceLabel(source:CenterRule['source']){return source==='normative'?'Normativa':source==='imported'?'Importada':'Manual'}
+function NormativeTrace({project,id}:{project:ViyeuticaProject;id:string}){
+  const rule=project.normativeRules.find(item=>item.id===id)
+  const source=rule?project.normativeSources.find(item=>item.id===rule.sourceId):undefined
+  if(!rule)return null
+  return <div className="rule-trace"><FileCheck2 size={13}/><span>{source?.name??'Fuente normativa'} · pág. {rule.page} · confianza {Math.round(rule.confidence*100)}%</span></div>
+}
