@@ -311,10 +311,10 @@ function generateAttempt(project:ViyeuticaProject,attempt:number){
   return {entries,requested,hardViolations,softPenalty,status,score,notes,issues}
 }
 
-export function generateSchedule(project:ViyeuticaProject,attempts=40):GenerationRun{
+export function generateSchedule(project:ViyeuticaProject,attempts=40,seedOffset=0):GenerationRun{
   let best:ReturnType<typeof generateAttempt>|null=null
   for(let attempt=0;attempt<Math.max(1,attempts);attempt++){
-    const result=generateAttempt(project,attempt)
+    const result=generateAttempt(project,attempt+(seedOffset*1000))
     if(!best||result.hardViolations<best.hardViolations||(result.hardViolations===best.hardViolations&&result.score>best.score)){
       best=result
     }
