@@ -492,7 +492,7 @@ function baselineCellLabel(
   const primary=cell[0]
   const subject=project.subjects.find(item=>item.id===primary.subjectId)?.name??'Materia'
   const teachers=[...new Set(cell.map(entry=>project.teachers.find(item=>item.id===entry.teacherId)?.name).filter(Boolean))]
-  return 'Propuesta 1: '+subject+(teachers.length?' · '+teachers.join(' + '):'')
+  return 'Propuesta 1:\n'+subject+(teachers.length?' ('+teachers.join(' + ')+')':'')
 }
 
 function cellSignature(run:GenerationRun,groupId:string,day:Weekday,sessionId:string){
