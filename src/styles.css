@@ -489,3 +489,19 @@ button.wizard-step:focus-visible{outline:3px solid rgba(89,180,17,.22);outline-o
 .audit-main>strong{font-size:10px}.audit-main p{margin:4px 0 0;color:var(--muted);font-size:8.8px}.audit-main small{display:block;margin-top:4px;color:var(--muted);font-size:8.2px}
 [data-theme="dark"] .audit-controls select{background:var(--field-bg)}[data-theme="dark"] .audit-engine-note{background:#17202c}[data-theme="dark"] .audit-success{background:#182718;border-color:#3f6135}.audit-meta span{background:#eef3f7}[data-theme="dark"] .audit-meta span{background:#202b39;color:#aebbd0}
 @media(max-width:760px){.audit-controls{grid-template-columns:1fr}.audit-list article{grid-template-columns:auto minmax(0,1fr)}.audit-list article>.btn{grid-column:1/-1;width:100%}.audit-success{flex-direction:column}.audit-success .btn{width:100%}}
+
+
+/* === Trazabilidad normativa en Reglas === */
+.normative-traceability-panel{background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+.normative-traceability-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:16px 18px;border-bottom:1px solid var(--border)}
+.normative-traceability-heading h2{margin:3px 0 4px;font-size:15px}.normative-traceability-heading p{margin:0;max-width:760px;color:var(--muted);font-size:9px;line-height:1.5}
+.normative-traceability-kpis{display:flex;gap:8px}.normative-traceability-kpis span{min-width:100px;padding:9px 10px;border:1px solid var(--border);border-radius:10px;text-align:center}.normative-traceability-kpis strong,.normative-traceability-kpis small{display:block}.normative-traceability-kpis strong{font-size:15px}.normative-traceability-kpis small{margin-top:2px;color:var(--muted);font-size:7.5px}
+.normative-traceability-empty{display:flex;align-items:flex-start;gap:10px;padding:14px 18px}.normative-traceability-empty>svg{color:#4e82b4;flex:0 0 auto}.normative-traceability-empty strong{font-size:10px}.normative-traceability-empty p{margin:3px 0 0;color:var(--muted);font-size:8.8px;line-height:1.5}
+.normative-traceability-list{display:grid;gap:10px;padding:14px 18px}
+.normative-traceability-item{border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--surface)}.normative-traceability-item.broken{border-color:#e6b2ae}
+.normative-traceability-title{display:flex;align-items:flex-start;gap:9px;margin-bottom:10px}.normative-traceability-title>svg{color:var(--navy2);flex:0 0 auto}.normative-traceability-title strong,.normative-traceability-title span{display:block}.normative-traceability-title strong{font-size:10.5px}.normative-traceability-title span{margin-top:2px;color:var(--muted);font-size:8px}
+.normative-traceability-grid{display:grid;grid-template-columns:1.3fr .9fr .9fr 1.2fr;gap:10px}
+.normative-traceability-grid>div{padding:9px 10px;border:1px solid var(--border);border-radius:10px;background:#fafbfc}.normative-traceability-grid strong,.normative-traceability-grid p{display:block}.normative-traceability-grid strong{font-size:9px}.normative-traceability-grid p{margin:4px 0 0;color:var(--muted);font-size:8.2px;line-height:1.45}.trace-label{display:block;margin-bottom:4px;color:var(--muted);font-size:7.4px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}
+[data-theme="dark"] .normative-traceability-grid>div{background:#17202c}
+@media(max-width:1050px){.normative-traceability-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.normative-traceability-heading{flex-direction:column}.normative-traceability-kpis{width:100%}.normative-traceability-kpis span{flex:1}.normative-traceability-grid{grid-template-columns:1fr}}
