@@ -819,3 +819,34 @@ main .generated-schedule th strong{
 .proposal-diff-badge{display:none!important}
 
 .proposal-diff-tooltip{white-space:pre-line}
+
+
+/* === Exportaciones === */
+.export-page{display:grid;gap:18px}
+.export-audit-status{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:var(--surface)}
+.export-audit-status span,.export-audit-status strong,.export-audit-status small{display:block}
+.export-audit-status small{margin-top:3px;color:var(--muted)}
+.export-audit-status.passed{border-color:#b9d9aa;background:#f5fbf1;color:#456b34}
+.export-audit-status.failed{border-color:#e5b3af;background:#fff6f5;color:#9c3b36}
+.export-selected-proposal{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px;border:1px solid var(--border);border-radius:14px;background:var(--surface)}
+.export-selected-proposal h2{margin:3px 0}
+.export-selected-proposal p{margin:0;color:var(--muted)}
+.export-blocker{display:flex;align-items:flex-start;gap:12px;padding:14px;border:1px solid #e5b3af;border-radius:12px;background:#fff6f5;color:#8d3530}
+.export-blocker>div{flex:1}.export-blocker p{margin:4px 0 0;color:var(--muted)}
+.export-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.export-card{display:grid;grid-template-rows:auto 1fr auto;gap:12px;padding:16px;border:1px solid var(--border);border-radius:14px;background:var(--surface)}
+.export-card-icon{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;background:#eef3f7;color:var(--navy2)}
+.export-card h2{margin:0 0 6px;font-size:15px}
+.export-card p{margin:0;color:var(--muted);line-height:1.5}
+.export-card .btn{justify-self:start}
+.export-footnote{display:flex;align-items:flex-start;gap:10px;padding:13px 15px;border:1px solid var(--border);border-radius:12px;background:var(--surface)}
+.export-footnote p{margin:4px 0 0;color:var(--muted)}
+[data-theme="dark"] .export-audit-status.passed{background:#182718;border-color:#304c2c;color:#a8cf98}
+[data-theme="dark"] .export-audit-status.failed,[data-theme="dark"] .export-blocker{background:#2d1a19;border-color:#5c3430;color:#e69b95}
+[data-theme="dark"] .export-card-icon{background:#202b39}
+@media(max-width:1050px){.export-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){
+  .export-grid{grid-template-columns:1fr}
+  .export-selected-proposal,.export-blocker{align-items:stretch;flex-direction:column}
+  .export-card .btn{width:100%}
+}
