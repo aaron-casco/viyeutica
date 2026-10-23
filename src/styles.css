@@ -430,3 +430,25 @@ button.wizard-step:focus-visible{outline:3px solid rgba(89,180,17,.22);outline-o
 .spin{animation:viyeutica-spin .9s linear infinite}@keyframes viyeutica-spin{to{transform:rotate(360deg)}}
 [data-theme="dark"] .generation-notes{background:#2a2414;border-color:#5d5127;color:#d6c784}[data-theme="dark"] .generated-schedule thead th,[data-theme="dark"] .generated-schedule tbody th{background:#17202c}[data-theme="dark"] .generation-toolbar select{background:var(--field-bg)}
 @media(max-width:760px){.generation-control-card,.generation-result-heading,.generation-toolbar{align-items:stretch;flex-direction:column}.generation-control-actions{justify-content:flex-start}.generation-toolbar label{justify-content:space-between}}
+
+
+/* === Modales y diagnósticos de generación === */
+.modal-backdrop{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:24px;background:rgba(8,22,42,.52);backdrop-filter:blur(3px)}
+.app-modal{width:min(560px,100%);max-height:min(82vh,760px);display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:0 24px 80px rgba(3,18,38,.28);overflow:hidden}
+.app-modal.wide{width:min(920px,100%)}
+.app-modal-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid var(--border)}
+.app-modal-header>div{display:flex;align-items:center;gap:9px}.app-modal-header>div>svg{color:var(--navy2)}.app-modal-header h2{margin:0;font-size:15px}
+.modal-close{width:34px;height:34px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:inherit;display:grid;place-items:center;cursor:pointer}
+.app-modal-body{padding:16px 18px;overflow:auto}.app-modal-body>p{margin:0;color:var(--muted);font-size:10px;line-height:1.55}
+.app-modal-footer{display:flex;justify-content:flex-end;gap:8px;padding:13px 18px;border-top:1px solid var(--border);background:#fafbfc}
+.btn.danger-modal{background:#b84f49;color:#fff;border-color:#b84f49}
+.generation-issues-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 18px;padding:12px 13px;border:1px solid #e2c66b;background:#fff9e8;border-radius:12px}
+.generation-issues-summary>div{display:flex;align-items:flex-start;gap:9px}.generation-issues-summary svg{color:#a67813;flex:0 0 auto}.generation-issues-summary strong,.generation-issues-summary small{display:block}.generation-issues-summary strong{font-size:10px}.generation-issues-summary small{margin-top:3px;color:#806827;font-size:8.6px}
+.generation-issues-intro{display:flex;align-items:flex-start;gap:9px;margin-bottom:14px;padding:11px 12px;border-radius:11px;background:#f4f8fc}.generation-issues-intro svg{color:#4e82b4;flex:0 0 auto}.generation-issues-intro p{margin:0;color:var(--muted);font-size:9.5px;line-height:1.5}
+.generation-issues-list{display:grid;gap:9px}
+.generation-issues-list article{display:grid;grid-template-columns:auto minmax(0,1fr);gap:11px;padding:12px;border:1px solid var(--border);border-radius:12px}
+.generation-issue-number{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:9px;font-weight:900}.generation-issue-number.error{background:#fff0ef;color:#b3443f}.generation-issue-number.warning{background:#fff6df;color:#9b7418}
+.generation-issue-body>strong{font-size:10.5px}.generation-issue-tags{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}.generation-issue-tags span{padding:4px 7px;border-radius:999px;background:#eef3f7;color:#53657b;font-size:8px;font-weight:800}
+.generation-issue-body p{margin:4px 0 0;color:var(--muted);font-size:8.8px;line-height:1.45}
+[data-theme="dark"] .app-modal-footer{background:#151d28}[data-theme="dark"] .generation-issues-summary{background:#2a2414;border-color:#5d5127}[data-theme="dark"] .generation-issues-summary small{color:#d6c784}[data-theme="dark"] .generation-issues-intro{background:#17202c}[data-theme="dark"] .generation-issue-tags span{background:#202b39;color:#aebbd0}
+@media(max-width:650px){.modal-backdrop{padding:10px;place-items:end center}.app-modal,.app-modal.wide{width:100%;max-height:90vh;border-radius:18px 18px 0 0}.generation-issues-summary{align-items:stretch;flex-direction:column}.app-modal-footer{flex-direction:column-reverse}.app-modal-footer .btn{width:100%}}
