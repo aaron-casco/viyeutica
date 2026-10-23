@@ -404,3 +404,92 @@ export function validateRules(project: ViyeuticaProject) {
 export function isRulesComplete(project: ViyeuticaProject) {
   return isAssignmentsComplete(project) && validateRules(project).length === 0
 }
+
+
+export type PrevalidationSeverity = 'error' | 'warning' | 'info'
+export interface PrevalidationIssue {
+  id: string
+  severity: PrevalidationSeverity
+  section: string
+  code: string
+  message: string
+  detail?: string
+  entityId?: string | null
+}
+
+export function runPrevalidation(project: ViyeuticaProject): PrevalidationIssue[] {
+  const issues: PrevalidationIssue[] = []
+  const push = (severity:PrevalidationSeverity, section:string, code:string, message:string, detail?:string, entityId?:string|null) => {
+    issues.push({id: section+'_'+code+'_'+issues.length, severity, section, code, message, detail, entityId})
+  }
+
+  if (!isCenterComplete(project.center)) push('error','Centro','CENTRO_INCOMPLETO','Los datos del centro no están completos.')
+  if (!isStructureComplete(project)) push('error','Estructura y grupos','ESTRUCTURA_INCOMPLETA','La estructura del centro no cubre todas las etapas activas.')
+  for (const message of validateSchedule(project.schedule)) push('error','Jornada y sesiones','JORNADA',message)
+  for (const message of validateStudyPlan(project)) push('error','Plan de estudios','PLAN_ESTUDIOS',message)
+  for (const message of validateStaff(project)) push('error','Profesorado','PROFESORADO',message)
+  for (const message of validateAssignments(project)) push('error','Asignaciones','ASIGNACIONES',message)
+  for (const message of validateRules(project)) push('error','Reglas','REGLAS',message)
+
+  const activeTeachers = project.teachers.filter(t=>t.active)
+  const activeAssignments = project.assignments.filter(a=>a.active)
+  const assignmentMinutesByTeacher = new Map<string,number>()
+  for (const assignment of activeAssignments) {
+    const current=assignmentMinutesByTeacher.get(assignment.teacherId)??0
+    const minutes=(assignment.weeklyMinutes??0)>0
+      ? assignment.weeklyMinutes!
+      : (assignment.weeklySessions??0)*45
+    assignmentMinutesByTeacher.set(assignment.teacherId,current+minutes)
+  }
+  for (const teacher of activeTeachers) {
+    const assigned=assignmentMinutesByTeacher.get(teacher.id)??0
+    if (teacher.weeklyTeachingMinutes!==null && assigned>teacher.weeklyTeachingMinutes) {
+      push('error','Profesorado','SOBRECARGA_DOCENTE',`${teacher.name} supera su carga lectiva semanal configurada.`,`Asignado: ${assigned} min · Máximo: ${teacher.weeklyTeachingMinutes} min`,teacher.id)
+    }
+    if (teacher.status==='to_determine') {
+      push('warning','Profesorado','DOCENTE_PENDIENTE',`${teacher.name} sigue marcado como "Por determinar".`,undefined,teacher.id)
+    }
+  }
+
+  for (const rule of project.rules.filter(r=>r.active)) {
+    if (rule.reviewRequired) {
+      push('warning','Reglas','REGLA_PENDIENTE_REVISION',`La regla "${rule.description}" requiere revisión.`,undefined,rule.id)
+    }
+    const p=rule.parameters??{}
+    const known = new Set(['SIN_SOLAPE_DOCENTE','SIN_SOLAPE_GRUPO','RESPETAR_DISPONIBILIDAD_DOCENTE','RESPETAR_FRANJAS_FIJAS','REDUCIR_HUECOS_DOCENTES'])
+    if (!known.has(rule.code) && !p.conditionKind) {
+      push('warning','Reglas','REGLA_NO_EVALUABLE',`La regla "${rule.description}" no tiene una condición estructurada suficiente para comprobarla automáticamente.`,undefined,rule.id)
+    }
+    if (rule.ruleType==='SOFT') {
+      push('info','Reglas','REGLA_SOFT',`Preferencia activa: ${rule.description}`,`Peso: ${rule.weight??'—'}`,rule.id)
+    }
+  }
+
+  const fixedAvailability = project.teacherAvailability.filter(item=>item.status==='assigned')
+  const seenFixed=new Set<string>()
+  for (const item of fixedAvailability) {
+    const key=`${item.teacherId}|${item.day}|${item.session}`
+    if (seenFixed.has(key)) {
+      push('warning','Asignaciones','FRANJA_FIJA_DUPLICADA','Existe una franja fijada duplicada para el mismo docente.')
+      break
+    }
+    seenFixed.add(key)
+  }
+
+  if (!project.normativeSources.length) {
+    push('info','Normativa','SIN_NORMATIVA','No hay documentos normativos cargados. La prevalidación se limita a la configuración del proyecto.')
+  } else if (!project.normativeRules.some(rule=>rule.approved)) {
+    push('warning','Normativa','NORMATIVA_SIN_APROBAR','Hay normativa cargada, pero ninguna regla normativa está aprobada.')
+  }
+
+  if (!issues.some(issue=>issue.severity==='error')) {
+    push('info','Prevalidación','LISTO_PARA_GENERAR','No se han detectado bloqueos estructurales antes de la generación.')
+  }
+
+  return issues
+}
+
+export function isPrevalidationComplete(project: ViyeuticaProject) {
+  if (!isRulesComplete(project)) return false
+  return !runPrevalidation(project).some(issue=>issue.severity==='error')
+}
