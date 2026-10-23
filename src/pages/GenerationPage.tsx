@@ -4,8 +4,10 @@ import {
   Trash2, Trophy, XCircle,
 } from 'lucide-react'
 import {
+  emptyGroupTeachingSlots,
   generationDifference,
   generationSignature,
+  isGenerationProposalValid,
   isPrevalidationComplete,
   latestGeneration,
   uniqueGenerationRuns,
@@ -36,8 +38,9 @@ export function GenerationPage({
   const [showIssuesModal,setShowIssuesModal]=useState(false)
   const [ascending,setAscending]=useState(true)
   const [generationNotice,setGenerationNotice]=useState('')
+  const [generationAlternatives,setGenerationAlternatives]=useState<{title:string;detail:string;route:string}[]>([])
 
-  const runs=uniqueGenerationRuns(project.generationRuns)
+  const runs=uniqueGenerationRuns(project.generationRuns).filter(run=>isGenerationProposalValid(project,run))
   const selectedRun=runs.find(run=>run.id===selectedRunId)??runs[runs.length-1]??latestGeneration(project)
   const activeGroups=project.groups.filter(group=>group.active)
   const teachingBlocks=project.schedule.blocks.filter(block=>block.active&&block.type==='teaching')
@@ -64,16 +67,22 @@ export function GenerationPage({
     if(!isPrevalidationComplete(project)) return
     setRunning(true)
     setGenerationNotice('')
+    setGenerationAlternatives([])
     window.setTimeout(()=>{
-      const existing=uniqueGenerationRuns(project.generationRuns)
+      const existing=uniqueGenerationRuns(project.generationRuns).filter(run=>isGenerationProposalValid(project,run))
       const existingSignatures=new Set(existing.map(generationSignature))
       const target=existing.length===0?3:1
       const additions:GenerationRun[]=[]
-      const maxSearch=existing.length===0?12:8
+      const rejected:GenerationRun[]=[]
+      const maxSearch=existing.length===0?18:12
       const baseIndex=project.generationRuns.length
 
       for(let index=0;index<maxSearch&&additions.length<target;index++){
-        const result=generateSchedule(project,60,baseIndex+index+1)
+        const result=generateSchedule(project,80,baseIndex+index+1)
+        if(!isGenerationProposalValid(project,result)){
+          rejected.push(result)
+          continue
+        }
         const signature=generationSignature(result)
         if(existingSignatures.has(signature)) continue
         existingSignatures.add(signature)
@@ -81,21 +90,32 @@ export function GenerationPage({
       }
 
       const merged=[...existing,...additions]
-      saveProject({...project,generationRuns:merged,selectedGenerationRunId:additions[0]?.id??project.selectedGenerationRunId??merged[0]?.id??null})
-      if(additions.length){
-        setSelectedRunId(additions[0].id)
-      }else if(existing[0]){
-        setSelectedRunId(existing[0].id)
-      }
+      const selectedId=additions[0]?.id??project.selectedGenerationRunId??merged[0]?.id??null
+      saveProject({...project,generationRuns:merged,selectedGenerationRunId:selectedId})
+      if(selectedId)setSelectedRunId(selectedId)
 
-      if(existing.length===0&&additions.length<3){
+      if(!additions.length&&existing.length===0){
+        const diagnostic=[...rejected].sort((a,b)=>
+          emptyGroupTeachingSlots(project,a).length-emptyGroupTeachingSlots(project,b).length ||
+          a.hardViolations-b.hardViolations ||
+          b.score-a.score
+        )[0]
+        setGenerationNotice('No se ha encontrado ninguna propuesta válida sin huecos con la configuración actual.')
+        setGenerationAlternatives(buildGenerationAlternatives(project,diagnostic))
+      }else if(existing.length===0&&additions.length<3){
         setGenerationNotice(
           additions.length===1
-            ? 'Tras buscar varias alternativas, Viyeutica solo ha encontrado una distribución distinta con la configuración actual.'
-            : `Viyeutica ha encontrado ${additions.length} propuestas distintas de las 3 solicitadas. Las demás combinaciones obtenidas eran duplicadas.`
+            ? 'Viyeutica ha encontrado una única propuesta válida sin huecos en la búsqueda realizada.'
+            : `Viyeutica ha encontrado ${additions.length} propuestas válidas distintas de las 3 solicitadas.`
         )
       }else if(existing.length>0&&additions.length===0){
-        setGenerationNotice('No se ha encontrado una propuesta nueva distinta de las ya existentes con la configuración actual.')
+        setGenerationNotice('No se ha encontrado una nueva propuesta válida y distinta de las ya existentes.')
+        const diagnostic=[...rejected].sort((a,b)=>
+          emptyGroupTeachingSlots(project,a).length-emptyGroupTeachingSlots(project,b).length ||
+          a.hardViolations-b.hardViolations ||
+          b.score-a.score
+        )[0]
+        if(diagnostic)setGenerationAlternatives(buildGenerationAlternatives(project,diagnostic))
       }
 
       setRunning(false)
@@ -151,6 +171,17 @@ export function GenerationPage({
     </section>
 
     {generationNotice&&<section className="generation-uniqueness-notice"><Info size={18}/><span>{generationNotice}</span></section>}
+    {generationAlternatives.length>0&&<section className="generation-alternatives">
+      <div className="groups-table-heading">
+        <div><span className="panel-kicker">Alternativas posibles</span><h2>Qué puedes cambiar para desbloquear el horario</h2></div>
+      </div>
+      <div className="generation-alternative-list">
+        {generationAlternatives.map((item,index)=><article key={index}>
+          <div><strong>{item.title}</strong><p>{item.detail}</p></div>
+          <button className="btn ghost-inline" onClick={()=>navigate(item.route)}>Revisar</button>
+        </article>)}
+      </div>
+    </section>}
 
     {runs.length===0
       ? <section className="generation-empty">
@@ -470,4 +501,85 @@ function GenerationIssuesModal({
       </article>)}
     </div>
   </AppModal>
+}
+
+
+function buildGenerationAlternatives(project:ViyeuticaProject,run?:GenerationRun){
+  if(!run)return [{
+    title:'Revisar restricciones del proyecto',
+    detail:'No se ha podido construir un diagnóstico suficiente. Comprueba asignaciones, disponibilidad docente y reglas HARD.',
+    route:'/prevalidacion',
+  }]
+  const alternatives:{title:string;detail:string;route:string}[]=[]
+  const empty=emptyGroupTeachingSlots(project,run)
+  const seen=new Set<string>()
+
+  for(const slot of empty){
+    const group=project.groups.find(item=>item.id===slot.groupId)
+    const block=project.schedule.blocks.find(item=>item.id===slot.sessionId)
+    const assignments=project.assignments.filter(item=>item.active&&item.assignmentType==='main'&&item.groupId===slot.groupId)
+    const pending=assignments.filter(assignment=>{
+      const plan=project.studyPlan.find(item=>item.active&&item.groupId===assignment.groupId&&item.subjectId===assignment.subjectId)
+      const expected=(assignment.weeklySessions??0)>0?assignment.weeklySessions!:(plan?.weeklySessions??0)
+      const placed=run.entries.filter(entry=>entry.assignmentId===assignment.id).length
+      return placed<expected
+    })
+
+    if(!pending.length){
+      const key='plan|'+slot.groupId
+      if(!seen.has(key)){
+        seen.add(key)
+        alternatives.push({
+          title:'Revisar carga semanal de '+(group?.name??'un grupo'),
+          detail:'El Plan de estudios no aporta suficientes sesiones principales para cubrir todas las franjas lectivas del grupo.',
+          route:'/materias',
+        })
+      }
+      continue
+    }
+
+    const blocked=pending.filter(assignment=>project.teacherAvailability.some(item=>
+      item.teacherId===assignment.teacherId &&
+      item.day===slot.day &&
+      item.session===slot.sessionId &&
+      (item.status==='unavailable'||item.status==='travel')
+    ))
+    if(blocked.length){
+      const names=[...new Set(blocked.map(assignment=>project.teachers.find(item=>item.id===assignment.teacherId)?.name).filter(Boolean))]
+      const key='availability|'+slot.groupId+'|'+slot.day+'|'+slot.sessionId
+      if(!seen.has(key)){
+        seen.add(key)
+        alternatives.push({
+          title:'Revisar disponibilidad docente',
+          detail:(group?.name??'Grupo')+' · '+dayLabels[slot.day]+' · '+(block?.label??'sesión')+': '+names.join(', ')+' no está disponible en esa franja.',
+          route:'/asignaciones',
+        })
+      }
+    }else{
+      const busy=pending.filter(assignment=>run.entries.some(entry=>
+        entry.teacherId===assignment.teacherId &&
+        entry.day===slot.day &&
+        entry.sessionId===slot.sessionId
+      ))
+      const key=(busy.length?'busy':'rules')+'|'+slot.groupId+'|'+slot.day+'|'+slot.sessionId
+      if(!seen.has(key)){
+        seen.add(key)
+        alternatives.push({
+          title:busy.length?'Liberar una franja docente':'Revisar franjas fijas o reglas HARD',
+          detail:(group?.name??'Grupo')+' · '+dayLabels[slot.day]+' · '+(block?.label??'sesión')+' no puede cubrirse con las restricciones actuales.',
+          route:busy.length?'/asignaciones':'/reglas',
+        })
+      }
+    }
+    if(alternatives.length>=8)break
+  }
+
+  if(!alternatives.length&&run.hardViolations>0){
+    alternatives.push({
+      title:'Revisar incidencias de asignación',
+      detail:'La mejor tentativa sigue incumpliendo restricciones obligatorias. Revisa las asignaciones y franjas fijas antes de volver a generar.',
+      route:'/asignaciones',
+    })
+  }
+  return alternatives.slice(0,8)
 }
