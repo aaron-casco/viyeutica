@@ -1,11 +1,14 @@
 import { useMemo, useState } from 'react'
 import {
-  AlertTriangle, CalendarDays, CheckCircle2, Info, Plus, RefreshCcw, Sparkles,
+  AlertTriangle, ArrowDownUp, CalendarDays, CheckCircle2, Info, Plus, RefreshCcw, Sparkles,
   Trash2, Trophy, XCircle,
 } from 'lucide-react'
 import {
+  generationDifference,
+  generationSignature,
   isPrevalidationComplete,
   latestGeneration,
+  uniqueGenerationRuns,
   type GenerationRun,
   type ViyeuticaProject,
   type Weekday,
@@ -31,23 +34,52 @@ export function GenerationPage({
   const [running,setRunning]=useState(false)
   const [showClearModal,setShowClearModal]=useState(false)
   const [showIssuesModal,setShowIssuesModal]=useState(false)
+  const [ascending,setAscending]=useState(true)
+  const [generationNotice,setGenerationNotice]=useState('')
 
-  const runs=project.generationRuns
-  const selectedRun=runs.find(run=>run.id===selectedRunId)??latestGeneration(project)
+  const runs=uniqueGenerationRuns(project.generationRuns)
+  const selectedRun=runs.find(run=>run.id===selectedRunId)??runs[runs.length-1]??latestGeneration(project)
   const activeGroups=project.groups.filter(group=>group.active)
   const teachingBlocks=project.schedule.blocks.filter(block=>block.active&&block.type==='teaching')
 
   const runGeneration=()=>{
     if(!isPrevalidationComplete(project)) return
     setRunning(true)
+    setGenerationNotice('')
     window.setTimeout(()=>{
+      const existing=uniqueGenerationRuns(project.generationRuns)
+      const existingSignatures=new Set(existing.map(generationSignature))
+      const target=existing.length===0?3:1
+      const additions:GenerationRun[]=[]
+      const maxSearch=existing.length===0?12:8
       const baseIndex=project.generationRuns.length
-      const count=project.generationRuns.length===0?3:1
-      const results=Array.from({length:count},(_,index)=>
-        generateSchedule(project,60,baseIndex+index+1)
-      )
-      saveProject({...project,generationRuns:[...project.generationRuns,...results]})
-      setSelectedRunId(results[0]?.id??'')
+
+      for(let index=0;index<maxSearch&&additions.length<target;index++){
+        const result=generateSchedule(project,60,baseIndex+index+1)
+        const signature=generationSignature(result)
+        if(existingSignatures.has(signature)) continue
+        existingSignatures.add(signature)
+        additions.push(result)
+      }
+
+      const merged=[...existing,...additions]
+      saveProject({...project,generationRuns:merged})
+      if(additions.length){
+        setSelectedRunId(additions[0].id)
+      }else if(existing[0]){
+        setSelectedRunId(existing[0].id)
+      }
+
+      if(existing.length===0&&additions.length<3){
+        setGenerationNotice(
+          additions.length===1
+            ? 'Tras buscar varias alternativas, Viyeutica solo ha encontrado una distribución distinta con la configuración actual.'
+            : `Viyeutica ha encontrado ${additions.length} propuestas distintas de las 3 solicitadas. Las demás combinaciones obtenidas eran duplicadas.`
+        )
+      }else if(existing.length>0&&additions.length===0){
+        setGenerationNotice('No se ha encontrado una propuesta nueva distinta de las ya existentes con la configuración actual.')
+      }
+
       setRunning(false)
     },20)
   }
@@ -100,6 +132,8 @@ export function GenerationPage({
       </div>
     </section>
 
+    {generationNotice&&<section className="generation-uniqueness-notice"><Info size={18}/><span>{generationNotice}</span></section>}
+
     {runs.length===0
       ? <section className="generation-empty">
           <CalendarDays size={38}/>
@@ -110,19 +144,31 @@ export function GenerationPage({
         <section className="generation-history">
           <div className="groups-table-heading">
             <div><span className="panel-kicker">Comparación</span><h2>Propuestas generadas</h2></div>
-            <button className="btn ghost-inline generation-add-more" disabled={running} onClick={runGeneration}>
-              {running?<RefreshCcw className="spin" size={15}/>:<Plus size={15}/>} {running?'Generando...':'Generar otra propuesta'}
-            </button>
+            <div className="generation-history-actions">
+              <button className="btn ghost-inline" title="Invertir orden" onClick={()=>setAscending(value=>!value)}>
+                <ArrowDownUp size={15}/> {ascending?'1 → N':'N → 1'}
+              </button>
+              <button className="btn ghost-inline generation-add-more" disabled={running} onClick={runGeneration}>
+                {running?<RefreshCcw className="spin" size={15}/>:<Plus size={15}/>} {running?'Generando...':'Generar otra propuesta'}
+              </button>
+            </div>
           </div>
           <div className="generation-run-list">
-            {[...runs].reverse().map((run,index)=><RunCard
-              key={run.id}
-              run={run}
-              best={isBestRun(run,runs)}
-              selected={run.id===selectedRun?.id}
-              label={`Propuesta ${runs.length-index}`}
-              onClick={()=>setSelectedRunId(run.id)}
-            />)}
+            {(ascending?[...runs]:[...runs].reverse()).map((run,index)=>{
+              const originalIndex=runs.findIndex(item=>item.id===run.id)
+              const first=runs[0]
+              const diff=first&&run.id!==first.id?generationDifference(first,run):null
+              return <RunCard
+                key={run.id}
+                run={run}
+                best={isBestRun(run,runs)}
+                selected={run.id===selectedRun?.id}
+                label={`Propuesta ${originalIndex+1}`}
+                difference={diff?.differentPlacements??0}
+                baseline={run.id===first?.id}
+                onClick={()=>setSelectedRunId(run.id)}
+              />
+            })}
           </div>
         </section>
 
@@ -189,12 +235,14 @@ export function GenerationPage({
 }
 
 function RunCard({
-  run,best,selected,label,onClick,
+  run,best,selected,label,difference,baseline,onClick,
 }:{
   run:GenerationRun
   best:boolean
   selected:boolean
   label:string
+  difference:number
+  baseline:boolean
   onClick:()=>void
 }) {
   const Icon=run.status==='complete'?CheckCircle2:run.status==='partial'?AlertTriangle:XCircle
@@ -203,6 +251,7 @@ function RunCard({
     <span className="generation-run-main">
       <strong>{label}{best&&<em>Mejor</em>}</strong>
       <small>{run.placedSessions}/{run.requestedSessions} sesiones · HARD {run.hardViolations} · SOFT {run.softPenalty}</small>
+      <small className="generation-difference">{baseline?'Referencia para comparar':difference===0?'Sin diferencias frente a Propuesta 1':`${difference} colocaciones distintas frente a Propuesta 1`}</small>
     </span>
     <span className="generation-run-score">{run.score}</span>
   </button>
