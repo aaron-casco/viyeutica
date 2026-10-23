@@ -624,3 +624,16 @@ button.wizard-step:focus-visible{outline:3px solid rgba(89,180,17,.22);outline-o
 [data-theme="dark"] .proposal-diff-cell{background:#2a2414!important;box-shadow:inset 0 0 0 2px #c49a3b}
 [data-theme="dark"] .diff-swatch{background:#2a2414;border-color:#c49a3b}
 @media(max-width:700px){.generation-toolbar-tags{align-items:stretch}.generation-toolbar-tags>.btn{width:100%}.generation-group-heading{align-items:flex-start;flex-direction:column}}
+
+
+/* === Horarios: filtros por grupos/docentes === */
+.timetable-entity-tags-block{min-width:0;flex:1}
+.timetable-entity-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.timetable-entity-tags button{border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--muted);padding:7px 10px;font-size:8.2px;font-weight:800;cursor:pointer}
+.timetable-entity-tags button.active{background:#eef7e9;border-color:#9dce7b;color:#4b8b24}
+.timetable-multi-list{display:grid;gap:16px}
+.timetable-entity-section{display:grid;gap:7px}
+.timetable-entity-heading{display:flex;align-items:center;justify-content:space-between}
+.timetable-entity-heading strong{font-size:10px}
+[data-theme="dark"] .timetable-entity-tags button.active{background:#182718;border-color:#3f6135;color:#9fd079}
+@media(max-width:700px){.timetable-entity-tags-block{width:100%}}
