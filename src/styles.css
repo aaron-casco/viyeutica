@@ -557,3 +557,13 @@ button.wizard-step:focus-visible{outline:3px solid rgba(89,180,17,.22);outline-o
 .normative-document-viewer{height:min(70vh,760px);min-height:520px;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:#fff}
 .normative-document-viewer iframe{width:100%;height:100%;border:0;display:block}
 @media(max-width:700px){.normative-document-viewer{min-height:65vh}.normative-source-actions{width:100%;justify-content:flex-end}}
+
+
+/* === Vista previa JSON importado + salto a página normativa === */
+.import-preview-actions{display:flex;gap:8px;flex-wrap:wrap}
+.danger-text{color:#b3443f!important}
+.json-document-viewer{max-height:min(70vh,760px);overflow:auto;border:1px solid var(--border);border-radius:10px;background:#0f1722}
+.json-document-viewer pre{margin:0;padding:16px;min-width:max-content;color:#d8e2ef;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre}
+.normative-open-page{display:inline-flex;align-items:center;gap:5px;border:0;background:transparent;color:var(--navy2);font-size:8px;font-weight:800;cursor:pointer;padding:2px 0}
+.normative-open-page:hover{text-decoration:underline}
+@media(max-width:700px){.import-preview-actions{width:100%}.import-preview-actions .btn{flex:1}.json-document-viewer pre{font-size:11px}}
