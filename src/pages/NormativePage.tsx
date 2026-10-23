@@ -74,7 +74,7 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
     }
   }
 
-  const openSource=async(sourceId:string,name:string)=>{
+  const openSource=async(sourceId:string,name:string,page?:number)=>{
     setViewerError('')
     try{
       const blob=await getNormativeFile(sourceId)
@@ -82,8 +82,9 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
         setViewerError('El documento se cargó antes de que Viyeutica almacenase los archivos originales. Selecciónalo de nuevo y se asociará a esta ficha sin duplicarlo.')
         return
       }
-      const url=URL.createObjectURL(blob)
-      setViewer({name,url})
+      const baseUrl=URL.createObjectURL(blob)
+      const url=page&&page>0?baseUrl+'#page='+page:baseUrl
+      setViewer({name:page&&page>0?name+' · pág. '+page:name,url})
     }catch(err){
       setViewerError(err instanceof Error?err.message:'No se ha podido abrir el documento.')
     }
@@ -193,12 +194,17 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
       {visibleRules.length===0
         ? <div className="groups-empty"><ShieldCheck size={28}/><strong>No hay reglas en esta vista</strong><p>Sube un documento o cambia el filtro.</p></div>
         : <div className="normative-rule-list">
-            {visibleRules.map(rule=><RuleCard
-              key={rule.id}
-              rule={rule}
-              sourceName={project.normativeSources.find(source=>source.id===rule.sourceId)?.name??'Fuente eliminada'}
-              onToggle={()=>toggleRule(rule.id)}
-            />)}
+            {visibleRules.map(rule=>{
+              const source=project.normativeSources.find(source=>source.id===rule.sourceId)
+              return <RuleCard
+                key={rule.id}
+                rule={rule}
+                sourceName={source?.name??'Fuente eliminada'}
+                sourceMimeType={source?.mimeType??''}
+                onToggle={()=>toggleRule(rule.id)}
+                onOpen={()=>source&&openSource(source.id,source.name,rule.page)}
+              />
+            })}
           </div>}
     </section>
 
@@ -223,7 +229,15 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
   </div>
 }
 
-function RuleCard({rule,sourceName,onToggle}:{rule:NormativeRule;sourceName:string;onToggle:()=>void}) {
+function RuleCard({
+  rule,sourceName,sourceMimeType,onToggle,onOpen,
+}:{
+  rule:NormativeRule
+  sourceName:string
+  sourceMimeType:string
+  onToggle:()=>void
+  onOpen:()=>void
+}) {
   return <article className={'normative-rule '+(rule.approved?'approved':'')}>
     <button className={'normative-approve '+(rule.approved?'approved':'')} onClick={onToggle}>
       {rule.approved?<CheckCircle2 size={18}/>:<span/>}
@@ -242,6 +256,7 @@ function RuleCard({rule,sourceName,onToggle}:{rule:NormativeRule;sourceName:stri
         <span>{sourceName}</span>
         <span>{rule.value!==null?`${rule.value} ${unitLabel(rule.unit)}`:'Regla textual'}</span>
         <span>Confianza {Math.round(rule.confidence*100)}%</span>
+        {sourceMimeType==='application/pdf'&&<button className="normative-open-page" onClick={onOpen}><Eye size={14}/> Ver pág. {rule.page} en PDF</button>}
       </div>
     </div>
   </article>
