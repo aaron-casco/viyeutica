@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle, CalendarDays, CheckCircle2, GraduationCap, Sparkles, UserRound,
 } from 'lucide-react'
@@ -27,11 +27,33 @@ export function TimetablesPage({
   const [runId,setRunId]=useState(latest?.id??'')
   const [mode,setMode]=useState<ViewMode>('group')
   const [entityId,setEntityId]=useState(project.groups.find(group=>group.active)?.id??'')
+  const [focusSlot,setFocusSlot]=useState<{day:string;sessionId:string}|null>(null)
+  const [auditFocus,setAuditFocus]=useState('')
 
   const run=runs.find(item=>item.id===runId)??latest
   const groups=project.groups.filter(group=>group.active)
   const teachers=project.teachers.filter(teacher=>teacher.active)
   const teachingBlocks=project.schedule.blocks.filter(block=>block.active&&block.type==='teaching')
+
+  useEffect(()=>{
+    const raw=window.location.hash.split('?')[1]
+    if(!raw)return
+    const params=new URLSearchParams(raw)
+    const teacherId=params.get('teacherId')
+    const groupId=params.get('groupId')
+    const day=params.get('day')
+    const sessionId=params.get('sessionId')
+    const auditCode=params.get('auditCode')
+    if(groupId){
+      setMode('group')
+      setEntityId(groupId)
+    }else if(teacherId){
+      setMode('teacher')
+      setEntityId(teacherId)
+    }
+    if(day&&sessionId)setFocusSlot({day,sessionId})
+    if(auditCode)setAuditFocus('Vista abierta desde Auditoría · '+auditCode)
+  },[])
 
   const options=mode==='group'
     ? groups.map(group=>({id:group.id,label:group.name}))
@@ -106,6 +128,8 @@ export function TimetablesPage({
       </div>
     </section>
 
+    {auditFocus&&<section className="template-result audit-context-banner"><CheckCircle2 size={16}/><span>{auditFocus}</span></section>}
+
     <section className="structure-summary">
       <Summary label="Sesiones ocupadas" value={String(occupiedCells)} detail={`de ${totalCells} franjas`}/>
       <Summary label="Materias" value={String(subjects)} detail={mode==='group'?'en este grupo':'impartidas'}/>
@@ -134,14 +158,15 @@ export function TimetablesPage({
             <th><strong>{block.label}</strong><small>{block.start}–{block.end}</small></th>
             {project.schedule.activeDays.map(day=>{
               const cell=entries.filter(entry=>entry.day===day&&entry.sessionId===block.id)
-              if(!cell.length)return <td key={day} className="empty-slot"><span>Libre</span></td>
+              const focused=focusSlot?.day===day&&focusSlot?.sessionId===block.id
+              if(!cell.length)return <td key={day} className={'empty-slot '+(focused?'audit-slot-focus':'')}><span>Libre</span></td>
               if(mode==='group'){
                 const primary=cell[0]
                 const subject=project.subjects.find(item=>item.id===primary.subjectId)
                 const teacherNames=[...new Set(cell.map(entry=>project.teachers.find(item=>item.id===entry.teacherId)?.name).filter(Boolean))]
-                return <td key={day}><strong>{subject?.name??'Materia'}</strong><small>{teacherNames.join(' + ')}</small></td>
+                return <td key={day} className={focused?'audit-slot-focus':''}><strong>{subject?.name??'Materia'}</strong><small>{teacherNames.join(' + ')}</small></td>
               }
-              return <td key={day}>
+              return <td key={day} className={focused?'audit-slot-focus':''}>
                 {cell.map(entry=>{
                   const subject=project.subjects.find(item=>item.id===entry.subjectId)
                   const group=project.groups.find(item=>item.id===entry.groupId)
