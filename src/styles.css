@@ -375,3 +375,11 @@ button.wizard-step:focus-visible{outline:3px solid rgba(89,180,17,.22);outline-o
 .assignment-missing-list span,.assignment-missing-list small{display:block}
 .assignment-missing-list span{font-size:9.5px}.assignment-missing-list small{margin-top:2px;color:#806c36;font-size:8.5px}
 [data-theme="dark"] .assignment-progress-alert{background:#2a2414;border-color:#5d5127}.assignment-progress-alert-icon{background:#3c3316;color:#e2c66b}[data-theme="dark"] .assignment-progress-alert p{color:#d6c784}[data-theme="dark"] .assignment-missing-list button{background:#221f14;border-color:#554b27}[data-theme="dark"] .assignment-missing-list small{color:#c7b778}
+
+
+/* === Visual rule condition builder === */
+.rule-condition-builder{margin-top:14px;padding:14px;border:1px solid var(--border);border-radius:14px;background:var(--field-bg,#fff)}
+.rule-condition-builder-heading{margin-bottom:12px}.rule-condition-builder-heading h3{margin:3px 0 4px;font-size:14px}.rule-condition-builder-heading p{margin:0;color:var(--muted);font-size:9px;line-height:1.45}
+.rule-condition-preview{margin-top:12px;padding:10px 11px;border-radius:10px;background:#f5f8fb;border:1px solid var(--border)}
+.rule-condition-preview strong,.rule-condition-preview span{display:block}.rule-condition-preview strong{font-size:9px}.rule-condition-preview span{margin-top:3px;color:var(--muted);font-size:9px;line-height:1.45}
+[data-theme="dark"] .rule-condition-builder{background:var(--field-bg)}[data-theme="dark"] .rule-condition-preview{background:#17202c}
