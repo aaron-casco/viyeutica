@@ -581,3 +581,17 @@ button.wizard-step:focus-visible{outline:3px solid rgba(89,180,17,.22);outline-o
 [data-theme="dark"] .normative-relevance-tabs button.active{background:#182718;border-color:#3f6135;color:#9fd079}
 [data-theme="dark"] .normative-relevance-tabs button.active span{background:#223720;color:#9fd079}
 @media(max-width:700px){.normative-relevance-tabs{display:grid;grid-template-columns:1fr}.normative-relevance-tabs button{justify-content:space-between}}
+
+
+/* === Contexto procedente de Auditoría === */
+.audit-context-banner{margin-bottom:0}
+.audit-slot-focus{
+  outline:2px solid #d49b25!important;
+  outline-offset:-2px;
+  background:#fff8e7!important;
+  box-shadow:inset 0 0 0 2px rgba(212,155,37,.12);
+}
+[data-theme="dark"] .audit-slot-focus{
+  background:#2a2414!important;
+  outline-color:#c49a3b!important;
+}
