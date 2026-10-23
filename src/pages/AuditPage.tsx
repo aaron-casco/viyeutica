@@ -1,0 +1,150 @@
+import { useMemo, useState } from 'react'
+import {
+  AlertTriangle, CheckCircle2, ClipboardCheck, Info, SearchCheck, ShieldAlert,
+} from 'lucide-react'
+import { auditGeneration } from '../domain/auditEngine'
+import {
+  latestGeneration,
+  type AuditIssue,
+  type AuditResult,
+  type ViyeuticaProject,
+  type Weekday,
+} from '../domain/project'
+
+const dayLabels:Record<Weekday,string>={
+  L:'Lunes',M:'Martes',X:'Miércoles',J:'Jueves',V:'Viernes',S:'Sábado',
+}
+
+export function AuditPage({
+  project,
+  navigate,
+}:{
+  project:ViyeuticaProject
+  navigate:(path:string)=>void
+}) {
+  const runs=project.generationRuns
+  const latest=latestGeneration(project)
+  const [runId,setRunId]=useState(latest?.id??'')
+  const run=runs.find(item=>item.id===runId)??latest
+
+  const result=useMemo(()=>run?auditGeneration(project,run):null,[project,run])
+
+  if(!run||!result){
+    return <section className="empty-state-card">
+      <SearchCheck size={34}/>
+      <h1>No hay una propuesta que auditar</h1>
+      <p>Genera primero un horario para poder comprobarlo de forma independiente.</p>
+      <button className="btn primary" onClick={()=>navigate('/generacion')}>Ir a Generación</button>
+    </section>
+  }
+
+  const errors=result.issues.filter(issue=>issue.severity==='error')
+  const warnings=result.issues.filter(issue=>issue.severity==='warning')
+  const infos=result.issues.filter(issue=>issue.severity==='info')
+  const categories=[...new Set(result.issues.map(issue=>issue.category))]
+
+  return <div className="audit-page">
+    <section className="wizard-intro">
+      <div>
+        <span className="eyebrow dark"><SearchCheck size={15}/> Verificación independiente</span>
+        <h1>Auditoría</h1>
+        <p>Revisa el horario generado con comprobaciones independientes del solver para detectar conflictos, incumplimientos y cargas incoherentes.</p>
+      </div>
+      <div className={'audit-status '+(result.passed?'passed':'failed')}>
+        {result.passed?<CheckCircle2 size={20}/>:<ShieldAlert size={20}/>}
+        <span>
+          <strong>{result.passed?'Auditoría superada':'Auditoría con incidencias'}</strong>
+          <small>{result.errors} errores · {result.warnings} advertencias</small>
+        </span>
+      </div>
+    </section>
+
+    <section className="audit-controls">
+      <label>
+        <span className="panel-kicker">Propuesta auditada</span>
+        <select value={run.id} onChange={event=>setRunId(event.target.value)}>
+          {[...runs].reverse().map((item,index)=><option key={item.id} value={item.id}>
+            Propuesta {runs.length-index} · {item.status==='complete'?'completa':item.status==='partial'?'parcial':'fallida'}
+          </option>)}
+        </select>
+      </label>
+      <div className="audit-engine-note">
+        <ClipboardCheck size={18}/>
+        <span><strong>Comprobación independiente</strong><small>La auditoría recalcula el resultado y no confía únicamente en el estado devuelto por Generación.</small></span>
+      </div>
+    </section>
+
+    <section className="structure-summary">
+      <Summary label="Errores" value={String(result.errors)} detail="bloquean validación"/>
+      <Summary label="Advertencias" value={String(result.warnings)} detail="requieren revisión"/>
+      <Summary label="Categorías afectadas" value={String(categories.length)} detail={categories.length?categories.join(' · '):'sin incidencias'}/>
+      <Summary label="Resultado" value={result.passed?'Apto':'No apto'} detail="auditoría independiente"/>
+    </section>
+
+    {result.passed&&<section className="audit-success">
+      <CheckCircle2 size={22}/>
+      <div><strong>El horario ha superado las comprobaciones automáticas</strong><p>No se han detectado errores en solapes, disponibilidad, franjas fijas, cobertura ni cargas semanales evaluables.</p></div>
+      <button className="btn primary" onClick={()=>navigate('/exportaciones')}>Ir a Exportaciones</button>
+    </section>}
+
+    <section className="audit-sections">
+      <AuditSection title="Errores" description="Conflictos que impiden considerar válido el horario." issues={errors} project={project} navigate={navigate}/>
+      <AuditSection title="Advertencias" description="Situaciones que requieren revisión pero no invalidan automáticamente." issues={warnings} project={project} navigate={navigate}/>
+      {infos.length>0&&<AuditSection title="Información" description="Observaciones adicionales de la auditoría." issues={infos} project={project} navigate={navigate}/>}
+    </section>
+  </div>
+}
+
+function AuditSection({
+  title,description,issues,project,navigate,
+}:{
+  title:string
+  description:string
+  issues:AuditIssue[]
+  project:ViyeuticaProject
+  navigate:(path:string)=>void
+}) {
+  return <section className="audit-card">
+    <div className="audit-card-heading">
+      <div><span className="panel-kicker">{title}</span><h2>{issues.length} incidencias</h2><p>{description}</p></div>
+    </div>
+    {issues.length===0
+      ? <div className="audit-empty"><CheckCircle2 size={18}/><span>Sin incidencias</span></div>
+      : <div className="audit-list">{issues.map(issue=><article key={issue.id}>
+          <div className={'audit-icon '+issue.severity}>{issue.severity==='error'?<ShieldAlert size={17}/>:issue.severity==='warning'?<AlertTriangle size={17}/>:<Info size={17}/>}</div>
+          <div className="audit-main">
+            <div className="audit-meta"><span>{issue.category}</span><code>{issue.code}</code></div>
+            <strong>{issue.message}</strong>
+            <p>{describeIssue(issue,project)}</p>
+            {issue.detail&&<small>{issue.detail}</small>}
+          </div>
+          <button className="btn ghost-inline" onClick={()=>navigate(routeForIssue(issue))}>Revisar</button>
+        </article>)}</div>}
+  </section>
+}
+
+function describeIssue(issue:AuditIssue,project:ViyeuticaProject){
+  const parts:string[]=[]
+  const teacher=issue.teacherId?project.teachers.find(item=>item.id===issue.teacherId):undefined
+  const group=issue.groupId?project.groups.find(item=>item.id===issue.groupId):undefined
+  const subject=issue.subjectId?project.subjects.find(item=>item.id===issue.subjectId):undefined
+  const block=issue.sessionId?project.schedule.blocks.find(item=>item.id===issue.sessionId):undefined
+  if(group)parts.push(group.name)
+  if(subject)parts.push(subject.name)
+  if(teacher)parts.push(teacher.name)
+  if(issue.day)parts.push(dayLabels[issue.day])
+  if(block)parts.push(block.label)
+  return parts.length?parts.join(' · '):'Incidencia general del horario.'
+}
+
+function routeForIssue(issue:AuditIssue){
+  if(issue.category==='Disponibilidad'||issue.category==='Franjas fijas')return '/asignaciones'
+  if(issue.category==='Cobertura'||issue.category==='Carga semanal')return '/asignaciones'
+  if(issue.category==='Reglas')return '/reglas'
+  if(issue.category==='Integridad')return '/prevalidacion'
+  return '/horarios'
+}
+
+function Summary({label,value,detail}:{label:string;value:string;detail:string}) {
+  return <article className="structure-summary-card"><span>{label}</span><strong>{value}</strong><small>{detail}</small></article>
+}
