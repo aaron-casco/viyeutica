@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import {
   CheckCircle2, Eye, FileSearch, FileText, ShieldCheck, Trash2, UploadCloud, XCircle,
 } from 'lucide-react'
-import type { NormativeRule, NormativeSection, ViyeuticaProject } from '../domain/project'
+import type { NormativeRelevance, NormativeRule, NormativeSection, ViyeuticaProject } from '../domain/project'
 import { analyzeNormativeFile } from '../domain/normativeAnalyzer'
 import { saveProject } from '../store/projectStorage'
 import { AppModal } from '../components/AppModal'
@@ -24,13 +24,17 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState('')
   const [filter,setFilter]=useState<NormativeSection|'all'>('all')
+  const [relevanceFilter,setRelevanceFilter]=useState<NormativeRelevance>('timetable')
   const [viewer,setViewer]=useState<{name:string;url:string}|null>(null)
   const [viewerError,setViewerError]=useState('')
 
   const approved=project.normativeRules.filter(rule=>rule.approved)
   const visibleRules=useMemo(
-    ()=>project.normativeRules.filter(rule=>filter==='all'||rule.section===filter),
-    [project.normativeRules,filter],
+    ()=>project.normativeRules.filter(rule=>
+      (rule.relevance??inferLegacyRelevance(rule))===relevanceFilter &&
+      (filter==='all'||rule.section===filter)
+    ),
+    [project.normativeRules,filter,relevanceFilter],
   )
 
   const persist=(patch:Partial<ViyeuticaProject>)=>saveProject({...project,...patch})
@@ -100,7 +104,15 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
   })
 
   const approveHighConfidence=()=>persist({
-    normativeRules:project.normativeRules.map(rule=>rule.confidence>=0.78?{...rule,approved:true}:rule),
+    normativeRules:project.normativeRules.map(rule=>
+      (rule.relevance??inferLegacyRelevance(rule))==='timetable'&&rule.confidence>=0.78
+        ? {...rule,approved:true}
+        : rule
+    ),
+  })
+
+  const setRuleRelevance=(id:string,relevance:NormativeRelevance)=>persist({
+    normativeRules:project.normativeRules.map(rule=>rule.id===id?{...rule,relevance}:rule),
   })
 
   const rejectAll=()=>persist({
@@ -184,6 +196,17 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
         </div>
       </div>
 
+      <div className="normative-relevance-tabs">
+        <button className={relevanceFilter==='timetable'?'active':''} onClick={()=>setRelevanceFilter('timetable')}>
+          Aplicable al horario
+          <span>{project.normativeRules.filter(rule=>(rule.relevance??inferLegacyRelevance(rule))==='timetable').length}</span>
+        </button>
+        <button className={relevanceFilter==='reference'?'active':''} onClick={()=>setRelevanceFilter('reference')}>
+          Normativa de referencia
+          <span>{project.normativeRules.filter(rule=>(rule.relevance??inferLegacyRelevance(rule))==='reference').length}</span>
+        </button>
+      </div>
+
       <div className="normative-filter-row">
         <button className={filter==='all'?'active':''} onClick={()=>setFilter('all')}>Todas</button>
         {(Object.keys(SECTION_LABELS) as NormativeSection[]).map(section=>
@@ -203,6 +226,8 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
                 sourceMimeType={source?.mimeType??''}
                 onToggle={()=>toggleRule(rule.id)}
                 onOpen={()=>source&&openSource(source.id,source.name,rule.page)}
+                relevance={rule.relevance??inferLegacyRelevance(rule)}
+                onMove={value=>setRuleRelevance(rule.id,value)}
               />
             })}
           </div>}
@@ -230,13 +255,15 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
 }
 
 function RuleCard({
-  rule,sourceName,sourceMimeType,onToggle,onOpen,
+  rule,sourceName,sourceMimeType,onToggle,onOpen,relevance,onMove,
 }:{
   rule:NormativeRule
   sourceName:string
   sourceMimeType:string
   onToggle:()=>void
   onOpen:()=>void
+  relevance:NormativeRelevance
+  onMove:(value:NormativeRelevance)=>void
 }) {
   return <article className={'normative-rule '+(rule.approved?'approved':'')}>
     <button className={'normative-approve '+(rule.approved?'approved':'')} onClick={onToggle}>
@@ -257,6 +284,9 @@ function RuleCard({
         <span>{rule.value!==null?`${rule.value} ${unitLabel(rule.unit)}`:'Regla textual'}</span>
         <span>Confianza {Math.round(rule.confidence*100)}%</span>
         {sourceMimeType==='application/pdf'&&<button className="normative-open-page" onClick={onOpen}><Eye size={14}/> Ver pág. {rule.page} en PDF</button>}
+        <button className="normative-move-rule" onClick={()=>onMove(relevance==='timetable'?'reference':'timetable')}>
+          {relevance==='timetable'?'Mover a referencia':'Usar para horario'}
+        </button>
       </div>
     </div>
   </article>
@@ -273,4 +303,12 @@ function formatBytes(bytes:number){
   if(bytes<1024) return bytes+' B'
   if(bytes<1024*1024) return (bytes/1024).toFixed(1)+' KB'
   return (bytes/(1024*1024)).toFixed(1)+' MB'
+}
+
+
+function inferLegacyRelevance(rule:NormativeRule):NormativeRelevance{
+  if(rule.section==='schedule'||rule.section==='assignments'||rule.section==='staff'||rule.section==='structure') return 'timetable'
+  if(rule.section==='study_plan'&&['weekly_hours','weekly_minutes','weekly_periods','session_minutes','subject_rule'].includes(rule.kind)) return 'timetable'
+  if(rule.section==='rules'&&/horario|sesión|periodo|jornada|docente|grupo|asignación|disponibilidad|simult|solap|recreo/i.test(rule.excerpt)) return 'timetable'
+  return 'reference'
 }
