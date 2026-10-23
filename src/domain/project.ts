@@ -303,3 +303,32 @@ export function validateStudyPlan(project: ViyeuticaProject) {
 export function isStudyPlanComplete(project: ViyeuticaProject) {
   return isScheduleComplete(project) && validateStudyPlan(project).length === 0
 }
+
+
+export function validateStaff(project: ViyeuticaProject) {
+  const errors: string[] = []
+  const activeTeachers = project.teachers.filter(teacher => teacher.active)
+
+  if (!activeTeachers.length) errors.push('Añade al menos un docente activo.')
+
+  for (const teacher of activeTeachers) {
+    if (!teacher.name.trim()) errors.push('Todos los docentes necesitan un nombre.')
+    if (!teacher.specialties.length) errors.push(`El docente "${teacher.name || 'sin nombre'}" no tiene especialidad.`)
+    if (teacher.weeklyTeachingMinutes !== null && teacher.weeklyTeachingMinutes < 0) {
+      errors.push(`La carga lectiva de "${teacher.name}" no es válida.`)
+    }
+  }
+
+  const tutorIds = new Set(project.groups.map(group => group.tutorTeacherId).filter(Boolean))
+  for (const tutorId of tutorIds) {
+    if (!activeTeachers.some(teacher => teacher.id === tutorId)) {
+      errors.push('Existe una tutoría vinculada a un docente inexistente o inactivo.')
+    }
+  }
+
+  return [...new Set(errors)]
+}
+
+export function isStaffComplete(project: ViyeuticaProject) {
+  return isStudyPlanComplete(project) && validateStaff(project).length === 0
+}
