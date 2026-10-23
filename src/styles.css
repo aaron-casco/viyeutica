@@ -706,3 +706,62 @@ button.wizard-step:focus-visible{outline:3px solid rgba(89,180,17,.22);outline-o
 .generation-alternative-list strong{font-size:9.5px}
 .generation-alternative-list p{margin:4px 0 0;color:var(--muted);font-size:8.4px;line-height:1.45}
 @media(max-width:700px){.generation-alternative-list article{align-items:stretch;flex-direction:column}.generation-alternative-list .btn{width:100%}}
+
+
+/* === Legibilidad del contenido === */
+main p,
+main small,
+main label,
+main td,
+main th,
+main button,
+main input,
+main select,
+main textarea{
+  font-size:max(10px,.78rem);
+}
+main .panel-kicker,
+main .eyebrow{
+  font-size:max(9px,.7rem);
+}
+main .structure-summary-card span,
+main .structure-summary-card small,
+main .generation-run-main small,
+main .timetable-entity-heading,
+main .generation-group-heading small{
+  font-size:max(10px,.76rem);
+}
+main .generation-run-main strong,
+main .generated-schedule td strong,
+main .generated-schedule th strong{
+  font-size:max(11px,.82rem);
+}
+
+/* === Alternativas ejecutables === */
+.generation-alternative-list article{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+}
+.generation-alternative-number{
+  width:32px;
+  height:32px;
+  border-radius:999px;
+  display:grid;
+  place-items:center;
+  background:#eef3f7;
+  color:#455a70;
+  font-size:12px;
+  font-weight:900;
+}
+.generation-alternative-copy strong{font-size:13px}
+.generation-alternative-copy p{font-size:12px;line-height:1.5}
+.generation-alternative-actions{display:flex;gap:8px;align-items:center}
+.generation-applied-alternative{display:flex;align-items:center;gap:10px}
+.generation-applied-alternative span{flex:1}
+[data-theme="dark"] .generation-alternative-number{background:#202b39;color:#c3d0df}
+@media(max-width:700px){
+  .generation-alternative-list article{grid-template-columns:auto 1fr}
+  .generation-alternative-actions{grid-column:1/-1;width:100%}
+  .generation-alternative-actions .btn{flex:1}
+}
