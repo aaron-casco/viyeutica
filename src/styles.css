@@ -567,3 +567,17 @@ button.wizard-step:focus-visible{outline:3px solid rgba(89,180,17,.22);outline-o
 .normative-open-page{display:inline-flex;align-items:center;gap:5px;border:0;background:transparent;color:var(--navy2);font-size:8px;font-weight:800;cursor:pointer;padding:2px 0}
 .normative-open-page:hover{text-decoration:underline}
 @media(max-width:700px){.import-preview-actions{width:100%}.import-preview-actions .btn{flex:1}.json-document-viewer pre{font-size:11px}}
+
+
+/* === Clasificación de normativa por relevancia === */
+.normative-relevance-tabs{display:flex;gap:8px;padding:14px 16px 0}
+.normative-relevance-tabs button{display:flex;align-items:center;gap:7px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--muted);padding:9px 11px;font-size:8.8px;font-weight:800;cursor:pointer}
+.normative-relevance-tabs button span{min-width:22px;height:22px;border-radius:999px;display:grid;place-items:center;background:#eef3f7;color:#607087;font-size:7.8px}
+.normative-relevance-tabs button.active{background:#eef7e9;border-color:#9dce7b;color:#4b8b24}
+.normative-relevance-tabs button.active span{background:#ddefd1;color:#4b8b24}
+.normative-move-rule{border:0;background:transparent;color:#526b84;font-size:8px;font-weight:800;cursor:pointer;padding:2px 0}
+.normative-move-rule:hover{text-decoration:underline}
+[data-theme="dark"] .normative-relevance-tabs button span{background:#202b39;color:#aebbd0}
+[data-theme="dark"] .normative-relevance-tabs button.active{background:#182718;border-color:#3f6135;color:#9fd079}
+[data-theme="dark"] .normative-relevance-tabs button.active span{background:#223720;color:#9fd079}
+@media(max-width:700px){.normative-relevance-tabs{display:grid;grid-template-columns:1fr}.normative-relevance-tabs button{justify-content:space-between}}
