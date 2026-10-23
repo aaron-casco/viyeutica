@@ -154,7 +154,7 @@ export function GenerationPage({
         </section>}
       </>}
 
-    {showClearModal&&<Modal
+    {showClearModal&&<AppModal
       title="Eliminar propuestas generadas"
       icon={<Trash2 size={22}/>}
       onClose={()=>setShowClearModal(false)}
