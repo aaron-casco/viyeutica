@@ -875,3 +875,29 @@ main .generated-schedule th strong{
   .template-download-actions{display:grid;grid-template-columns:1fr}
   .template-download-actions .btn{width:100%}
 }
+
+/* === Importar Plantilla: dos opciones 50/50 === */
+.template-import-grid{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:14px;
+}
+.template-import-grid .normative-upload-card{
+  width:100%;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+}
+.template-option-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:auto;
+}
+.template-option-actions .btn{width:100%}
+@media(max-width:850px){
+  .template-import-grid{grid-template-columns:1fr!important}
+}
+@media(max-width:620px){
+  .template-option-actions{grid-template-columns:1fr}
+}
