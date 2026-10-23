@@ -97,6 +97,49 @@ export interface NormativeSource {
   ruleCount: number
 }
 
+export interface Teacher {
+  id: string
+  name: string
+  status: 'confirmed' | 'to_determine'
+  employmentType: 'full' | 'partial' | 'itinerant' | 'other'
+  specialties: string[]
+  roles: string[]
+  weeklyTeachingMinutes: number | null
+  active: boolean
+}
+
+export interface TeacherAvailability {
+  teacherId: string
+  day: string
+  session: string
+  status: 'available' | 'unavailable' | 'travel' | 'assigned'
+  detail: string
+}
+
+export interface TeachingAssignment {
+  id: string
+  groupId: string
+  subjectId: string
+  teacherId: string
+  assignmentType: 'main' | 'support' | 'co_teaching'
+  weeklySessions: number | null
+  weeklyMinutes: number | null
+  fixedSlots?: { day:string; session:string }[]
+  active: boolean
+  source?: string
+}
+
+export interface CenterRule {
+  id: string
+  scope: string
+  ruleType: 'HARD' | 'SOFT'
+  code: string
+  description: string
+  parameters: Record<string, unknown>
+  active: boolean
+  reviewRequired?: boolean
+}
+
 export interface NormativeRule {
   id: string
   sourceId: string
@@ -122,6 +165,10 @@ export interface ViyeuticaProject {
   schedule: ScheduleConfig
   subjects: Subject[]
   studyPlan: StudyPlanEntry[]
+  teachers: Teacher[]
+  teacherAvailability: TeacherAvailability[]
+  assignments: TeachingAssignment[]
+  rules: CenterRule[]
   normativeSources: NormativeSource[]
   normativeRules: NormativeRule[]
   updatedAt: string | null
@@ -166,6 +213,10 @@ export const EMPTY_PROJECT: ViyeuticaProject = {
   schedule: EMPTY_SCHEDULE,
   subjects: [],
   studyPlan: [],
+  teachers: [],
+  teacherAvailability: [],
+  assignments: [],
+  rules: [],
   normativeSources: [],
   normativeRules: [],
   updatedAt: null,
