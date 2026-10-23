@@ -678,3 +678,22 @@ button.wizard-step:focus-visible{outline:3px solid rgba(89,180,17,.22);outline-o
 [data-theme="dark"] .empty-slot-context{background:#17202c}
 [data-theme="dark"] .empty-slot-no-options{background:#2d1a19;border-color:#5c3430}
 [data-theme="dark"] .empty-slot-footnote{background:#182718;border-color:#304c2c;color:#a8cf98}
+
+
+/* === Horarios: cabecera apilada y propuesta activa === */
+.timetable-controls-stacked{display:grid;grid-template-columns:1fr;gap:14px}
+.timetable-controls-main{display:flex;align-items:end;gap:12px;flex-wrap:wrap}
+.timetable-active-proposal{min-width:260px;flex:1}
+.timetable-proposal-value{display:flex;align-items:center;gap:9px;min-height:42px;padding:9px 11px;border:1px solid var(--border);border-radius:10px;background:var(--surface)}
+.timetable-proposal-value strong{font-size:9.5px}
+.timetable-proposal-value small{font-size:8px;color:var(--muted)}
+.timetable-proposal-value button{margin-left:auto;width:34px;height:34px;border:1px solid var(--border);border-radius:9px;background:transparent;color:var(--navy2);display:grid;place-items:center;cursor:pointer}
+.timetable-proposal-value button:hover{background:#f2f6f9}
+.timetable-tags-row{width:100%;padding-top:2px}
+.timetable-tags-row .timetable-entity-tags{width:100%}
+[data-theme="dark"] .timetable-proposal-value button:hover{background:#202b39}
+@media(max-width:700px){
+  .timetable-controls-main{display:grid;grid-template-columns:1fr}
+  .timetable-active-proposal{min-width:0}
+  .timetable-view-switch{width:100%}
+}
