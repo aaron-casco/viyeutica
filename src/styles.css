@@ -697,3 +697,12 @@ button.wizard-step:focus-visible{outline:3px solid rgba(89,180,17,.22);outline-o
   .timetable-active-proposal{min-width:0}
   .timetable-view-switch{width:100%}
 }
+
+
+/* === Generación: alternativas cuando no hay solución válida === */
+.generation-alternatives{display:grid;gap:12px}
+.generation-alternative-list{display:grid;gap:8px}
+.generation-alternative-list article{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--surface)}
+.generation-alternative-list strong{font-size:9.5px}
+.generation-alternative-list p{margin:4px 0 0;color:var(--muted);font-size:8.4px;line-height:1.45}
+@media(max-width:700px){.generation-alternative-list article{align-items:stretch;flex-direction:column}.generation-alternative-list .btn{width:100%}}
