@@ -143,6 +143,29 @@ export interface CenterRule {
   reviewRequired?: boolean
 }
 
+export interface GeneratedScheduleEntry {
+  id: string
+  assignmentId: string
+  groupId: string
+  subjectId: string
+  teacherId: string
+  day: Weekday
+  sessionId: string
+}
+
+export interface GenerationRun {
+  id: string
+  createdAt: string
+  status: 'complete' | 'partial' | 'failed'
+  score: number
+  hardViolations: number
+  softPenalty: number
+  placedSessions: number
+  requestedSessions: number
+  entries: GeneratedScheduleEntry[]
+  notes: string[]
+}
+
 export interface NormativeRule {
   id: string
   sourceId: string
@@ -172,6 +195,7 @@ export interface ViyeuticaProject {
   teacherAvailability: TeacherAvailability[]
   assignments: TeachingAssignment[]
   rules: CenterRule[]
+  generationRuns: GenerationRun[]
   normativeSources: NormativeSource[]
   normativeRules: NormativeRule[]
   updatedAt: string | null
@@ -220,6 +244,7 @@ export const EMPTY_PROJECT: ViyeuticaProject = {
   teacherAvailability: [],
   assignments: [],
   rules: [],
+  generationRuns: [],
   normativeSources: [],
   normativeRules: [],
   updatedAt: null,
@@ -492,4 +517,14 @@ export function runPrevalidation(project: ViyeuticaProject): PrevalidationIssue[
 export function isPrevalidationComplete(project: ViyeuticaProject) {
   if (!isRulesComplete(project)) return false
   return !runPrevalidation(project).some(issue=>issue.severity==='error')
+}
+
+
+export function latestGeneration(project: ViyeuticaProject) {
+  return project.generationRuns[project.generationRuns.length - 1] ?? null
+}
+
+export function isGenerationComplete(project: ViyeuticaProject) {
+  const latest=latestGeneration(project)
+  return Boolean(isPrevalidationComplete(project) && latest && latest.status==='complete' && latest.hardViolations===0)
 }
