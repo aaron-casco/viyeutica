@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { ArrowUpToLine, CheckCircle2, FileJson, Save, ShieldAlert, TriangleAlert } from 'lucide-react'
+import { ArrowUpToLine, CheckCircle2, Eye, FileJson, Save, ShieldAlert, Trash2, TriangleAlert } from 'lucide-react'
 import { EMPTY_PROJECT, type ViyeuticaProject } from '../domain/project'
 import { saveProject } from '../store/projectStorage'
 import { AppModal } from '../components/AppModal'
@@ -56,23 +56,39 @@ export function ProjectImportPage({project,navigate}:{project:ViyeuticaProject;n
   const [error,setError]=useState('')
   const [done,setDone]=useState('')
   const [pendingMode,setPendingMode]=useState<'same'|'next'|null>(null)
+  const [jsonPreview,setJsonPreview]=useState('')
+  const [showJsonModal,setShowJsonModal]=useState(false)
 
   const readFile=async(file:File)=>{
     setError('');setDone('')
     try{
-      const parsed=JSON.parse(await file.text()) as ImportEnvelope|Partial<ViyeuticaProject>
+      const rawText=await file.text()
+      const parsed=JSON.parse(rawText) as ImportEnvelope|Partial<ViyeuticaProject>
       const envelope=(parsed as ImportEnvelope).project ? parsed as ImportEnvelope : {project:parsed as Partial<ViyeuticaProject>}
       if(envelope.format && envelope.format!=='viyeutica-school-project') throw new Error('El JSON no tiene un formato Viyeutica reconocido.')
       const normalized=normalizeProject(envelope.project??{})
       setCandidate(normalized)
       setReview(envelope.reviewRequired??[])
       setFilename(file.name)
+      setJsonPreview(JSON.stringify(parsed,null,2))
     }catch(err){
       setCandidate(null)
+      setJsonPreview('')
       setError(err instanceof Error?err.message:'No se ha podido leer el JSON.')
     }finally{
       if(inputRef.current) inputRef.current.value=''
     }
+  }
+
+  const removeCandidate=()=>{
+    setCandidate(null)
+    setReview([])
+    setFilename('')
+    setJsonPreview('')
+    setPendingMode(null)
+    setShowJsonModal(false)
+    setError('')
+    setDone('')
   }
 
   const requestApply=(mode:'same'|'next')=>{
@@ -141,8 +157,26 @@ export function ProjectImportPage({project,navigate}:{project:ViyeuticaProject;n
       <p style={{marginTop:8}}>No se modificará el archivo JSON original. Después podrás seguir editando el proyecto normalmente.</p>
     </AppModal>}
 
+    {showJsonModal&&candidate&&<AppModal
+      title={filename}
+      icon={<FileJson size={22}/>}
+      onClose={()=>setShowJsonModal(false)}
+      wide
+      footer={<button className="btn secondary-light" onClick={()=>setShowJsonModal(false)}>Cerrar</button>}
+    >
+      <div className="json-document-viewer">
+        <pre>{jsonPreview}</pre>
+      </div>
+    </AppModal>}
+
     {candidate&&<section className="import-preview-card">
-      <div className="groups-table-heading"><div><span className="panel-kicker">Vista previa</span><h2>{filename}</h2></div></div>
+      <div className="groups-table-heading">
+        <div><span className="panel-kicker">Vista previa</span><h2>{filename}</h2></div>
+        <div className="import-preview-actions">
+          <button className="btn ghost-inline" onClick={()=>setShowJsonModal(true)}><Eye size={15}/> Ver JSON</button>
+          <button className="btn ghost-inline danger-text" onClick={removeCandidate}><Trash2 size={15}/> Quitar archivo</button>
+        </div>
+      </div>
       <div className="import-kpis">
         <Kpi label="Curso" value={candidate.academicYear.label}/>
         <Kpi label="Grupos" value={String(candidate.groups.length)}/>
