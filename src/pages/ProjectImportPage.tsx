@@ -1,13 +1,22 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowUpToLine, CheckCircle2, Eye, FileJson, Save, ShieldAlert, Trash2, TriangleAlert } from 'lucide-react'
+import {
+  ArrowDownToLine, ArrowUpToLine, Braces, CheckCircle2, Eye, FileJson,
+  FileSpreadsheet, ShieldAlert, Trash2, TriangleAlert,
+} from 'lucide-react'
 import { EMPTY_PROJECT, type ViyeuticaProject } from '../domain/project'
+import {
+  buildEmptyJsonTemplate,
+  buildEmptyXlsTemplate,
+  downloadTextFile,
+  projectFromXlsTemplate,
+} from '../domain/templateIO'
 import { saveProject } from '../store/projectStorage'
 import { AppModal } from '../components/AppModal'
 import {
-  deleteStoredProjectJson,
-  loadStoredProjectJsons,
-  storeProjectJson,
-  type StoredProjectJson,
+  deleteStoredTemplateFile,
+  loadStoredTemplateFiles,
+  storeTemplateFile,
+  type StoredTemplateFile,
 } from '../store/jsonFileStorage'
 
 type ImportEnvelope = {
@@ -15,7 +24,6 @@ type ImportEnvelope = {
   formatVersion?: number
   project?: Partial<ViyeuticaProject>
   reviewRequired?: { path:string; reason:string }[]
-  generatedFrom?: Record<string, unknown>
 }
 
 function normalizeProject(raw:Partial<ViyeuticaProject>):ViyeuticaProject {
@@ -48,142 +56,163 @@ function normalizeProject(raw:Partial<ViyeuticaProject>):ViyeuticaProject {
 function nextAcademicYear(project:ViyeuticaProject):ViyeuticaProject {
   const start=project.academicYear.startYear+1
   const end=project.academicYear.endYear+1
-  return {
-    ...project,
-    academicYear:{id:`${start}-${end}`,label:`${start}/${end}`,startYear:start,endYear:end},
-    updatedAt:null,
-  }
+  return {...project,academicYear:{id:start+'-'+end,label:start+'/'+end,startYear:start,endYear:end},updatedAt:null}
 }
 
 export function ProjectImportPage({project,navigate}:{project:ViyeuticaProject;navigate:(path:string)=>void}) {
-  const inputRef=useRef<HTMLInputElement|null>(null)
+  const jsonInputRef=useRef<HTMLInputElement|null>(null)
+  const xlsInputRef=useRef<HTMLInputElement|null>(null)
   const [candidate,setCandidate]=useState<ViyeuticaProject|null>(null)
+  const [candidateFormat,setCandidateFormat]=useState<'json'|'xls'|null>(null)
   const [review,setReview]=useState<{path:string;reason:string}[]>([])
   const [filename,setFilename]=useState('')
+  const [rawPreview,setRawPreview]=useState('')
   const [error,setError]=useState('')
   const [done,setDone]=useState('')
   const [pendingMode,setPendingMode]=useState<'same'|'next'|null>(null)
-  const [jsonPreview,setJsonPreview]=useState('')
-  const [showJsonModal,setShowJsonModal]=useState(false)
-  const [storedJsons,setStoredJsons]=useState<StoredProjectJson[]>([])
-  const [storedPreview,setStoredPreview]=useState<StoredProjectJson|null>(null)
+  const [showPreview,setShowPreview]=useState(false)
+  const [storedFiles,setStoredFiles]=useState<StoredTemplateFile[]>([])
+  const [storedPreview,setStoredPreview]=useState<StoredTemplateFile|null>(null)
 
-  useEffect(()=>setStoredJsons(loadStoredProjectJsons()),[])
+  useEffect(()=>setStoredFiles(loadStoredTemplateFiles()),[])
 
-  const readFile=async(file:File)=>{
+  const readJson=async(file:File)=>{
     setError('');setDone('')
     try{
       const rawText=await file.text()
       const parsed=JSON.parse(rawText) as ImportEnvelope|Partial<ViyeuticaProject>
       const envelope=(parsed as ImportEnvelope).project ? parsed as ImportEnvelope : {project:parsed as Partial<ViyeuticaProject>}
       if(envelope.format && envelope.format!=='viyeutica-school-project') throw new Error('El JSON no tiene un formato Viyeutica reconocido.')
-      const normalized=normalizeProject(envelope.project??{})
-      await storeProjectJson(file,rawText)
-      setStoredJsons(loadStoredProjectJsons())
-      setCandidate(normalized)
+      await storeTemplateFile(file,rawText,'json')
+      setStoredFiles(loadStoredTemplateFiles())
+      setCandidate(normalizeProject(envelope.project??{}))
+      setCandidateFormat('json')
       setReview(envelope.reviewRequired??[])
       setFilename(file.name)
-      setJsonPreview(JSON.stringify(parsed,null,2))
+      setRawPreview(JSON.stringify(parsed,null,2))
     }catch(err){
-      setCandidate(null)
-      setJsonPreview('')
+      setCandidate(null);setCandidateFormat(null);setRawPreview('')
       setError(err instanceof Error?err.message:'No se ha podido leer el JSON.')
     }finally{
-      if(inputRef.current) inputRef.current.value=''
+      if(jsonInputRef.current)jsonInputRef.current.value=''
     }
   }
 
-  const removeCandidate=()=>{
-    setCandidate(null)
-    setReview([])
-    setFilename('')
-    setJsonPreview('')
-    setPendingMode(null)
-    setShowJsonModal(false)
-    setError('')
-    setDone('')
+  const readXls=async(file:File)=>{
+    setError('');setDone('')
+    try{
+      const rawText=await file.text()
+      const parsed=projectFromXlsTemplate(rawText)
+      await storeTemplateFile(file,rawText,'xls')
+      setStoredFiles(loadStoredTemplateFiles())
+      setCandidate(normalizeProject(parsed))
+      setCandidateFormat('xls')
+      setReview([])
+      setFilename(file.name)
+      setRawPreview(rawText)
+    }catch(err){
+      setCandidate(null);setCandidateFormat(null);setRawPreview('')
+      setError(err instanceof Error?err.message:'No se ha podido leer la plantilla XLS.')
+    }finally{
+      if(xlsInputRef.current)xlsInputRef.current.value=''
+    }
   }
 
-  const removeStoredJson=(id:string)=>{
-    deleteStoredProjectJson(id)
-    setStoredJsons(loadStoredProjectJsons())
-    if(storedPreview?.id===id)setStoredPreview(null)
-  }
-
-  const requestApply=(mode:'same'|'next')=>{
-    if(!candidate)return
-    setPendingMode(mode)
+  const clearCandidate=()=>{
+    setCandidate(null);setCandidateFormat(null);setReview([]);setFilename('');setRawPreview('')
+    setPendingMode(null);setShowPreview(false);setError('');setDone('')
   }
 
   const confirmApply=()=>{
     if(!candidate||!pendingMode)return
     const next=pendingMode==='next'?nextAcademicYear(candidate):candidate
     saveProject(next)
-    setDone(pendingMode==='next'?`Importado como curso ${next.academicYear.label}.`:`Curso ${next.academicYear.label} restaurado.`)
+    setDone(pendingMode==='next'?'Importado como curso '+next.academicYear.label+'.':'Plantilla importada correctamente.')
     setPendingMode(null)
-    setTimeout(()=>navigate('/'),250)
+    window.setTimeout(()=>navigate('/'),250)
   }
 
-  const exportCurrent=()=>{
-    const envelope={
-      format:'viyeutica-school-project',
-      formatVersion:1,
-      exportedAt:new Date().toISOString(),
-      project,
-    }
-    const blob=new Blob([JSON.stringify(envelope,null,2)],{type:'application/json'})
-    const url=URL.createObjectURL(blob)
-    const anchor=document.createElement('a')
-    const safe=(project.center.name||'centro').replace(/[^a-z0-9áéíóúñ_-]+/gi,'_')
-    anchor.href=url
-    anchor.download=`viyeutica_${safe}_${project.academicYear.id}.json`
-    anchor.click()
-    URL.revokeObjectURL(url)
+  const removeStored=(id:string)=>{
+    deleteStoredTemplateFile(id)
+    setStoredFiles(loadStoredTemplateFiles())
+    if(storedPreview?.id===id)setStoredPreview(null)
   }
 
   return <div className="project-import-page">
     <section className="wizard-intro">
-      <div><span className="eyebrow dark"><FileJson size={15}/> Portabilidad del curso</span><h1>Importar / exportar JSON</h1><p>Guarda los pasos 1–7 de un centro en un único fichero y reutilízalo el curso siguiente como punto de partida editable.</p></div>
+      <div>
+        <span className="eyebrow dark"><Braces size={15}/> Entrada de datos del centro</span>
+        <h1>Importar Plantilla</h1>
+        <p>Descarga una plantilla vacía, complétala con los datos del centro y vuelve a importarla en formato JSON o Excel.</p>
+      </div>
     </section>
 
-    <section className="import-grid">
+    <section className="template-download-panel">
+      <div>
+        <span className="panel-kicker">Plantillas vacías</span>
+        <h2>Descargar modelo para cumplimentar</h2>
+        <p>Ambas plantillas contienen la misma estructura de datos. El centro puede utilizar el formato que le resulte más cómodo.</p>
+      </div>
+      <div className="template-download-actions">
+        <button className="btn secondary-light" onClick={()=>downloadTextFile(buildEmptyJsonTemplate(),'Viyeutica_Plantilla_Vacia.json','application/json')}>
+          <FileJson size={16}/> Plantilla JSON vacía
+        </button>
+        <button className="btn secondary-light" onClick={()=>downloadTextFile(buildEmptyXlsTemplate(),'Viyeutica_Plantilla_Vacia.xls','application/vnd.ms-excel')}>
+          <FileSpreadsheet size={16}/> Plantilla XLS vacía
+        </button>
+      </div>
+    </section>
+
+    <section className="import-grid template-import-grid">
       <article className="normative-upload-card">
-        <div className="normative-upload-icon"><ArrowUpToLine size={28}/></div>
-        <div><span className="panel-kicker">Restaurar o reutilizar</span><h2>Subir JSON de centro</h2><p>Admite el formato <code>viyeutica-school-project</code>. Puede contener Centro, grupos, jornada, plan de estudios, profesorado, asignaciones y reglas.</p></div>
-        <input ref={inputRef} hidden type="file" accept=".json,application/json" onChange={e=>e.target.files?.[0]&&readFile(e.target.files[0])}/>
-        <button className="btn primary" onClick={()=>inputRef.current?.click()}><FileJson size={16}/> Seleccionar JSON</button>
+        <div className="normative-upload-icon"><FileJson size={28}/></div>
+        <div>
+          <span className="panel-kicker">Opción 1</span>
+          <h2>Importar desde JSON</h2>
+          <p>Para centros que ya dispongan de una plantilla Viyeutica o quieran trabajar con un formato estructurado.</p>
+        </div>
+        <input ref={jsonInputRef} hidden type="file" accept=".json,application/json" onChange={e=>e.target.files?.[0]&&readJson(e.target.files[0])}/>
+        <button className="btn primary" onClick={()=>jsonInputRef.current?.click()}><ArrowUpToLine size={16}/> Seleccionar JSON</button>
       </article>
 
-      <article className="export-project-card">
-        <div><Save size={24}/><span><strong>Exportar curso actual</strong><small>Genera una copia portable del proyecto guardado en este navegador.</small></span></div>
-        <button className="btn ghost-inline" onClick={exportCurrent}>Descargar JSON</button>
+      <article className="normative-upload-card">
+        <div className="normative-upload-icon"><FileSpreadsheet size={28}/></div>
+        <div>
+          <span className="panel-kicker">Opción 2</span>
+          <h2>Importar desde hoja de cálculo</h2>
+          <p>Utiliza la plantilla XLS de Viyeutica con hojas separadas para Centro, Grupos, Jornada, Materias, Profesorado, Asignaciones y Reglas.</p>
+        </div>
+        <input ref={xlsInputRef} hidden type="file" accept=".xls,application/vnd.ms-excel,application/xml,text/xml" onChange={e=>e.target.files?.[0]&&readXls(e.target.files[0])}/>
+        <button className="btn primary" onClick={()=>xlsInputRef.current?.click()}><ArrowUpToLine size={16}/> Seleccionar XLS</button>
       </article>
     </section>
 
     {storedPreview&&<AppModal
       title={storedPreview.name}
-      icon={<FileJson size={22}/>}
+      icon={storedPreview.format==='json'?<FileJson size={22}/>:<FileSpreadsheet size={22}/>}
       onClose={()=>setStoredPreview(null)}
       wide
       footer={<button className="btn secondary-light" onClick={()=>setStoredPreview(null)}>Cerrar</button>}
     >
-      <div className="json-document-viewer"><pre>{formatStoredJson(storedPreview.rawText)}</pre></div>
+      <div className="json-document-viewer">
+        <pre>{storedPreview.format==='json'?formatJson(storedPreview.rawText):storedPreview.rawText}</pre>
+      </div>
     </AppModal>}
 
-    {storedJsons.length>0&&<section className="stored-json-section">
+    {storedFiles.length>0&&<section className="stored-json-section">
       <div className="groups-table-heading">
-        <div><span className="panel-kicker">JSON cargados</span><h2>Archivos disponibles en este navegador</h2></div>
+        <div><span className="panel-kicker">Plantillas cargadas</span><h2>Archivos disponibles en este navegador</h2></div>
       </div>
       <div className="stored-json-list">
-        {storedJsons.map(item=><article key={item.id} className="stored-json-item">
-          <div className="stored-json-icon"><FileJson size={20}/></div>
+        {storedFiles.map(item=><article key={item.id} className="stored-json-item">
+          <div className="stored-json-icon">{item.format==='json'?<FileJson size={20}/>:<FileSpreadsheet size={20}/>}</div>
           <div className="stored-json-copy">
             <strong>{item.name}</strong>
-            <small>{formatBytes(item.size)} · cargado {new Date(item.addedAt).toLocaleString('es-ES')}</small>
+            <small>{item.format.toUpperCase()} · {formatBytes(item.size)} · cargado {new Date(item.addedAt).toLocaleString('es-ES')}</small>
           </div>
           <div className="stored-json-actions">
-            <button title="Ver JSON" aria-label={'Ver '+item.name} onClick={()=>setStoredPreview(item)}><Eye size={16}/></button>
-            <button className="row-delete" title="Eliminar JSON" aria-label={'Eliminar '+item.name} onClick={()=>removeStoredJson(item.id)}><Trash2 size={16}/></button>
+            <button title="Ver archivo" onClick={()=>setStoredPreview(item)}><Eye size={16}/></button>
+            <button className="row-delete" title="Eliminar archivo" onClick={()=>removeStored(item.id)}><Trash2 size={16}/></button>
           </div>
         </article>)}
       </div>
@@ -192,37 +221,15 @@ export function ProjectImportPage({project,navigate}:{project:ViyeuticaProject;n
     {error&&<div className="inline-error">{error}</div>}
     {done&&<div className="template-result"><CheckCircle2 size={16}/><span>{done}</span></div>}
 
-    {pendingMode&&candidate&&<AppModal
-      title={pendingMode==='next'?'Usar este proyecto como base':'Restaurar proyecto'}
-      icon={<TriangleAlert size={22}/>}
-      onClose={()=>setPendingMode(null)}
-      footer={<>
-        <button className="btn secondary-light" onClick={()=>setPendingMode(null)}>Cancelar</button>
-        <button className="btn primary" onClick={confirmApply}>{pendingMode==='next'?'Usar como base':'Restaurar proyecto'}</button>
-      </>}
-    >
-      <p>Esta acción <strong>sustituirá los datos actuales guardados en este navegador</strong> por los del archivo <strong>{filename}</strong>.</p>
-      <p style={{marginTop:8}}>No se modificará el archivo JSON original. Después podrás seguir editando el proyecto normalmente.</p>
-    </AppModal>}
-
-    {showJsonModal&&candidate&&<AppModal
-      title={filename}
-      icon={<FileJson size={22}/>}
-      onClose={()=>setShowJsonModal(false)}
-      wide
-      footer={<button className="btn secondary-light" onClick={()=>setShowJsonModal(false)}>Cerrar</button>}
-    >
-      <div className="json-document-viewer">
-        <pre>{jsonPreview}</pre>
-      </div>
-    </AppModal>}
-
     {candidate&&<section className="import-preview-card">
       <div className="groups-table-heading">
-        <div><span className="panel-kicker">Vista previa</span><h2>{filename}</h2></div>
+        <div>
+          <span className="panel-kicker">Vista previa · {candidateFormat?.toUpperCase()}</span>
+          <h2>{filename}</h2>
+        </div>
         <div className="import-preview-actions">
-          <button className="btn ghost-inline" onClick={()=>setShowJsonModal(true)}><Eye size={15}/> Ver JSON</button>
-          <button className="btn ghost-inline danger-text" onClick={removeCandidate}><Trash2 size={15}/> Quitar archivo</button>
+          <button className="btn ghost-inline" onClick={()=>setShowPreview(true)}><Eye size={15}/> Ver archivo</button>
+          <button className="btn ghost-inline danger-text" onClick={clearCandidate}><Trash2 size={15}/> Quitar archivo</button>
         </div>
       </div>
       <div className="import-kpis">
@@ -233,25 +240,42 @@ export function ProjectImportPage({project,navigate}:{project:ViyeuticaProject;n
         <Kpi label="Asignaciones" value={String(candidate.assignments.length)}/>
         <Kpi label="Reglas" value={String(candidate.rules.length)}/>
       </div>
-      <div className="import-center-summary"><strong>{candidate.center.name||'Centro sin nombre en el JSON'}</strong><span>{candidate.center.centerType||'Tipo sin especificar'} · {candidate.center.stages.join(' + ')||'Etapas sin especificar'}</span></div>
-      {review.length>0&&<div className="import-review"><ShieldAlert size={18}/><div><strong>{review.length} campos requieren revisión</strong>{review.slice(0,6).map(item=><p key={item.path}><code>{item.path}</code> — {item.reason}</p>)}{review.length>6&&<p>… y {review.length-6} más.</p>}</div></div>}
+      <div className="import-center-summary">
+        <strong>{candidate.center.name||'Centro sin nombre en la plantilla'}</strong>
+        <span>{candidate.center.centerType||'Tipo sin especificar'} · {candidate.center.stages.join(' + ')||'Etapas sin especificar'}</span>
+      </div>
+      {review.length>0&&<div className="import-review"><ShieldAlert size={18}/><div><strong>{review.length} campos requieren revisión</strong>{review.slice(0,6).map(item=><p key={item.path}><code>{item.path}</code> — {item.reason}</p>)}</div></div>}
       <div className="import-actions">
-        <button className="btn secondary-light" onClick={()=>requestApply('same')}>Restaurar {candidate.academicYear.label}</button>
-        <button className="btn primary" onClick={()=>requestApply('next')}>Usar como base para {candidate.academicYear.startYear+1}/{candidate.academicYear.endYear+1}</button>
+        <button className="btn secondary-light" onClick={()=>setPendingMode('same')}>Importar en {candidate.academicYear.label}</button>
+        <button className="btn primary" onClick={()=>setPendingMode('next')}>Usar como base para {candidate.academicYear.startYear+1}/{candidate.academicYear.endYear+1}</button>
       </div>
     </section>}
+
+    {showPreview&&candidate&&<AppModal
+      title={filename}
+      icon={candidateFormat==='json'?<FileJson size={22}/>:<FileSpreadsheet size={22}/>}
+      onClose={()=>setShowPreview(false)}
+      wide
+      footer={<button className="btn secondary-light" onClick={()=>setShowPreview(false)}>Cerrar</button>}
+    >
+      <div className="json-document-viewer"><pre>{candidateFormat==='json'?formatJson(rawPreview):rawPreview}</pre></div>
+    </AppModal>}
+
+    {pendingMode&&candidate&&<AppModal
+      title={pendingMode==='next'?'Usar plantilla como base':'Importar plantilla'}
+      icon={<TriangleAlert size={22}/>}
+      onClose={()=>setPendingMode(null)}
+      footer={<>
+        <button className="btn secondary-light" onClick={()=>setPendingMode(null)}>Cancelar</button>
+        <button className="btn primary" onClick={confirmApply}>{pendingMode==='next'?'Usar como base':'Importar plantilla'}</button>
+      </>}
+    >
+      <p>Esta acción sustituirá los datos actuales guardados en este navegador por los de <strong>{filename}</strong>.</p>
+      <p style={{marginTop:8}}>La plantilla original no se modificará y podrás seguir editando todos los datos después de importarlos.</p>
+    </AppModal>}
   </div>
 }
 
 function Kpi({label,value}:{label:string;value:string}){return <article><span>{label}</span><strong>{value}</strong></article>}
-
-
-function formatStoredJson(raw:string){
-  try{return JSON.stringify(JSON.parse(raw),null,2)}catch{return raw}
-}
-
-function formatBytes(value:number){
-  if(value<1024)return value+' B'
-  if(value<1024*1024)return (value/1024).toFixed(1)+' KB'
-  return (value/(1024*1024)).toFixed(1)+' MB'
-}
+function formatJson(raw:string){try{return JSON.stringify(JSON.parse(raw),null,2)}catch{return raw}}
+function formatBytes(value:number){if(value<1024)return value+' B';if(value<1024*1024)return (value/1024).toFixed(1)+' KB';return (value/(1024*1024)).toFixed(1)+' MB'}
