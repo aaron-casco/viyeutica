@@ -81,6 +81,32 @@ export function auditGeneration(project:ViyeuticaProject,run:GenerationRun):Audi
     }
   }
 
+  // Huecos lectivos de grupo: ningún grupo activo puede quedar sin docencia principal en una franja lectiva.
+  const teachingBlocks=project.schedule.blocks.filter(block=>block.active&&block.type==='teaching')
+  for(const group of project.groups.filter(group=>group.active)){
+    for(const day of project.schedule.activeDays){
+      for(const block of teachingBlocks){
+        const hasMain=run.entries.some(entry=>
+          entry.groupId===group.id &&
+          entry.day===day &&
+          entry.sessionId===block.id &&
+          project.assignments.find(assignment=>assignment.id===entry.assignmentId)?.assignmentType==='main'
+        )
+        if(!hasMain){
+          push({
+            severity:'error',
+            category:'Cobertura',
+            code:'HUECO_LECTIVO_GRUPO',
+            message:'Un grupo tiene una franja lectiva sin docencia principal.',
+            groupId:group.id,
+            day,
+            sessionId:block.id,
+          })
+        }
+      }
+    }
+  }
+
   // Cobertura y carga semanal por asignación.
   for(const assignment of project.assignments.filter(a=>a.active)){
     const expected=sessionsRequired(project,assignment)
