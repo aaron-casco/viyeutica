@@ -332,3 +332,44 @@ export function validateStaff(project: ViyeuticaProject) {
 export function isStaffComplete(project: ViyeuticaProject) {
   return isStudyPlanComplete(project) && validateStaff(project).length === 0
 }
+
+
+export function validateAssignments(project: ViyeuticaProject) {
+  const errors: string[] = []
+  const activeTeachers = new Set(project.teachers.filter(teacher => teacher.active).map(teacher => teacher.id))
+  const activeGroups = new Set(project.groups.filter(group => group.active).map(group => group.id))
+  const activeSubjects = new Set(project.subjects.filter(subject => subject.active).map(subject => subject.id))
+  const activeAssignments = project.assignments.filter(assignment => assignment.active)
+
+  if (!activeAssignments.length) errors.push('Añade al menos una asignación docente.')
+
+  for (const assignment of activeAssignments) {
+    if (!activeTeachers.has(assignment.teacherId)) errors.push('Existe una asignación vinculada a un docente inactivo o inexistente.')
+    if (!activeGroups.has(assignment.groupId)) errors.push('Existe una asignación vinculada a un grupo inactivo o inexistente.')
+    if (!activeSubjects.has(assignment.subjectId)) errors.push('Existe una asignación vinculada a una materia inactiva o inexistente.')
+    if ((assignment.weeklySessions ?? 0) <= 0 && (assignment.weeklyMinutes ?? 0) <= 0) {
+      errors.push('Todas las asignaciones activas deben indicar sesiones o minutos semanales.')
+    }
+  }
+
+  const activeStudyEntries = project.studyPlan.filter(entry => entry.active)
+  for (const entry of activeStudyEntries) {
+    if (!activeAssignments.some(assignment => assignment.groupId === entry.groupId && assignment.subjectId === entry.subjectId)) {
+      errors.push('Hay cargas del plan de estudios sin profesorado asignado.')
+      break
+    }
+  }
+
+  for (const availability of project.teacherAvailability) {
+    if (!activeTeachers.has(availability.teacherId)) {
+      errors.push('Existe disponibilidad vinculada a un docente inactivo o inexistente.')
+      break
+    }
+  }
+
+  return [...new Set(errors)]
+}
+
+export function isAssignmentsComplete(project: ViyeuticaProject) {
+  return isStaffComplete(project) && validateAssignments(project).length === 0
+}
