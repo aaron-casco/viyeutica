@@ -178,6 +178,8 @@ export interface GenerationRun {
   notes: string[]
 }
 
+export type NormativeRelevance = 'timetable' | 'reference'
+
 export interface NormativeRule {
   id: string
   sourceId: string
@@ -193,6 +195,7 @@ export interface NormativeRule {
   excerpt: string
   confidence: number
   approved: boolean
+  relevance?: NormativeRelevance
 }
 
 export interface ViyeuticaProject {
