@@ -4,6 +4,7 @@ import {
 } from 'lucide-react'
 import { auditGeneration } from '../domain/auditEngine'
 import {
+  isGenerationProposalValid,
   latestGeneration,
   uniqueGenerationRuns,
   type AuditIssue,
@@ -23,8 +24,8 @@ export function AuditPage({
   project:ViyeuticaProject
   navigate:(path:string)=>void
 }) {
-  const runs=uniqueGenerationRuns(project.generationRuns)
-  const latest=latestGeneration(project)
+  const runs=uniqueGenerationRuns(project.generationRuns).filter(run=>isGenerationProposalValid(project,run))
+  const latest=runs[runs.length-1]??null
   const [runId,setRunId]=useState(latest?.id??'')
   const run=runs.find(item=>item.id===runId)??latest
 
