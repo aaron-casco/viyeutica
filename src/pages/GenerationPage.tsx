@@ -29,7 +29,7 @@ export function GenerationPage({
   project:ViyeuticaProject
   navigate:(path:string)=>void
 }) {
-  const [selectedRunId,setSelectedRunId]=useState(latestGeneration(project)?.id??'')
+  const [selectedRunId,setSelectedRunId]=useState(project.selectedGenerationRunId??latestGeneration(project)?.id??'')
   const [selectedGroupIds,setSelectedGroupIds]=useState<string[]>(['all'])
   const [running,setRunning]=useState(false)
   const [showClearModal,setShowClearModal]=useState(false)
@@ -81,7 +81,7 @@ export function GenerationPage({
       }
 
       const merged=[...existing,...additions]
-      saveProject({...project,generationRuns:merged})
+      saveProject({...project,generationRuns:merged,selectedGenerationRunId:additions[0]?.id??project.selectedGenerationRunId??merged[0]?.id??null})
       if(additions.length){
         setSelectedRunId(additions[0].id)
       }else if(existing[0]){
@@ -103,7 +103,7 @@ export function GenerationPage({
   }
 
   const clearRuns=()=>{
-    saveProject({...project,generationRuns:[]})
+    saveProject({...project,generationRuns:[],selectedGenerationRunId:null})
     setSelectedRunId('')
     setShowClearModal(false)
   }
@@ -184,7 +184,10 @@ export function GenerationPage({
                 label={`Propuesta ${originalIndex+1}`}
                 difference={diff?.differentPlacements??0}
                 baseline={run.id===first?.id}
-                onClick={()=>setSelectedRunId(run.id)}
+                onClick={()=>{
+                  setSelectedRunId(run.id)
+                  saveProject({...project,selectedGenerationRunId:run.id})
+                }}
               />
             })}
           </div>
