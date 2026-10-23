@@ -21,6 +21,7 @@ import { PrevalidationPage } from './pages/PrevalidationPage'
 import { GenerationPage } from './pages/GenerationPage'
 import { TimetablesPage } from './pages/TimetablesPage'
 import { AuditPage } from './pages/AuditPage'
+import { ExportPage } from './pages/ExportPage'
 import { useProject } from './hooks/useProject'
 import { useTheme } from './hooks/useTheme'
 
@@ -99,6 +100,7 @@ export default function App() {
     if (route === '/generacion') return <GenerationPage project={project} navigate={go}/>
     if (route === '/horarios') return <TimetablesPage project={project} navigate={go}/>
     if (route === '/auditoria') return <AuditPage project={project} navigate={go}/>
+    if (route === '/exportaciones') return <ExportPage project={project} navigate={go}/>
     return <PlaceholderPage title={active.label} description={descriptions[route] ?? 'Módulo preparado para su implementación.'}/>
   }
 
