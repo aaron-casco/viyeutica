@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
   CalendarClock, CheckCircle2, Copy, Pencil, Plus, Save, SlidersHorizontal,
   Trash2, UsersRound,
@@ -71,12 +71,46 @@ export function AssignmentsPage({
   const [error,setError]=useState('')
   const [availabilityError,setAvailabilityError]=useState('')
   const [templateMessage,setTemplateMessage]=useState('')
+  const [auditFocus,setAuditFocus]=useState('')
 
   const activeGroups=project.groups.filter(group=>group.active)
   const activeSubjects=project.subjects.filter(subject=>subject.active)
   const activeTeachers=project.teachers.filter(teacher=>teacher.active)
   const activeAssignments=project.assignments.filter(assignment=>assignment.active)
   const validation=useMemo(()=>validateAssignments(project),[project])
+  useEffect(()=>{
+    const raw=window.location.hash.split('?')[1]
+    if(!raw)return
+    const params=new URLSearchParams(raw)
+    const teacherId=params.get('teacherId')??''
+    const groupId=params.get('groupId')??''
+    const subjectId=params.get('subjectId')??''
+    const day=(params.get('day')??'') as Weekday|''
+    const session=params.get('sessionId')??''
+    const auditCode=params.get('auditCode')??''
+
+    if(groupId||subjectId||teacherId){
+      setDraft(current=>({
+        ...current,
+        groupId:groupId||current.groupId,
+        subjectId:subjectId||current.subjectId,
+        teacherId:teacherId||current.teacherId,
+      }))
+    }
+    if(teacherId||day||session){
+      setAvailabilityDraft(current=>({
+        ...current,
+        teacherId:teacherId||current.teacherId,
+        day:day||current.day,
+        session:session||current.session,
+      }))
+    }
+    if(auditCode){
+      setAuditFocus('Datos cargados desde Auditoría para revisar la incidencia '+auditCode+'.')
+      window.setTimeout(()=>document.querySelector('.assignment-form')?.scrollIntoView({behavior:'smooth',block:'start'}),60)
+    }
+  },[])
+
 
   const groupSubjects=(groupId:string)=>{
     const group=project.groups.find(item=>item.id===groupId)
@@ -275,6 +309,8 @@ export function AssignmentsPage({
     </section>
 
     <WizardStepper currentStep={6} project={project} navigate={navigate}/>
+
+    {auditFocus&&<section className="template-result audit-context-banner"><CheckCircle2 size={16}/><span>{auditFocus}</span></section>}
 
     <section className="structure-summary">
       <Summary label="Asignaciones activas" value={String(activeAssignments.length)} detail="docente + grupo + materia"/>
