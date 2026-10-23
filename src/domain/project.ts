@@ -606,3 +606,29 @@ export function generationDifference(a:GenerationRun,b:GenerationRun) {
     identical:onlyA===0&&onlyB===0,
   }
 }
+
+
+export function emptyGroupTeachingSlots(project:ViyeuticaProject,run:GenerationRun){
+  const teachingBlocks=project.schedule.blocks.filter(block=>block.active&&block.type==='teaching')
+  const result:{groupId:string;day:Weekday;sessionId:string}[]=[]
+  for(const group of project.groups.filter(group=>group.active)){
+    for(const day of project.schedule.activeDays){
+      for(const block of teachingBlocks){
+        const hasMain=run.entries.some(entry=>
+          entry.groupId===group.id &&
+          entry.day===day &&
+          entry.sessionId===block.id &&
+          project.assignments.find(assignment=>assignment.id===entry.assignmentId)?.assignmentType==='main'
+        )
+        if(!hasMain) result.push({groupId:group.id,day,sessionId:block.id})
+      }
+    }
+  }
+  return result
+}
+
+export function isGenerationProposalValid(project:ViyeuticaProject,run:GenerationRun){
+  return run.status==='complete' &&
+    run.hardViolations===0 &&
+    emptyGroupTeachingSlots(project,run).length===0
+}
