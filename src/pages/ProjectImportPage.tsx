@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react'
-import { ArrowUpToLine, CheckCircle2, FileJson, Save, ShieldAlert } from 'lucide-react'
+import { ArrowUpToLine, CheckCircle2, FileJson, Save, ShieldAlert, TriangleAlert } from 'lucide-react'
 import { EMPTY_PROJECT, type ViyeuticaProject } from '../domain/project'
 import { saveProject } from '../store/projectStorage'
+import { AppModal } from '../components/AppModal'
 
 type ImportEnvelope = {
   format?: string
@@ -54,6 +55,7 @@ export function ProjectImportPage({project,navigate}:{project:ViyeuticaProject;n
   const [filename,setFilename]=useState('')
   const [error,setError]=useState('')
   const [done,setDone]=useState('')
+  const [pendingMode,setPendingMode]=useState<'same'|'next'|null>(null)
 
   const readFile=async(file:File)=>{
     setError('');setDone('')
@@ -73,12 +75,17 @@ export function ProjectImportPage({project,navigate}:{project:ViyeuticaProject;n
     }
   }
 
-  const apply=(mode:'same'|'next')=>{
+  const requestApply=(mode:'same'|'next')=>{
     if(!candidate)return
-    if(!window.confirm('La importación sustituirá los datos actuales guardados en este navegador. ¿Quieres continuar?')) return
-    const next=mode==='next'?nextAcademicYear(candidate):candidate
+    setPendingMode(mode)
+  }
+
+  const confirmApply=()=>{
+    if(!candidate||!pendingMode)return
+    const next=pendingMode==='next'?nextAcademicYear(candidate):candidate
     saveProject(next)
-    setDone(mode==='next'?`Importado como curso ${next.academicYear.label}.`:`Curso ${next.academicYear.label} restaurado.`)
+    setDone(pendingMode==='next'?`Importado como curso ${next.academicYear.label}.`:`Curso ${next.academicYear.label} restaurado.`)
+    setPendingMode(null)
     setTimeout(()=>navigate('/'),250)
   }
 
@@ -121,6 +128,19 @@ export function ProjectImportPage({project,navigate}:{project:ViyeuticaProject;n
     {error&&<div className="inline-error">{error}</div>}
     {done&&<div className="template-result"><CheckCircle2 size={16}/><span>{done}</span></div>}
 
+    {pendingMode&&candidate&&<AppModal
+      title={pendingMode==='next'?'Usar este proyecto como base':'Restaurar proyecto'}
+      icon={<TriangleAlert size={22}/>}
+      onClose={()=>setPendingMode(null)}
+      footer={<>
+        <button className="btn secondary-light" onClick={()=>setPendingMode(null)}>Cancelar</button>
+        <button className="btn primary" onClick={confirmApply}>{pendingMode==='next'?'Usar como base':'Restaurar proyecto'}</button>
+      </>}
+    >
+      <p>Esta acción <strong>sustituirá los datos actuales guardados en este navegador</strong> por los del archivo <strong>{filename}</strong>.</p>
+      <p style={{marginTop:8}}>No se modificará el archivo JSON original. Después podrás seguir editando el proyecto normalmente.</p>
+    </AppModal>}
+
     {candidate&&<section className="import-preview-card">
       <div className="groups-table-heading"><div><span className="panel-kicker">Vista previa</span><h2>{filename}</h2></div></div>
       <div className="import-kpis">
@@ -134,8 +154,8 @@ export function ProjectImportPage({project,navigate}:{project:ViyeuticaProject;n
       <div className="import-center-summary"><strong>{candidate.center.name||'Centro sin nombre en el JSON'}</strong><span>{candidate.center.centerType||'Tipo sin especificar'} · {candidate.center.stages.join(' + ')||'Etapas sin especificar'}</span></div>
       {review.length>0&&<div className="import-review"><ShieldAlert size={18}/><div><strong>{review.length} campos requieren revisión</strong>{review.slice(0,6).map(item=><p key={item.path}><code>{item.path}</code> — {item.reason}</p>)}{review.length>6&&<p>… y {review.length-6} más.</p>}</div></div>}
       <div className="import-actions">
-        <button className="btn secondary-light" onClick={()=>apply('same')}>Restaurar {candidate.academicYear.label}</button>
-        <button className="btn primary" onClick={()=>apply('next')}>Usar como base para {candidate.academicYear.startYear+1}/{candidate.academicYear.endYear+1}</button>
+        <button className="btn secondary-light" onClick={()=>requestApply('same')}>Restaurar {candidate.academicYear.label}</button>
+        <button className="btn primary" onClick={()=>requestApply('next')}>Usar como base para {candidate.academicYear.startYear+1}/{candidate.academicYear.endYear+1}</button>
       </div>
     </section>}
   </div>
