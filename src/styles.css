@@ -383,3 +383,27 @@ button.wizard-step:focus-visible{outline:3px solid rgba(89,180,17,.22);outline-o
 .rule-condition-preview{margin-top:12px;padding:10px 11px;border-radius:10px;background:#f5f8fb;border:1px solid var(--border)}
 .rule-condition-preview strong,.rule-condition-preview span{display:block}.rule-condition-preview strong{font-size:9px}.rule-condition-preview span{margin-top:3px;color:var(--muted);font-size:9px;line-height:1.45}
 [data-theme="dark"] .rule-condition-builder{background:var(--field-bg)}[data-theme="dark"] .rule-condition-preview{background:#17202c}
+
+
+/* === Step 8: Prevalidación === */
+.prevalidation-page{display:flex;flex-direction:column;gap:16px}
+.prevalidation-hero{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 18px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow)}
+.prevalidation-status{display:flex;align-items:flex-start;gap:12px}.prevalidation-status>svg{flex:0 0 auto}.prevalidation-status.ready>svg{color:var(--green2)}.prevalidation-status.blocked>svg{color:#c6534d}
+.prevalidation-status h2{margin:3px 0 4px;font-size:16px}.prevalidation-status p{margin:0;color:var(--muted);font-size:10px}
+.prevalidation-sections{display:grid;gap:12px}
+.prevalidation-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.prevalidation-card.error{border-left:4px solid #c6534d}.prevalidation-card.warning{border-left:4px solid #d4a126}.prevalidation-card.info{border-left:4px solid #4e82b4}
+.prevalidation-card-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border)}
+.prevalidation-card-heading>div{display:flex;align-items:flex-start;gap:9px}.prevalidation-card-heading strong,.prevalidation-card-heading small{display:block}.prevalidation-card-heading strong{font-size:11px}.prevalidation-card-heading small{margin-top:2px;color:var(--muted);font-size:8.5px}
+.prevalidation-count{min-width:28px;height:28px;border-radius:999px;display:grid;place-items:center;background:#eef3f7;font-size:10px;font-weight:900}
+.prevalidation-issue-list{display:grid}
+.prevalidation-issue-list article{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border)}
+.prevalidation-issue-list article:last-child{border-bottom:0}.prevalidation-issue-list strong{display:block;font-size:10px}.prevalidation-issue-list p{margin:4px 0 0;color:var(--muted);font-size:8.8px}
+.prevalidation-issue-meta{display:flex;gap:6px;align-items:center;margin-bottom:4px}.prevalidation-issue-meta span{padding:3px 6px;border-radius:999px;background:#eef3f7;color:#607087;font-size:7.8px;font-weight:800}.prevalidation-issue-meta code{font-size:7.8px;color:var(--muted)}
+.prevalidation-empty{display:flex;align-items:center;gap:7px;padding:13px 16px;color:var(--green2);font-size:9px;font-weight:800}
+.prevalidation-rule-summary{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 18px;background:var(--surface);border:1px solid var(--border);border-radius:16px}
+.prevalidation-rule-summary>div:first-child{display:flex;align-items:flex-start;gap:10px}.prevalidation-rule-summary>div:first-child>svg{color:var(--navy2)}.prevalidation-rule-summary strong,.prevalidation-rule-summary small{display:block}.prevalidation-rule-summary strong{font-size:11px}.prevalidation-rule-summary small{margin-top:3px;max-width:720px;color:var(--muted);font-size:8.8px;line-height:1.45}
+.rule-counts{display:flex;gap:8px}.rule-counts span{min-width:58px;padding:8px 10px;border:1px solid var(--border);border-radius:10px;text-align:center}.rule-counts strong{font-size:15px}.rule-counts small{font-size:7.8px;text-transform:uppercase}
+.prevalidation-actions{display:flex;justify-content:space-between;gap:10px}
+[data-theme="dark"] .prevalidation-count,[data-theme="dark"] .prevalidation-issue-meta span{background:#202b39;color:#aebbd0}
+@media(max-width:760px){.prevalidation-hero,.prevalidation-rule-summary,.prevalidation-issue-list article{align-items:stretch;flex-direction:column}.prevalidation-actions{flex-direction:column}.prevalidation-actions .btn{width:100%}.rule-counts{width:100%}.rule-counts span{flex:1}}
