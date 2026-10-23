@@ -180,7 +180,7 @@ export function RulesPage({
         id:uid(),
         scope:'teacher',
         ruleType:'HARD',
-        code:'NO_TEACHER_OVERLAP',
+        code:'SIN_SOLAPE_DOCENTE',
         description:'Un docente no puede estar asignado a dos actividades simultáneas.',
         parameters:{},
         weight:null,
@@ -192,7 +192,7 @@ export function RulesPage({
         id:uid(),
         scope:'group',
         ruleType:'HARD',
-        code:'NO_GROUP_OVERLAP',
+        code:'SIN_SOLAPE_GRUPO',
         description:'Un grupo no puede tener dos actividades simultáneas.',
         parameters:{},
         weight:null,
@@ -204,7 +204,7 @@ export function RulesPage({
         id:uid(),
         scope:'teacher',
         ruleType:'HARD',
-        code:'RESPECT_TEACHER_AVAILABILITY',
+        code:'RESPETAR_DISPONIBILIDAD_DOCENTE',
         description:'Las asignaciones deben respetar la disponibilidad e indisponibilidad docente registrada.',
         parameters:{},
         weight:null,
@@ -216,7 +216,7 @@ export function RulesPage({
         id:uid(),
         scope:'schedule',
         ruleType:'HARD',
-        code:'RESPECT_FIXED_SLOTS',
+        code:'RESPETAR_FRANJAS_FIJAS',
         description:'Las franjas fijadas deben mantenerse en el día y sesión indicados.',
         parameters:{},
         weight:null,
@@ -228,7 +228,7 @@ export function RulesPage({
         id:uid(),
         scope:'teacher',
         ruleType:'SOFT',
-        code:'REDUCE_GAPS',
+        code:'REDUCIR_HUECOS_DOCENTES',
         description:'Minimizar huecos innecesarios en el horario individual del profesorado.',
         parameters:{},
         weight:5,
@@ -297,7 +297,7 @@ export function RulesPage({
             </select>
           </Field>
           <Field label="Código" required>
-            <input value={draft.code} onChange={e=>setDraft({...draft,code:e.target.value.toUpperCase().replace(/\s+/g,'_')})} placeholder="Ej. NO_TEACHER_OVERLAP"/>
+            <input value={draft.code} onChange={e=>setDraft({...draft,code:e.target.value.toUpperCase().replace(/\s+/g,'_')})} placeholder="Ej. SIN_SOLAPE_DOCENTE"/>
           </Field>
           <Field label="Peso">
             <input type="number" min="1" disabled={draft.ruleType==='HARD'} value={draft.ruleType==='HARD'?'':draft.weight} onChange={e=>setDraft({...draft,weight:e.target.value})} placeholder={draft.ruleType==='SOFT'?'Ej. 5':'No aplica'}/>
@@ -374,7 +374,7 @@ export function RulesPage({
         : <div className="rules-list">{visible.map(rule=><article className={'rule-card '+rule.ruleType.toLowerCase()+(!rule.active?' inactive':'')} key={rule.id}>
             <div className="rule-type-badge">{rule.ruleType}</div>
             <div className="rule-card-main">
-              <div className="rule-title-row"><strong>{rule.code}</strong><span>{scopeLabel(rule.scope)}</span>{rule.source&&<span>{sourceLabel(rule.source)}</span>}{rule.reviewRequired&&<span className="review-tag">Revisar</span>}</div>
+              <div className="rule-title-row"><strong>{humanRuleName(rule.code)}</strong><span>{scopeLabel(rule.scope)}</span>{rule.source&&<span>{sourceLabel(rule.source)}</span>}{rule.reviewRequired&&<span className="review-tag">Revisar</span>}</div>
               <p>{rule.description}</p>
               <small>Parámetros: <code>{JSON.stringify(rule.parameters)}</code>{rule.ruleType==='SOFT'&&<> · Peso <strong>{rule.weight??'—'}</strong></>}</small>
               {rule.source==='normative'&&rule.normativeRuleId&&<NormativeTrace project={project} id={rule.normativeRuleId}/>}
@@ -437,4 +437,16 @@ function NormativeTrace({project,id}:{project:ViyeuticaProject;id:string}){
   const source=rule?project.normativeSources.find(item=>item.id===rule.sourceId):undefined
   if(!rule)return null
   return <div className="rule-trace"><FileCheck2 size={13}/><span>{source?.name??'Fuente normativa'} · pág. {rule.page} · confianza {Math.round(rule.confidence*100)}%</span></div>
+}
+
+
+function humanRuleName(code:string){
+  const names:Record<string,string>={
+    SIN_SOLAPE_DOCENTE:'Sin solape de profesorado',
+    SIN_SOLAPE_GRUPO:'Sin solape de grupos',
+    RESPETAR_DISPONIBILIDAD_DOCENTE:'Respetar disponibilidad docente',
+    RESPETAR_FRANJAS_FIJAS:'Respetar franjas fijas',
+    REDUCIR_HUECOS_DOCENTES:'Reducir huecos del profesorado',
+  }
+  return names[code]??code.replace(/_/g,' ').toLowerCase().replace(/^./,letter=>letter.toUpperCase())
 }
