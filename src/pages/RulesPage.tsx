@@ -594,7 +594,8 @@ function NormativeTraceabilityPanel({project}:{project:ViyeuticaProject}){
   const linkedRules=project.rules.filter(rule=>rule.source==='normative'&&rule.normativeRuleId)
   const approvedNormative=project.normativeRules.filter(rule=>rule.approved)
 
-  return <section className="normative-traceability-panel">
+  const stateClass=linkedRules.length?'linked':approvedNormative.length?'pending-link':'missing'
+  return <section className={'normative-traceability-panel '+stateClass}>
     <div className="normative-traceability-heading">
       <div>
         <span className="panel-kicker">Trazabilidad normativa</span>
@@ -609,12 +610,14 @@ function NormativeTraceabilityPanel({project}:{project:ViyeuticaProject}){
 
     {linkedRules.length===0
       ? <div className="normative-traceability-empty">
-          <FileCheck2 size={20}/>
+          <ShieldAlert size={20}/>
           <div>
-            <strong>No hay reglas normativas incorporadas todavía</strong>
+            <strong>{approvedNormative.length
+              ? 'Hay normativa aprobada pendiente de incorporar'
+              : 'No hay reglas normativas aprobadas'}</strong>
             <p>{approvedNormative.length
-              ? `Hay ${approvedNormative.length} reglas aprobadas en Normativa, pero aún no se han convertido en reglas operativas. Usa “Incorporar normativa aprobada”.`
-              : 'No hay reglas normativas aprobadas en el proyecto actual. Las reglas visibles proceden de configuración manual o de una importación anterior.'}</p>
+              ? `Hay ${approvedNormative.length} reglas aprobadas en Normativa, pero todavía no influyen en Generación ni Auditoría porque no se han incorporado a Reglas. Usa “Incorporar normativa aprobada”.`
+              : 'Las reglas actuales proceden únicamente de configuración manual o de una importación anterior. Si el centro necesita justificar restricciones con normativa vigente, revisa primero el módulo Normativa.'}</p>
           </div>
         </div>
       : <div className="normative-traceability-list">
