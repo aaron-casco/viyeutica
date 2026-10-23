@@ -312,3 +312,15 @@ button.wizard-step:focus-visible{outline:3px solid rgba(89,180,17,.22);outline-o
 [data-theme="dark"] .import-kpis article{background:var(--field-bg)}
 @media(max-width:1000px){.import-grid{grid-template-columns:1fr}.import-kpis{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:560px){.import-kpis{grid-template-columns:1fr 1fr}.import-actions{flex-direction:column}.import-actions .btn{width:100%}}
+
+
+/* === Step 5: Profesorado === */
+.staff-layout{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:16px;align-items:start}
+.staff-table{min-width:1050px}
+.staff-info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.compact-info-panel{display:flex;align-items:flex-start;gap:10px;padding:16px}
+.compact-info-panel>svg{color:var(--navy2);flex:0 0 auto}
+.compact-info-panel strong,.compact-info-panel p{display:block}
+.compact-info-panel strong{font-size:11px}
+.compact-info-panel p{margin:4px 0 0;color:var(--muted);font-size:9px;line-height:1.5}
+@media(max-width:1180px){.staff-layout{grid-template-columns:1fr}.staff-info-grid{grid-template-columns:1fr}}
