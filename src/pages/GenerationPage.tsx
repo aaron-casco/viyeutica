@@ -48,6 +48,7 @@ export function GenerationPage({
   const [selectedGroupIds,setSelectedGroupIds]=useState<string[]>(['all'])
   const [running,setRunning]=useState(false)
   const [showClearModal,setShowClearModal]=useState(false)
+  const [showRegenerateModal,setShowRegenerateModal]=useState(false)
   const [showIssuesModal,setShowIssuesModal]=useState(false)
   const [ascending,setAscending]=useState(true)
   const [generationNotice,setGenerationNotice]=useState('')
@@ -55,7 +56,7 @@ export function GenerationPage({
   const [visibleAlternatives,setVisibleAlternatives]=useState(3)
   const [appliedAlternative,setAppliedAlternative]=useState('')
 
-  const runs=uniqueGenerationRuns(project.generationRuns).filter(run=>isGenerationProposalValid(project,run))
+  const runs=uniqueGenerationRuns(project.generationRuns)
   const selectedRun=runs.find(run=>run.id===selectedRunId)??runs[runs.length-1]??latestGeneration(project)
   const activeGroups=project.groups.filter(group=>group.active)
   const teachingBlocks=project.schedule.blocks.filter(block=>block.active&&block.type==='teaching')
@@ -78,7 +79,7 @@ export function GenerationPage({
     ? activeGroups.map(group=>group.id)
     : selectedGroupIds
 
-  const runGeneration=()=>{
+  const generateProposals=(mode:'initial'|'add'|'replace')=>{
     if(!isPrevalidationComplete(project)) return
     setRunning(true)
     setGenerationNotice('')
@@ -86,13 +87,14 @@ export function GenerationPage({
     setVisibleAlternatives(3)
     setAppliedAlternative('')
     window.setTimeout(()=>{
-      const existing=uniqueGenerationRuns(project.generationRuns).filter(run=>isGenerationProposalValid(project,run))
-      const existingSignatures=new Set(existing.map(generationSignature))
-      const target=existing.length===0?3:1
+      const stored=uniqueGenerationRuns(project.generationRuns)
+      const baseRuns=mode==='replace'?[]:stored
+      const existingSignatures=new Set(baseRuns.map(generationSignature))
+      const target=mode==='add'?1:3
       const additions:GenerationRun[]=[]
       const rejected:GenerationRun[]=[]
-      const maxSearch=existing.length===0?18:12
-      const baseIndex=project.generationRuns.length
+      const maxSearch=mode==='add'?12:18
+      const baseIndex=project.generationRuns.length+(mode==='replace'?1000:0)
 
       for(let index=0;index<maxSearch&&additions.length<target;index++){
         const result=generateSchedule(project,80,baseIndex+index+1)
@@ -106,12 +108,26 @@ export function GenerationPage({
         additions.push(result)
       }
 
-      const merged=[...existing,...additions]
+      if(mode==='replace'&&additions.length===0){
+        const diagnostic=[...rejected].sort((a,b)=>
+          emptyGroupTeachingSlots(project,a).length-emptyGroupTeachingSlots(project,b).length ||
+          a.hardViolations-b.hardViolations ||
+          b.score-a.score
+        )[0]
+        setGenerationNotice('No se ha encontrado ninguna propuesta válida nueva. Se mantienen las propuestas anteriores.')
+        setGenerationAlternatives(buildGenerationAlternatives(project,diagnostic))
+        setShowRegenerateModal(false)
+        setRunning(false)
+        return
+      }
+
+      const merged=mode==='replace'?additions:[...baseRuns,...additions]
       const selectedId=additions[0]?.id??project.selectedGenerationRunId??merged[0]?.id??null
       saveProject({...project,generationRuns:merged,selectedGenerationRunId:selectedId})
       if(selectedId)setSelectedRunId(selectedId)
+      setShowRegenerateModal(false)
 
-      if(!additions.length&&existing.length===0){
+      if(additions.length===0&&baseRuns.length===0){
         const diagnostic=[...rejected].sort((a,b)=>
           emptyGroupTeachingSlots(project,a).length-emptyGroupTeachingSlots(project,b).length ||
           a.hardViolations-b.hardViolations ||
@@ -119,14 +135,14 @@ export function GenerationPage({
         )[0]
         setGenerationNotice('No se ha encontrado ninguna propuesta válida sin huecos con la configuración actual.')
         setGenerationAlternatives(buildGenerationAlternatives(project,diagnostic))
-      }else if(existing.length===0&&additions.length<3){
+      }else if(target===3&&additions.length<3){
         setGenerationNotice(
           additions.length===1
             ? 'Viyeutica ha encontrado una única propuesta válida sin huecos en la búsqueda realizada.'
             : `Viyeutica ha encontrado ${additions.length} propuestas válidas distintas de las 3 solicitadas.`
         )
-      }else if(existing.length>0&&additions.length===0){
-        setGenerationNotice('No se ha encontrado una nueva propuesta válida y distinta de las ya existentes.')
+      }else if(mode==='add'&&additions.length===0){
+        setGenerationNotice('No se ha encontrado una nueva propuesta válida y distinta. Se mantienen todas las propuestas existentes.')
         const diagnostic=[...rejected].sort((a,b)=>
           emptyGroupTeachingSlots(project,a).length-emptyGroupTeachingSlots(project,b).length ||
           a.hardViolations-b.hardViolations ||
@@ -138,6 +154,9 @@ export function GenerationPage({
       setRunning(false)
     },20)
   }
+
+  const runGeneration=()=>generateProposals(runs.length===0?'initial':'add')
+  const regenerateThree=()=>generateProposals('replace')
 
   const applyGenerationAlternative=(alternative:GenerationAlternative)=>{
     const action=alternative.action
@@ -221,7 +240,10 @@ export function GenerationPage({
           : 'Genera una nueva alternativa sin eliminar las propuestas existentes.'}</p>
       </div>
       <div className="generation-control-actions">
-        {runs.length>0&&<button className="btn ghost-inline" onClick={()=>setShowClearModal(true)}>Limpiar propuestas</button>}
+        {runs.length>0&&<>
+          <button className="btn ghost-inline" onClick={()=>setShowClearModal(true)}>Limpiar propuestas</button>
+          <button className="btn ghost-inline" disabled={running} onClick={()=>setShowRegenerateModal(true)}><RefreshCcw size={16}/> Regenerar 3 propuestas</button>
+        </>}
         <button className="btn primary" disabled={running} onClick={runGeneration}>
           {running
             ? <RefreshCcw className="spin" size={16}/>
@@ -355,6 +377,18 @@ export function GenerationPage({
           />
         </section>}
       </>}
+
+    {showRegenerateModal&&<AppModal
+      title="Regenerar 3 propuestas"
+      icon={<RefreshCcw size={22}/>}
+      onClose={()=>setShowRegenerateModal(false)}
+      footer={<>
+        <button className="btn secondary-light" onClick={()=>setShowRegenerateModal(false)}>Cancelar</button>
+        <button className="btn primary" disabled={running} onClick={regenerateThree}>{running?'Generando...':'Regenerar 3 propuestas'}</button>
+      </>}
+    >
+      <p>Se intentarán crear tres propuestas nuevas. <strong>Las propuestas actuales solo se sustituirán si se encuentra al menos una nueva propuesta válida.</strong></p>
+    </AppModal>}
 
     {showClearModal&&<AppModal
       title="Eliminar propuestas generadas"
