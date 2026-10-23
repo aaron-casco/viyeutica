@@ -9,6 +9,7 @@ import {
   isStudyPlanComplete,
   isStaffComplete,
   isAssignmentsComplete,
+  isRulesComplete,
   type ViyeuticaProject,
 } from '../domain/project'
 
@@ -19,7 +20,7 @@ const steps = [
   { number:4, label:'Plan de estudios', icon:BookOpen, route:'/materias' },
   { number:5, label:'Profesorado', icon:Users, route:'/profesorado' },
   { number:6, label:'Asignaciones', icon:SlidersHorizontal, route:'/asignaciones' },
-  { number:7, label:'Reglas', icon:ShieldCheck, route:null },
+  { number:7, label:'Reglas', icon:ShieldCheck, route:'/reglas' },
   { number:8, label:'Prevalidación', icon:CheckCircle2, route:null },
   { number:9, label:'Generación', icon:Sparkles, route:null },
 ] as const
@@ -40,6 +41,7 @@ export function WizardStepper({
     4:isStudyPlanComplete(project),
     5:isStaffComplete(project),
     6:isAssignmentsComplete(project),
+    7:isRulesComplete(project),
   }
 
   return (
