@@ -136,6 +136,9 @@ export interface CenterRule {
   code: string
   description: string
   parameters: Record<string, unknown>
+  weight?: number | null
+  source?: 'manual' | 'imported' | 'normative'
+  normativeRuleId?: string | null
   active: boolean
   reviewRequired?: boolean
 }
@@ -372,4 +375,32 @@ export function validateAssignments(project: ViyeuticaProject) {
 
 export function isAssignmentsComplete(project: ViyeuticaProject) {
   return isStaffComplete(project) && validateAssignments(project).length === 0
+}
+
+
+export function validateRules(project: ViyeuticaProject) {
+  const errors: string[] = []
+  const activeRules = project.rules.filter(rule => rule.active)
+
+  if (!activeRules.length) errors.push('Añade o importa al menos una regla activa.')
+
+  for (const rule of activeRules) {
+    if (!rule.code.trim()) errors.push('Todas las reglas necesitan un código.')
+    if (!rule.description.trim()) errors.push('Todas las reglas necesitan una descripción.')
+    if (rule.ruleType === 'SOFT' && (rule.weight === null || rule.weight === undefined || rule.weight <= 0)) {
+      errors.push(`La regla SOFT "${rule.code || 'sin código'}" necesita un peso mayor que cero.`)
+    }
+    if (rule.source === 'normative' && rule.normativeRuleId) {
+      const normative = project.normativeRules.find(item => item.id === rule.normativeRuleId)
+      if (!normative || !normative.approved) {
+        errors.push('Existe una regla normativa cuya fuente ya no está aprobada.')
+      }
+    }
+  }
+
+  return [...new Set(errors)]
+}
+
+export function isRulesComplete(project: ViyeuticaProject) {
+  return isAssignmentsComplete(project) && validateRules(project).length === 0
 }
