@@ -189,7 +189,7 @@ export function RulesPage({
   }
 
   const createNormativeRules=()=>{
-    const approved=project.normativeRules.filter(rule=>rule.approved)
+    const approved=project.normativeRules.filter(rule=>rule.approved&&(rule.relevance??legacyNormativeRelevance(rule))==='timetable')
     const existingNormIds=new Set(project.rules.map(rule=>rule.normativeRuleId).filter(Boolean))
     const additions:CenterRule[]=[]
     for(const normative of approved){
@@ -451,8 +451,8 @@ export function RulesPage({
             {
               id:'normative-rules',
               label:'Incorporar normativa aprobada',
-              description:project.normativeRules.some(rule=>rule.approved)?'Crear reglas trazables desde Normativa':'No hay reglas normativas aprobadas',
-              disabled:!project.normativeRules.some(rule=>rule.approved),
+              description:project.normativeRules.some(rule=>rule.approved&&(rule.relevance??legacyNormativeRelevance(rule))==='timetable')?'Crear reglas trazables desde Normativa':'No hay normativa aplicable al horario aprobada',
+              disabled:!project.normativeRules.some(rule=>rule.approved&&(rule.relevance??legacyNormativeRelevance(rule))==='timetable'),
               onApply:createNormativeRules,
             },
           ]}
@@ -592,7 +592,7 @@ function comparisonLabel(value:string){
 
 function NormativeTraceabilityPanel({project}:{project:ViyeuticaProject}){
   const linkedRules=project.rules.filter(rule=>rule.source==='normative'&&rule.normativeRuleId)
-  const approvedNormative=project.normativeRules.filter(rule=>rule.approved)
+  const approvedNormative=project.normativeRules.filter(rule=>rule.approved&&(rule.relevance??legacyNormativeRelevance(rule))==='timetable')
 
   const stateClass=linkedRules.length?'linked':approvedNormative.length?'pending-link':'missing'
   return <section className={'normative-traceability-panel '+stateClass}>
@@ -714,4 +714,12 @@ function explainNormativeImpact(rule:CenterRule,normative:NormativeRule){
     return `Generación deberá respetarla obligatoriamente${value}. Auditoría comprobará su cumplimiento cuando la condición sea evaluable automáticamente.`
   }
   return `Generación la tratará como preferencia ponderada${value}; no invalida por sí sola el horario.`
+}
+
+
+function legacyNormativeRelevance(rule:NormativeRule){
+  if(rule.section==='schedule'||rule.section==='assignments'||rule.section==='staff'||rule.section==='structure') return 'timetable'
+  if(rule.section==='study_plan'&&['weekly_hours','weekly_minutes','weekly_periods','session_minutes','subject_rule'].includes(rule.kind)) return 'timetable'
+  if(rule.section==='rules'&&/horario|sesión|periodo|jornada|docente|grupo|asignación|disponibilidad|simult|solap|recreo/i.test(rule.excerpt)) return 'timetable'
+  return 'reference'
 }
