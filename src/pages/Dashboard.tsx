@@ -2,7 +2,7 @@ import {
   AlertTriangle, ArrowRight, BookOpenCheck, CalendarClock, CalendarDays, CheckCircle2,
   Clock3, GraduationCap, LayoutGrid, ShieldCheck, Sparkles, Users,
 } from 'lucide-react'
-import { isCenterComplete, isStructureComplete, isScheduleComplete, isStudyPlanComplete, type ViyeuticaProject } from '../domain/project'
+import { isCenterComplete, isStructureComplete, isScheduleComplete, isStudyPlanComplete, isStaffComplete, type ViyeuticaProject } from '../domain/project'
 
 export function Dashboard({
   navigate,
@@ -15,6 +15,7 @@ export function Dashboard({
   const structureDone = isStructureComplete(project)
   const scheduleDone = isScheduleComplete(project)
   const studyPlanDone = isStudyPlanComplete(project)
+  const staffDone = isStaffComplete(project)
   const activeGroups = project.groups.filter(group => group.active)
   const students = activeGroups.reduce((sum,group) => sum + (group.students ?? 0),0)
   const teachingSessions = project.schedule.blocks.filter(block => block.active && block.type === 'teaching').length
@@ -24,19 +25,21 @@ export function Dashboard({
     ['Estructura y grupos', structureDone ? 'done' : centerDone ? 'progress' : 'pending'],
     ['Jornada y sesiones', scheduleDone ? 'done' : structureDone ? 'progress' : 'pending'],
     ['Plan de estudios', studyPlanDone ? 'done' : scheduleDone ? 'progress' : 'pending'],
-    ['Profesorado','pending'],
+    ['Profesorado', staffDone ? 'done' : studyPlanDone ? 'progress' : 'pending'],
     ['Reglas y prevalidación','pending'],
   ] as const
 
-  const progress = studyPlanDone ? 44 : scheduleDone ? 33 : structureDone ? 22 : centerDone ? 11 : 0
-  const nextRoute = !centerDone ? '/centro' : !structureDone ? '/grupos' : !scheduleDone ? '/jornada' : '/materias'
+  const progress = staffDone ? 55 : studyPlanDone ? 44 : scheduleDone ? 33 : structureDone ? 22 : centerDone ? 11 : 0
+  const nextRoute = !centerDone ? '/centro' : !structureDone ? '/grupos' : !scheduleDone ? '/jornada' : !studyPlanDone ? '/materias' : '/profesorado'
 
   return <div className="dashboard-stack">
     <section className="hero-card">
       <div>
         <span className="eyebrow"><Sparkles size={15}/> Viyeutica 0.4</span>
-        <h1>{studyPlanDone ? 'El plan de estudios ya está definido.' : scheduleDone ? 'La rejilla temporal del centro ya está lista.' : structureDone ? 'Ahora toca definir la jornada escolar.' : centerDone ? 'Ahora toca construir la estructura académica.' : 'Configura el centro antes de construir el horario.'}</h1>
-        <p>{studyPlanDone
+        <h1>{staffDone ? 'La plantilla docente ya está preparada.' : studyPlanDone ? 'El plan de estudios ya está definido.' : scheduleDone ? 'La rejilla temporal del centro ya está lista.' : structureDone ? 'Ahora toca definir la jornada escolar.' : centerDone ? 'Ahora toca construir la estructura académica.' : 'Configura el centro antes de construir el horario.'}</h1>
+        <p>{staffDone
+          ? `${project.center.name} · ${project.teachers.filter(teacher=>teacher.active).length} docentes activos preparados para asignaciones.`
+          : studyPlanDone
           ? `${project.center.name} · plan de estudios configurado para ${activeGroups.length} grupos activos.`
           : scheduleDone
           ? `${project.center.name} · ${activeGroups.length} grupos · ${teachingSessions} sesiones lectivas diarias configuradas.`
@@ -46,7 +49,7 @@ export function Dashboard({
               ? 'Define niveles, líneas y grupos reales. Viyeutica utilizará esta estructura para jornada, materias, profesorado y solver.'
               : 'Introduce los datos maestros del centro. Viyeutica los conservará en este navegador y los reutilizará en todo el flujo.'}</p>
         <div className="hero-actions">
-          <button className="btn primary" onClick={() => navigate(nextRoute)}>{studyPlanDone ? 'Revisar plan de estudios' : 'Continuar configuración'} <ArrowRight size={17}/></button>
+          <button className="btn primary" onClick={() => navigate(nextRoute)}>{staffDone ? 'Revisar profesorado' : 'Continuar configuración'} <ArrowRight size={17}/></button>
           <button className="btn secondary" onClick={() => navigate('/horarios')}>Ver módulo de horarios</button>
         </div>
       </div>
@@ -77,7 +80,7 @@ export function Dashboard({
       </article>
 
       <article className="panel">
-        <div className="panel-heading"><div><span className="panel-kicker">Siguiente paso</span><h2>{!centerDone ? 'Completar los datos del centro' : !structureDone ? 'Definir grupos y unidades' : !scheduleDone ? 'Configurar jornada y sesiones' : !studyPlanDone ? 'Preparar el plan de estudios' : 'Configurar profesorado'}</h2></div><GraduationCap className="panel-heading-icon" size={24}/></div>
+        <div className="panel-heading"><div><span className="panel-kicker">Siguiente paso</span><h2>{!centerDone ? 'Completar los datos del centro' : !structureDone ? 'Definir grupos y unidades' : !scheduleDone ? 'Configurar jornada y sesiones' : !studyPlanDone ? 'Preparar el plan de estudios' : !staffDone ? 'Configurar profesorado' : 'Configurar asignaciones'}</h2></div><GraduationCap className="panel-heading-icon" size={24}/></div>
         <p className="panel-copy">{!centerDone
           ? 'Primero necesitamos identificar el centro, su ubicación y las etapas que imparte.'
           : !structureDone
@@ -86,9 +89,11 @@ export function Dashboard({
               ? 'Define los días lectivos y todos los tramos temporales, incluyendo sesiones y recreos.'
               : !studyPlanDone
                 ? 'Relaciona cada grupo con sus materias, cargas semanales y requisitos docentes.'
-                : 'El siguiente bloque creará la plantilla docente, especialidades, jornadas, cargos y reducciones.'}</p>
-        <div className="notice amber"><AlertTriangle size={17}/><span>{studyPlanDone ? 'El Paso 5 — Profesorado será el siguiente módulo.' : 'Completa este paso antes de seguir.'}</span></div>
-        <button className="btn primary wide" onClick={() => navigate(nextRoute)}>{studyPlanDone ? 'Revisar plan' : 'Continuar'} <ArrowRight size={16}/></button>
+                : !staffDone
+                  ? 'Configura la plantilla docente, especialidades, jornadas, cargos y reducciones.'
+                  : 'El siguiente bloque relacionará profesorado, grupos y materias, incluyendo apoyos, codocencias y disponibilidades.'}</p>
+        <div className="notice amber"><AlertTriangle size={17}/><span>{staffDone ? 'El Paso 6 — Asignaciones será el siguiente módulo.' : 'Completa este paso antes de seguir.'}</span></div>
+        <button className="btn primary wide" onClick={() => navigate(nextRoute)}>{staffDone ? 'Revisar profesorado' : 'Continuar'} <ArrowRight size={16}/></button>
       </article>
 
       <article className="panel">
