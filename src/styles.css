@@ -595,3 +595,12 @@ button.wizard-step:focus-visible{outline:3px solid rgba(89,180,17,.22);outline-o
   background:#2a2414!important;
   outline-color:#c49a3b!important;
 }
+
+
+/* === Comparación y deduplicación de propuestas === */
+.generation-history-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.generation-uniqueness-notice{display:flex;align-items:flex-start;gap:9px;padding:12px 14px;border:1px solid #d8c27a;background:#fff9e8;border-radius:12px;color:#745f25;font-size:9px;line-height:1.45}
+.generation-uniqueness-notice>svg{flex:0 0 auto;color:#9b7418}
+.generation-difference{margin-top:3px!important;color:#526b84!important}
+[data-theme="dark"] .generation-uniqueness-notice{background:#2a2414;border-color:#5d5127;color:#d6c784}
+@media(max-width:700px){.generation-history-actions{width:100%}.generation-history-actions .btn{flex:1}}
