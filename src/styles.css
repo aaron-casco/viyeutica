@@ -765,3 +765,19 @@ main .generated-schedule th strong{
   .generation-alternative-actions{grid-column:1/-1;width:100%}
   .generation-alternative-actions .btn{flex:1}
 }
+
+
+/* === JSON cargados === */
+.stored-json-section{display:grid;gap:12px}
+.stored-json-list{display:grid;gap:8px}
+.stored-json-item{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:11px;padding:11px 12px;border:1px solid var(--border);border-radius:12px;background:var(--surface)}
+.stored-json-icon{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;background:#eef3f7;color:var(--navy2)}
+.stored-json-copy strong,.stored-json-copy small{display:block}
+.stored-json-copy strong{font-size:12px}
+.stored-json-copy small{margin-top:3px;color:var(--muted);font-size:10px}
+.stored-json-actions{display:flex;align-items:center;gap:6px}
+.stored-json-actions button{width:34px;height:34px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--muted);display:grid;place-items:center;cursor:pointer}
+.stored-json-actions button:hover{color:var(--navy2);border-color:#9fb7ce}
+.stored-json-actions .row-delete:hover{color:#b3443f;border-color:#e6b2ae}
+[data-theme="dark"] .stored-json-icon{background:#202b39}
+@media(max-width:700px){.stored-json-item{grid-template-columns:auto 1fr}.stored-json-actions{grid-column:1/-1;justify-content:flex-end}}
