@@ -20,6 +20,19 @@ import { saveProject } from '../store/projectStorage'
 import { WizardStepper } from '../components/WizardStepper'
 import { AppModal } from '../components/AppModal'
 
+type GenerationAlternativeAction =
+  | {kind:'increase_load';groupId:string;subjectId:string;assignmentId:string}
+  | {kind:'free_availability';teacherId:string;day:Weekday;sessionId:string}
+  | {kind:'fix_slot';assignmentId:string;day:Weekday;sessionId:string}
+
+type GenerationAlternative={
+  id:string
+  title:string
+  detail:string
+  route:string
+  action:GenerationAlternativeAction
+}
+
 const dayLabels:Record<Weekday,string>={
   L:'Lunes',M:'Martes',X:'Miércoles',J:'Jueves',V:'Viernes',S:'Sábado',
 }
@@ -38,7 +51,9 @@ export function GenerationPage({
   const [showIssuesModal,setShowIssuesModal]=useState(false)
   const [ascending,setAscending]=useState(true)
   const [generationNotice,setGenerationNotice]=useState('')
-  const [generationAlternatives,setGenerationAlternatives]=useState<{title:string;detail:string;route:string}[]>([])
+  const [generationAlternatives,setGenerationAlternatives]=useState<GenerationAlternative[]>([])
+  const [visibleAlternatives,setVisibleAlternatives]=useState(3)
+  const [appliedAlternative,setAppliedAlternative]=useState('')
 
   const runs=uniqueGenerationRuns(project.generationRuns).filter(run=>isGenerationProposalValid(project,run))
   const selectedRun=runs.find(run=>run.id===selectedRunId)??runs[runs.length-1]??latestGeneration(project)
@@ -68,6 +83,8 @@ export function GenerationPage({
     setRunning(true)
     setGenerationNotice('')
     setGenerationAlternatives([])
+    setVisibleAlternatives(3)
+    setAppliedAlternative('')
     window.setTimeout(()=>{
       const existing=uniqueGenerationRuns(project.generationRuns).filter(run=>isGenerationProposalValid(project,run))
       const existingSignatures=new Set(existing.map(generationSignature))
@@ -122,6 +139,52 @@ export function GenerationPage({
     },20)
   }
 
+  const applyGenerationAlternative=(alternative:GenerationAlternative)=>{
+    const action=alternative.action
+    let nextProject:ViyeuticaProject=project
+
+    if(action.kind==='increase_load'){
+      const studyPlan=project.studyPlan.map(entry=>
+        entry.active&&entry.groupId===action.groupId&&entry.subjectId===action.subjectId
+          ? {...entry,weeklySessions:(entry.weeklySessions??0)+1}
+          : entry
+      )
+      const assignments=project.assignments.map(assignment=>
+        assignment.id===action.assignmentId
+          ? {...assignment,weeklySessions:(assignment.weeklySessions??0)+1}
+          : assignment
+      )
+      nextProject={...project,studyPlan,assignments,generationRuns:[],selectedGenerationRunId:null}
+    }
+
+    if(action.kind==='free_availability'){
+      const teacherAvailability=project.teacherAvailability.map(item=>
+        item.teacherId===action.teacherId&&item.day===action.day&&item.session===action.sessionId
+          ? {...item,status:'available' as const,detail:'Disponibilidad ajustada desde una alternativa de Generación.'}
+          : item
+      )
+      nextProject={...project,teacherAvailability,generationRuns:[],selectedGenerationRunId:null}
+    }
+
+    if(action.kind==='fix_slot'){
+      const assignments=project.assignments.map(assignment=>{
+        if(assignment.id!==action.assignmentId)return assignment
+        const fixedSlots=[...(assignment.fixedSlots??[])]
+        if(!fixedSlots.some(item=>item.day===action.day&&item.session===action.sessionId)){
+          fixedSlots.push({day:action.day,session:action.sessionId})
+        }
+        return {...assignment,fixedSlots}
+      })
+      nextProject={...project,assignments,generationRuns:[],selectedGenerationRunId:null}
+    }
+
+    saveProject(nextProject)
+    setSelectedRunId('')
+    setAppliedAlternative(alternative.title+' aplicada. Los horarios anteriores se han eliminado porque la configuración ha cambiado.')
+    setGenerationAlternatives([])
+    setGenerationNotice('Configuración actualizada. Vuelve a generar para comprobar si ya existe una solución válida sin huecos.')
+  }
+
   const clearRuns=()=>{
     saveProject({...project,generationRuns:[],selectedGenerationRunId:null})
     setSelectedRunId('')
@@ -171,14 +234,21 @@ export function GenerationPage({
     </section>
 
     {generationNotice&&<section className="generation-uniqueness-notice"><Info size={18}/><span>{generationNotice}</span></section>}
+    {appliedAlternative&&<section className="template-result generation-applied-alternative"><CheckCircle2 size={18}/><span>{appliedAlternative}</span><button className="btn primary" disabled={running} onClick={runGeneration}>{running?'Generando...':'Generar de nuevo'}</button></section>}
+
     {generationAlternatives.length>0&&<section className="generation-alternatives">
       <div className="groups-table-heading">
         <div><span className="panel-kicker">Alternativas posibles</span><h2>Qué puedes cambiar para desbloquear el horario</h2></div>
+        {visibleAlternatives<generationAlternatives.length&&<button className="btn ghost-inline" onClick={()=>setVisibleAlternatives(value=>Math.min(value+1,generationAlternatives.length))}><Plus size={16}/> Añadir solución</button>}
       </div>
       <div className="generation-alternative-list">
-        {generationAlternatives.map((item,index)=><article key={index}>
-          <div><strong>{item.title}</strong><p>{item.detail}</p></div>
-          <button className="btn ghost-inline" onClick={()=>navigate(item.route)}>Revisar</button>
+        {generationAlternatives.slice(0,visibleAlternatives).map((item,index)=><article key={item.id}>
+          <div className="generation-alternative-number">{index+1}</div>
+          <div className="generation-alternative-copy"><strong>{item.title}</strong><p>{item.detail}</p></div>
+          <div className="generation-alternative-actions">
+            <button className="btn ghost-inline" onClick={()=>navigate(item.route)}>Ver datos</button>
+            <button className="btn primary" onClick={()=>applyGenerationAlternative(item)}>Aplicar</button>
+          </div>
         </article>)}
       </div>
     </section>}
@@ -504,13 +574,9 @@ function GenerationIssuesModal({
 }
 
 
-function buildGenerationAlternatives(project:ViyeuticaProject,run?:GenerationRun){
-  if(!run)return [{
-    title:'Revisar restricciones del proyecto',
-    detail:'No se ha podido construir un diagnóstico suficiente. Comprueba asignaciones, disponibilidad docente y reglas HARD.',
-    route:'/prevalidacion',
-  }]
-  const alternatives:{title:string;detail:string;route:string}[]=[]
+function buildGenerationAlternatives(project:ViyeuticaProject,run?:GenerationRun):GenerationAlternative[]{
+  if(!run)return []
+  const alternatives:GenerationAlternative[]=[]
   const empty=emptyGroupTeachingSlots(project,run)
   const seen=new Set<string>()
 
@@ -526,60 +592,78 @@ function buildGenerationAlternatives(project:ViyeuticaProject,run?:GenerationRun
     })
 
     if(!pending.length){
-      const key='plan|'+slot.groupId
-      if(!seen.has(key)){
+      const candidates=assignments
+        .map(assignment=>({
+          assignment,
+          subject:project.subjects.find(item=>item.id===assignment.subjectId),
+          teacher:project.teachers.find(item=>item.id===assignment.teacherId),
+        }))
+        .filter(item=>item.subject&&item.teacher)
+        .sort((a,b)=>(a.assignment.weeklySessions??0)-(b.assignment.weeklySessions??0))
+
+      for(const candidate of candidates){
+        const key='increase|'+slot.groupId+'|'+candidate.assignment.subjectId
+        if(seen.has(key))continue
         seen.add(key)
         alternatives.push({
-          title:'Revisar carga semanal de '+(group?.name??'un grupo'),
-          detail:'El Plan de estudios no aporta suficientes sesiones principales para cubrir todas las franjas lectivas del grupo.',
+          id:key,
+          title:'Añadir 1 sesión de '+candidate.subject!.name+' en '+(group?.name??'el grupo'),
+          detail:'Aumentará en 1 la carga semanal de '+candidate.subject!.name+' y sincronizará Plan de estudios + Asignaciones con '+candidate.teacher!.name+'.',
           route:'/materias',
+          action:{kind:'increase_load',groupId:slot.groupId,subjectId:candidate.assignment.subjectId,assignmentId:candidate.assignment.id},
         })
+        if(alternatives.length>=8)break
       }
+      if(alternatives.length>=8)break
       continue
     }
 
-    const blocked=pending.filter(assignment=>project.teacherAvailability.some(item=>
-      item.teacherId===assignment.teacherId &&
-      item.day===slot.day &&
-      item.session===slot.sessionId &&
-      (item.status==='unavailable'||item.status==='travel')
-    ))
-    if(blocked.length){
-      const names=[...new Set(blocked.map(assignment=>project.teachers.find(item=>item.id===assignment.teacherId)?.name).filter(Boolean))]
-      const key='availability|'+slot.groupId+'|'+slot.day+'|'+slot.sessionId
-      if(!seen.has(key)){
-        seen.add(key)
-        alternatives.push({
-          title:'Revisar disponibilidad docente',
-          detail:(group?.name??'Grupo')+' · '+dayLabels[slot.day]+' · '+(block?.label??'sesión')+': '+names.join(', ')+' no está disponible en esa franja.',
-          route:'/asignaciones',
-        })
+    for(const assignment of pending){
+      const subject=project.subjects.find(item=>item.id===assignment.subjectId)
+      const teacher=project.teachers.find(item=>item.id===assignment.teacherId)
+      const blocked=project.teacherAvailability.find(item=>
+        item.teacherId===assignment.teacherId &&
+        item.day===slot.day &&
+        item.session===slot.sessionId &&
+        (item.status==='unavailable'||item.status==='travel')
+      )
+      if(blocked){
+        const key='availability|'+assignment.teacherId+'|'+slot.day+'|'+slot.sessionId
+        if(!seen.has(key)){
+          seen.add(key)
+          alternatives.push({
+            id:key,
+            title:'Habilitar '+(teacher?.name??'docente')+' en '+dayLabels[slot.day]+' · '+(block?.label??'sesión'),
+            detail:'Cambiará esa franja de no disponible/desplazamiento a disponible para poder colocar '+(subject?.name??'la materia')+' en '+(group?.name??'el grupo')+'.',
+            route:'/asignaciones',
+            action:{kind:'free_availability',teacherId:assignment.teacherId,day:slot.day,sessionId:slot.sessionId},
+          })
+        }
+        continue
       }
-    }else{
-      const busy=pending.filter(assignment=>run.entries.some(entry=>
+
+      const busy=run.entries.some(entry=>
         entry.teacherId===assignment.teacherId &&
         entry.day===slot.day &&
         entry.sessionId===slot.sessionId
-      ))
-      const key=(busy.length?'busy':'rules')+'|'+slot.groupId+'|'+slot.day+'|'+slot.sessionId
-      if(!seen.has(key)){
-        seen.add(key)
-        alternatives.push({
-          title:busy.length?'Liberar una franja docente':'Revisar franjas fijas o reglas HARD',
-          detail:(group?.name??'Grupo')+' · '+dayLabels[slot.day]+' · '+(block?.label??'sesión')+' no puede cubrirse con las restricciones actuales.',
-          route:busy.length?'/asignaciones':'/reglas',
-        })
+      )
+      if(!busy){
+        const key='fix|'+assignment.id+'|'+slot.day+'|'+slot.sessionId
+        if(!seen.has(key)){
+          seen.add(key)
+          alternatives.push({
+            id:key,
+            title:'Fijar '+(subject?.name??'materia')+' en '+dayLabels[slot.day]+' · '+(block?.label??'sesión'),
+            detail:'Añadirá esta franja fija a la asignación de '+(teacher?.name??'docente')+' para '+(group?.name??'el grupo')+'.',
+            route:'/asignaciones',
+            action:{kind:'fix_slot',assignmentId:assignment.id,day:slot.day,sessionId:slot.sessionId},
+          })
+        }
       }
+      if(alternatives.length>=8)break
     }
     if(alternatives.length>=8)break
   }
 
-  if(!alternatives.length&&run.hardViolations>0){
-    alternatives.push({
-      title:'Revisar incidencias de asignación',
-      detail:'La mejor tentativa sigue incumpliendo restricciones obligatorias. Revisa las asignaciones y franjas fijas antes de volver a generar.',
-      route:'/asignaciones',
-    })
-  }
   return alternatives.slice(0,8)
 }
