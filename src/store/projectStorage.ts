@@ -21,6 +21,7 @@ export function loadProject(): ViyeuticaProject {
       teacherAvailability: Array.isArray(parsed.teacherAvailability) ? parsed.teacherAvailability : [],
       assignments: Array.isArray(parsed.assignments) ? parsed.assignments : [],
       rules: Array.isArray(parsed.rules) ? parsed.rules : [],
+      generationRuns: Array.isArray(parsed.generationRuns) ? parsed.generationRuns : [],
       normativeSources: Array.isArray(parsed.normativeSources) ? parsed.normativeSources : [],
       normativeRules: Array.isArray(parsed.normativeRules) ? parsed.normativeRules : [],
       schedule: {
