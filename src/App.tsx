@@ -29,7 +29,7 @@ const navigation = [
   { path: '/', label: 'Inicio', icon: Gauge },
   { path: '/cursos', label: 'Curso académico', icon: CalendarDays },
   { path: '/normativa', label: 'Normativa', icon: FileSearch },
-  { path: '/proyecto-json', label: 'Importar / exportar JSON', icon: Braces },
+  { path: '/proyecto-json', label: 'Importar Plantilla', icon: Braces },
   { path: '/centro', label: 'Centro', icon: GraduationCap },
   { path: '/grupos', label: 'Estructura y grupos', icon: LayoutGrid },
   { path: '/jornada', label: 'Jornada y sesiones', icon: CalendarClock },
@@ -47,6 +47,7 @@ const navigation = [
 const descriptions: Record<string,string> = {
   '/cursos': 'Creación, histórico y estado de los cursos académicos.',
   '/normativa': 'Fuentes normativas, extracción de reglas y revisión antes de aplicar plantillas.',
+  '/proyecto-json': 'Importación de datos del centro desde plantillas JSON o Excel.',
   '/profesorado': 'Plantilla docente, especialidades, jornadas, cargos y reducciones.',
   '/asignaciones': 'Relación entre grupos, materias, profesorado y responsabilidades docentes.',
   '/reglas': 'Restricciones legales, reglas del centro y preferencias ponderadas.',
