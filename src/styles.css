@@ -505,3 +505,45 @@ button.wizard-step:focus-visible{outline:3px solid rgba(89,180,17,.22);outline-o
 [data-theme="dark"] .normative-traceability-grid>div{background:#17202c}
 @media(max-width:1050px){.normative-traceability-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:700px){.normative-traceability-heading{flex-direction:column}.normative-traceability-kpis{width:100%}.normative-traceability-kpis span{flex:1}.normative-traceability-grid{grid-template-columns:1fr}}
+
+
+/* Estado de trazabilidad normativa */
+.normative-traceability-panel.missing,
+.normative-traceability-panel.pending-link{
+  border-color:#e2c66b;
+}
+.normative-traceability-panel.missing .normative-traceability-heading,
+.normative-traceability-panel.pending-link .normative-traceability-heading{
+  background:#fff9e8;
+}
+.normative-traceability-panel.missing .normative-traceability-empty,
+.normative-traceability-panel.pending-link .normative-traceability-empty{
+  background:#fffdf6;
+}
+.normative-traceability-panel.missing .normative-traceability-empty>svg,
+.normative-traceability-panel.pending-link .normative-traceability-empty>svg{
+  color:#a67813;
+}
+.normative-traceability-panel.missing .normative-traceability-empty strong,
+.normative-traceability-panel.pending-link .normative-traceability-empty strong{
+  color:#765e1d;
+}
+.normative-traceability-panel.missing .normative-traceability-empty p,
+.normative-traceability-panel.pending-link .normative-traceability-empty p{
+  color:#806827;
+}
+.normative-traceability-panel.linked{
+  border-color:#b9d8a7;
+}
+.normative-traceability-panel.linked .normative-traceability-heading{
+  background:#f5fbf1;
+}
+[data-theme="dark"] .normative-traceability-panel.missing .normative-traceability-heading,
+[data-theme="dark"] .normative-traceability-panel.pending-link .normative-traceability-heading,
+[data-theme="dark"] .normative-traceability-panel.missing .normative-traceability-empty,
+[data-theme="dark"] .normative-traceability-panel.pending-link .normative-traceability-empty{
+  background:#2a2414;
+}
+[data-theme="dark"] .normative-traceability-panel.linked .normative-traceability-heading{
+  background:#182718;
+}
