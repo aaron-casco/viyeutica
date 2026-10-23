@@ -5,6 +5,7 @@ import {
 import { auditGeneration } from '../domain/auditEngine'
 import {
   latestGeneration,
+  uniqueGenerationRuns,
   type AuditIssue,
   type AuditResult,
   type ViyeuticaProject,
@@ -22,7 +23,7 @@ export function AuditPage({
   project:ViyeuticaProject
   navigate:(path:string)=>void
 }) {
-  const runs=project.generationRuns
+  const runs=uniqueGenerationRuns(project.generationRuns)
   const latest=latestGeneration(project)
   const [runId,setRunId]=useState(latest?.id??'')
   const run=runs.find(item=>item.id===runId)??latest
