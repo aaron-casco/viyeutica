@@ -30,7 +30,7 @@ export function GenerationPage({
   navigate:(path:string)=>void
 }) {
   const [selectedRunId,setSelectedRunId]=useState(latestGeneration(project)?.id??'')
-  const [selectedGroupId,setSelectedGroupId]=useState(project.groups.find(group=>group.active)?.id??'')
+  const [selectedGroupIds,setSelectedGroupIds]=useState<string[]>(['all'])
   const [running,setRunning]=useState(false)
   const [showClearModal,setShowClearModal]=useState(false)
   const [showIssuesModal,setShowIssuesModal]=useState(false)
@@ -41,6 +41,24 @@ export function GenerationPage({
   const selectedRun=runs.find(run=>run.id===selectedRunId)??runs[runs.length-1]??latestGeneration(project)
   const activeGroups=project.groups.filter(group=>group.active)
   const teachingBlocks=project.schedule.blocks.filter(block=>block.active&&block.type==='teaching')
+  const baselineRun=runs[0]??null
+
+  const toggleGroup=(groupId:string)=>{
+    if(groupId==='all'){
+      setSelectedGroupIds(['all'])
+      return
+    }
+    setSelectedGroupIds(current=>{
+      const withoutAll=current.filter(id=>id!=='all')
+      const exists=withoutAll.includes(groupId)
+      const next=exists?withoutAll.filter(id=>id!==groupId):[...withoutAll,groupId]
+      return next.length?next:['all']
+    })
+  }
+
+  const visibleGroupIds=selectedGroupIds.includes('all')
+    ? activeGroups.map(group=>group.id)
+    : selectedGroupIds
 
   const runGeneration=()=>{
     if(!isPrevalidationComplete(project)) return
@@ -200,16 +218,37 @@ export function GenerationPage({
             <button className="btn secondary-light" onClick={()=>setShowIssuesModal(true)}>Ver incidencias</button>
           </div>}
 
-          <div className="generation-toolbar">
-            <label>Ver horario de
-              <select value={selectedGroupId} onChange={e=>setSelectedGroupId(e.target.value)}>
-                {activeGroups.map(group=><option key={group.id} value={group.id}>{group.name}</option>)}
-              </select>
-            </label>
+          <div className="generation-toolbar generation-toolbar-tags">
+            <div>
+              <span className="panel-kicker">Ver horarios de</span>
+              <div className="generation-group-tags">
+                <button
+                  type="button"
+                  className={selectedGroupIds.includes('all')?'active':''}
+                  onClick={()=>toggleGroup('all')}
+                >Todos</button>
+                {activeGroups.map(group=><button
+                  key={group.id}
+                  type="button"
+                  className={!selectedGroupIds.includes('all')&&selectedGroupIds.includes(group.id)?'active':''}
+                  onClick={()=>toggleGroup(group.id)}
+                >{group.name}</button>)}
+              </div>
+            </div>
             <button className="btn ghost-inline" onClick={()=>navigate('/horarios')}>Abrir módulo Horarios</button>
           </div>
 
-          <SchedulePreview project={project} run={selectedRun} groupId={selectedGroupId}/>
+          {baselineRun&&selectedRun.id!==baselineRun.id&&<div className="generation-diff-legend">
+            <span className="diff-swatch"/>
+            <span>Marcado = colocación distinta respecto a Propuesta 1</span>
+          </div>}
+
+          <SchedulePreview
+            project={project}
+            run={selectedRun}
+            baselineRun={baselineRun}
+            groupIds={visibleGroupIds}
+          />
         </section>}
       </>}
 
@@ -257,28 +296,75 @@ function RunCard({
   </button>
 }
 
-function SchedulePreview({project,run,groupId}:{project:ViyeuticaProject;run:GenerationRun;groupId:string}) {
+function SchedulePreview({
+  project,run,baselineRun,groupIds,
+}:{
+  project:ViyeuticaProject
+  run:GenerationRun
+  baselineRun:GenerationRun|null
+  groupIds:string[]
+}) {
   const teachingBlocks=project.schedule.blocks.filter(block=>block.active&&block.type==='teaching')
-  const entries=run.entries.filter(entry=>entry.groupId===groupId)
-  return <div className="generated-schedule-wrap">
-    <table className="generated-schedule">
-      <thead><tr><th>Sesión</th>{project.schedule.activeDays.map(day=><th key={day}>{dayLabels[day]}</th>)}</tr></thead>
-      <tbody>{teachingBlocks.map(block=><tr key={block.id}>
-        <th><strong>{block.label}</strong><small>{block.start}–{block.end}</small></th>
-        {project.schedule.activeDays.map(day=>{
-          const cell=entries.filter(entry=>entry.day===day&&entry.sessionId===block.id)
-          const primary=cell[0]
-          if(!primary)return <td key={day} className="empty-slot">—</td>
-          const subject=project.subjects.find(item=>item.id===primary.subjectId)
-          const teachers=cell.map(entry=>project.teachers.find(item=>item.id===entry.teacherId)?.name).filter(Boolean)
-          return <td key={day}>
-            <strong>{subject?.name??'Materia'}</strong>
-            <small>{teachers.join(' + ')}</small>
-          </td>
-        })}
-      </tr>)}</tbody>
-    </table>
+  return <div className="generation-multi-schedule">
+    {groupIds.map(groupId=>{
+      const group=project.groups.find(item=>item.id===groupId)
+      const entries=run.entries.filter(entry=>entry.groupId===groupId)
+      return <section className="generation-group-schedule" key={groupId}>
+        <div className="generation-group-heading">
+          <strong>{group?.name??'Grupo'}</strong>
+          {baselineRun&&run.id!==baselineRun.id&&<small>{groupDifferenceCount(run,baselineRun,groupId)} cambios respecto a Propuesta 1</small>}
+        </div>
+        <div className="generated-schedule-wrap">
+          <table className="generated-schedule">
+            <thead><tr><th>Sesión</th>{project.schedule.activeDays.map(day=><th key={day}>{dayLabels[day]}</th>)}</tr></thead>
+            <tbody>{teachingBlocks.map(block=><tr key={block.id}>
+              <th><strong>{block.label}</strong><small>{block.start}–{block.end}</small></th>
+              {project.schedule.activeDays.map(day=>{
+                const cell=entries.filter(entry=>entry.day===day&&entry.sessionId===block.id)
+                const primary=cell[0]
+                const changed=baselineRun&&run.id!==baselineRun.id
+                  ? cellDiffersFromBaseline(run,baselineRun,groupId,day,block.id)
+                  : false
+                if(!primary)return <td key={day} className={'empty-slot '+(changed?'proposal-diff-cell':'')}>—</td>
+                const subject=project.subjects.find(item=>item.id===primary.subjectId)
+                const teachers=cell.map(entry=>project.teachers.find(item=>item.id===entry.teacherId)?.name).filter(Boolean)
+                return <td key={day} className={changed?'proposal-diff-cell':''}>
+                  <strong>{subject?.name??'Materia'}</strong>
+                  <small>{teachers.join(' + ')}</small>
+                  {changed&&<em className="proposal-diff-badge">Distinta</em>}
+                </td>
+              })}
+            </tr>)}</tbody>
+          </table>
+        </div>
+      </section>
+    })}
   </div>
+}
+
+function cellSignature(run:GenerationRun,groupId:string,day:Weekday,sessionId:string){
+  return run.entries
+    .filter(entry=>entry.groupId===groupId&&entry.day===day&&entry.sessionId===sessionId)
+    .map(entry=>[entry.assignmentId,entry.subjectId,entry.teacherId].join('|'))
+    .sort()
+    .join('||')
+}
+
+function cellDiffersFromBaseline(run:GenerationRun,baseline:GenerationRun,groupId:string,day:Weekday,sessionId:string){
+  return cellSignature(run,groupId,day,sessionId)!==cellSignature(baseline,groupId,day,sessionId)
+}
+
+function groupDifferenceCount(run:GenerationRun,baseline:GenerationRun,groupId:string){
+  const slots=new Set<string>()
+  for(const entry of [...run.entries,...baseline.entries]){
+    if(entry.groupId===groupId)slots.add(entry.day+'|'+entry.sessionId)
+  }
+  let changes=0
+  for(const slot of slots){
+    const [day,sessionId]=slot.split('|')
+    if(cellDiffersFromBaseline(run,baseline,groupId,day as Weekday,sessionId))changes++
+  }
+  return changes
 }
 
 function isBestRun(run:GenerationRun,runs:GenerationRun[]){
