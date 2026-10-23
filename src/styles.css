@@ -637,3 +637,44 @@ button.wizard-step:focus-visible{outline:3px solid rgba(89,180,17,.22);outline-o
 .timetable-entity-heading strong{font-size:10px}
 [data-theme="dark"] .timetable-entity-tags button.active{background:#182718;border-color:#3f6135;color:#9fd079}
 @media(max-width:700px){.timetable-entity-tags-block{width:100%}}
+
+
+/* === Huecos lectivos de grupo === */
+.timetable-empty-problem{
+  padding:0!important;
+  background:#fff1f0!important;
+  box-shadow:inset 0 0 0 1px #e7a3a0;
+}
+.timetable-empty-plus{
+  width:100%;
+  min-height:64px;
+  border:0;
+  background:transparent;
+  color:#c43d37;
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+}
+.timetable-empty-plus:hover{background:#ffe6e4}
+.empty-slot-modal{display:grid;gap:14px}
+.empty-slot-context{padding:11px 12px;border:1px solid var(--border);border-radius:10px;background:#fafbfc}
+.empty-slot-context strong{display:block;font-size:10px}
+.empty-slot-context p{margin:4px 0 0;color:var(--muted);font-size:8.5px;line-height:1.45}
+.empty-slot-no-options{display:flex;gap:10px;align-items:flex-start;padding:12px;border:1px solid #e6b2ae;border-radius:10px;background:#fff7f6}
+.empty-slot-no-options>svg{color:#b3443f;flex:0 0 auto}
+.empty-slot-no-options strong{font-size:9.5px}
+.empty-slot-no-options p{margin:4px 0 0;color:var(--muted);font-size:8.3px;line-height:1.45}
+.empty-slot-options{display:grid;gap:8px}
+.empty-slot-options button{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;border:1px solid var(--border);border-radius:10px;background:var(--surface);padding:10px 12px;cursor:pointer}
+.empty-slot-options button:hover{border-color:#8fb27e;background:#f6fbf2}
+.empty-slot-options strong,.empty-slot-options small{display:block}
+.empty-slot-options strong{font-size:9.5px}
+.empty-slot-options small{margin-top:3px;color:var(--muted);font-size:8px}
+.empty-slot-footnote{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border:1px solid #cfe0c5;border-radius:10px;background:#f6fbf2;color:#527146;font-size:8.2px;line-height:1.45}
+.empty-slot-footnote>svg{flex:0 0 auto}
+[data-theme="dark"] .timetable-empty-problem{background:#321817!important;box-shadow:inset 0 0 0 1px #6d3733}
+[data-theme="dark"] .timetable-empty-plus{color:#ef8f89}
+[data-theme="dark"] .timetable-empty-plus:hover{background:#3b1d1b}
+[data-theme="dark"] .empty-slot-context{background:#17202c}
+[data-theme="dark"] .empty-slot-no-options{background:#2d1a19;border-color:#5c3430}
+[data-theme="dark"] .empty-slot-footnote{background:#182718;border-color:#304c2c;color:#a8cf98}
