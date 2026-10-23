@@ -93,6 +93,13 @@ function sentenceCandidates(text:string){
   return normalized.split(/\n+/).map(cleanText).filter(sentence=>sentence.length>=24 && sentence.length<=650)
 }
 
+function inferRelevance(section:NormativeSection, kind:NormativeRuleKind, text:string){
+  if(section==='schedule'||section==='assignments'||section==='staff'||section==='structure') return 'timetable' as const
+  if(section==='study_plan'&&(kind==='weekly_hours'||kind==='weekly_minutes'||kind==='weekly_periods'||kind==='session_minutes'||kind==='subject_rule')) return 'timetable' as const
+  if(section==='rules'&&/horario|sesión|periodo|jornada|docente|grupo|asignación|disponibilidad|simult|solap|recreo/i.test(text)) return 'timetable' as const
+  return 'reference' as const
+}
+
 function buildRulesForPage(pageText:string,page:number,sourceId:string):NormativeRule[]{
   const rules:NormativeRule[]=[]
   const pageStage=inferStage(pageText)
@@ -126,6 +133,7 @@ function buildRulesForPage(pageText:string,page:number,sourceId:string):Normativ
       excerpt,
       confidence,
       approved:false,
+      relevance:inferRelevance(section,kind,excerpt),
     })
   }
   const seen=new Set<string>()
