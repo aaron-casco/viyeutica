@@ -32,6 +32,7 @@ function normalizeProject(raw:Partial<ViyeuticaProject>):ViyeuticaProject {
     assignments:Array.isArray(raw.assignments)?raw.assignments:[],
     rules:Array.isArray(raw.rules)?raw.rules:[],
     generationRuns:Array.isArray(raw.generationRuns)?raw.generationRuns:[],
+    selectedGenerationRunId:raw.selectedGenerationRunId??null,
     normativeSources:Array.isArray(raw.normativeSources)?raw.normativeSources:[],
     normativeRules:Array.isArray(raw.normativeRules)?raw.normativeRules:[],
     updatedAt:null,
