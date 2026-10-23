@@ -781,3 +781,39 @@ main .generated-schedule th strong{
 .stored-json-actions .row-delete:hover{color:#b3443f;border-color:#e6b2ae}
 [data-theme="dark"] .stored-json-icon{background:#202b39}
 @media(max-width:700px){.stored-json-item{grid-template-columns:auto 1fr}.stored-json-actions{grid-column:1/-1;justify-content:flex-end}}
+
+/* === Tooltip de diferencias entre propuestas === */
+.proposal-diff-cell{position:relative}
+.proposal-diff-tooltip{
+  position:absolute;
+  left:50%;
+  bottom:calc(100% + 8px);
+  transform:translateX(-50%);
+  z-index:20;
+  min-width:180px;
+  max-width:260px;
+  padding:8px 10px;
+  border-radius:8px;
+  background:#142033;
+  color:#fff;
+  font-size:11px;
+  line-height:1.35;
+  box-shadow:0 8px 20px rgba(15,23,42,.2);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .15s ease, transform .15s ease;
+}
+.proposal-diff-tooltip::after{
+  content:'';
+  position:absolute;
+  top:100%;
+  left:50%;
+  transform:translateX(-50%);
+  border:6px solid transparent;
+  border-top-color:#142033;
+}
+.proposal-diff-cell:hover .proposal-diff-tooltip{
+  opacity:1;
+  transform:translateX(-50%) translateY(-2px);
+}
+.proposal-diff-badge{display:none!important}
