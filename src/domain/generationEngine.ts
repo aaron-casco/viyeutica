@@ -216,6 +216,7 @@ function generateAttempt(project:ViyeuticaProject,attempt:number){
   const entries:GeneratedScheduleEntry[]=[]
   const occupancy:Occupancy={group:new Set(),teacher:new Set()}
   const notes:string[]=[]
+  const issues:import('./project').GenerationIssue[]=[]
   let requested=0
   let hardViolations=0
 
@@ -251,7 +252,16 @@ function generateAttempt(project:ViyeuticaProject,attempt:number){
       const slot=candidates[0]
       if(!slot){
         hardViolations++
-        notes.push(`No se pudo colocar ${assignment.id} (${assignment.groupId} / ${assignment.subjectId}).`)
+        issues.push({
+          id:uid('issue'),
+          type:'unplaced_main',
+          assignmentId:assignment.id,
+          groupId:assignment.groupId,
+          subjectId:assignment.subjectId,
+          teacherId:assignment.teacherId,
+          missingSessions:1,
+          severity:'error',
+        })
         continue
       }
       addEntry(entries,occupancy,assignment,slot)
@@ -282,14 +292,23 @@ function generateAttempt(project:ViyeuticaProject,attempt:number){
     }
     if(placed<needed){
       hardViolations+=needed-placed
-      notes.push(`Faltan ${needed-placed} sesiones de apoyo/codocencia para ${assignment.id}.`)
+      issues.push({
+        id:uid('issue'),
+        type:'unplaced_support',
+        assignmentId:assignment.id,
+        groupId:assignment.groupId,
+        subjectId:assignment.subjectId,
+        teacherId:assignment.teacherId,
+        missingSessions:needed-placed,
+        severity:'warning',
+      })
     }
   }
 
   const softPenalty=evaluateSoft(project,entries,slots)
   const status:'complete'|'partial'|'failed'=hardViolations===0&&entries.length>=requested?'complete':entries.length?'partial':'failed'
   const score=Math.max(0,10000-hardViolations*1000-softPenalty)
-  return {entries,requested,hardViolations,softPenalty,status,score,notes}
+  return {entries,requested,hardViolations,softPenalty,status,score,notes,issues}
 }
 
 export function generateSchedule(project:ViyeuticaProject,attempts=40):GenerationRun{
@@ -312,6 +331,7 @@ export function generateSchedule(project:ViyeuticaProject,attempts=40):Generatio
     placedSessions:final.entries.length,
     requestedSessions:final.requested,
     entries:final.entries,
+    issues:final.issues,
     notes:final.notes,
   }
 }
