@@ -17,6 +17,7 @@ import {
   type Weekday,
 } from '../domain/project'
 import { saveProject } from '../store/projectStorage'
+import { AppModal } from '../components/AppModal'
 import { WizardStepper } from '../components/WizardStepper'
 import { TemplatePanel } from '../components/TemplatePanel'
 
@@ -56,6 +57,7 @@ export function SchedulePage({project,navigate}:{project:ViyeuticaProject;naviga
   const [draft,setDraft]=useState<Draft>(emptyDraft)
   const [editingId,setEditingId]=useState<string|null>(null)
   const [error,setError]=useState('')
+  const [showPresetModal,setShowPresetModal]=useState(false)
   const schedule=project.schedule
   const blocks=[...schedule.blocks].sort((a,b)=>a.start.localeCompare(b.start))
   const validation=useMemo(()=>validateSchedule(schedule),[schedule])
@@ -123,8 +125,7 @@ export function SchedulePage({project,navigate}:{project:ViyeuticaProject;naviga
     persist({blocks:[...schedule.blocks,{...block,id:uid(),label:block.label+' copia'}]})
   }
 
-  const createPreset=()=>{
-    if (schedule.blocks.length && !window.confirm('La plantilla sustituirá los tramos actuales de la jornada. ¿Quieres continuar?')) return
+  const applyPreset=()=>{
     const preset:TimeBlock[]=[
       ['1.ª sesión','09:00','10:00','teaching'],
       ['2.ª sesión','10:00','11:00','teaching'],
@@ -134,6 +135,15 @@ export function SchedulePage({project,navigate}:{project:ViyeuticaProject;naviga
       ['5.ª sesión','13:00','14:00','teaching'],
     ].map(([label,start,end,type])=>({id:uid(),label,start,end,type:type as TimeBlockType,stageScope:[],active:true}))
     persist({mode:'morning',activeDays:['L','M','X','J','V'],blocks:preset})
+    setShowPresetModal(false)
+  }
+
+  const createPreset=()=>{
+    if(schedule.blocks.length){
+      setShowPresetModal(true)
+      return
+    }
+    applyPreset()
   }
 
   const teachingMinutes=blocks.filter(b=>b.active&&b.type==='teaching').reduce((sum,b)=>sum+timeBlockDuration(b),0)
@@ -150,6 +160,18 @@ export function SchedulePage({project,navigate}:{project:ViyeuticaProject;naviga
   }
 
   return <div className="wizard-page schedule-page">
+    {showPresetModal&&<AppModal
+      title="Sustituir la jornada actual"
+      icon={<CalendarClock size={22}/>}
+      onClose={()=>setShowPresetModal(false)}
+      footer={<>
+        <button className="btn secondary-light" onClick={()=>setShowPresetModal(false)}>Cancelar</button>
+        <button className="btn primary" onClick={applyPreset}>Cargar plantilla</button>
+      </>}
+    >
+      <p>La plantilla <strong>09:00–14:00</strong> sustituirá todos los tramos actuales de la jornada.</p>
+      <p style={{marginTop:8}}>Los grupos, profesorado, materias y demás datos del proyecto no se modificarán.</p>
+    </AppModal>}
     <section className="wizard-intro">
       <div>
         <span className="eyebrow dark"><CalendarClock size={15}/> Paso 3 · Tiempo escolar</span>
