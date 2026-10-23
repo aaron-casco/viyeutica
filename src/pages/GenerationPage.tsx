@@ -469,7 +469,7 @@ function SchedulePreview({
                 return <td key={day} className={changed?'proposal-diff-cell':''}>
                   <strong>{subject?.name??'Materia'}</strong>
                   <small>{teachers.join(' + ')}</small>
-                  {changed&&<em className="proposal-diff-badge">Distinta</em>}
+                  {changed&&baselineRun&&<span className="proposal-diff-tooltip">{baselineCellLabel(project,baselineRun,groupId,day,block.id)}</span>}
                 </td>
               })}
             </tr>)}</tbody>
@@ -478,6 +478,21 @@ function SchedulePreview({
       </section>
     })}
   </div>
+}
+
+function baselineCellLabel(
+  project:ViyeuticaProject,
+  baseline:GenerationRun,
+  groupId:string,
+  day:Weekday,
+  sessionId:string,
+){
+  const cell=baseline.entries.filter(entry=>entry.groupId===groupId&&entry.day===day&&entry.sessionId===sessionId)
+  if(!cell.length)return 'Propuesta 1: hueco libre'
+  const primary=cell[0]
+  const subject=project.subjects.find(item=>item.id===primary.subjectId)?.name??'Materia'
+  const teachers=[...new Set(cell.map(entry=>project.teachers.find(item=>item.id===entry.teacherId)?.name).filter(Boolean))]
+  return 'Propuesta 1: '+subject+(teachers.length?' · '+teachers.join(' + '):'')
 }
 
 function cellSignature(run:GenerationRun,groupId:string,day:Weekday,sessionId:string){
