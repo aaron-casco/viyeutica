@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  ArrowDownToLine, ArrowUpToLine, Braces, CheckCircle2, Eye, FileJson,
+  ArrowUpToLine, Braces, CheckCircle2, Eye, FileJson,
   FileSpreadsheet, ShieldAlert, Trash2, TriangleAlert,
 } from 'lucide-react'
 import { EMPTY_PROJECT, type ViyeuticaProject } from '../domain/project'
@@ -143,7 +143,7 @@ export function ProjectImportPage({project,navigate}:{project:ViyeuticaProject;n
       <div>
         <span className="eyebrow dark"><Braces size={15}/> Entrada de datos del centro</span>
         <h1>Importar Plantilla</h1>
-        <p>Descarga una plantilla vacía, complétala con los datos del centro y vuelve a importarla en formato JSON o Excel.</p>
+        <p>Descarga una plantilla vacía, complétala con los datos del centro y vuelve a importarla en formato JSON o Excel. Proyecto actual: <strong>{project.center.name||'sin centro configurado'}</strong>.</p>
       </div>
     </section>
 
