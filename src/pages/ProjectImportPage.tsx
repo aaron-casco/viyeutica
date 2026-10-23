@@ -30,6 +30,7 @@ function normalizeProject(raw:Partial<ViyeuticaProject>):ViyeuticaProject {
     teacherAvailability:Array.isArray(raw.teacherAvailability)?raw.teacherAvailability:[],
     assignments:Array.isArray(raw.assignments)?raw.assignments:[],
     rules:Array.isArray(raw.rules)?raw.rules:[],
+    generationRuns:Array.isArray(raw.generationRuns)?raw.generationRuns:[],
     normativeSources:Array.isArray(raw.normativeSources)?raw.normativeSources:[],
     normativeRules:Array.isArray(raw.normativeRules)?raw.normativeRules:[],
     updatedAt:null,
