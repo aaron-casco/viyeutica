@@ -153,6 +153,17 @@ export interface GeneratedScheduleEntry {
   sessionId: string
 }
 
+export interface GenerationIssue {
+  id: string
+  type: 'unplaced_main' | 'unplaced_support'
+  assignmentId: string
+  groupId: string
+  subjectId: string
+  teacherId: string
+  missingSessions: number
+  severity: 'error' | 'warning'
+}
+
 export interface GenerationRun {
   id: string
   createdAt: string
@@ -163,6 +174,7 @@ export interface GenerationRun {
   placedSessions: number
   requestedSessions: number
   entries: GeneratedScheduleEntry[]
+  issues?: GenerationIssue[]
   notes: string[]
 }
 
