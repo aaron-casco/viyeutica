@@ -287,7 +287,7 @@ function generateAttempt(project:ViyeuticaProject,attempt:number){
   }
 
   const softPenalty=evaluateSoft(project,entries,slots)
-  const status=hardViolations===0&&entries.length>=requested?'complete':entries.length?'partial':'failed'
+  const status:'complete'|'partial'|'failed'=hardViolations===0&&entries.length>=requested?'complete':entries.length?'partial':'failed'
   const score=Math.max(0,10000-hardViolations*1000-softPenalty)
   return {entries,requested,hardViolations,softPenalty,status,score,notes}
 }
