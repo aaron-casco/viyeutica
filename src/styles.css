@@ -547,3 +547,13 @@ button.wizard-step:focus-visible{outline:3px solid rgba(89,180,17,.22);outline-o
 [data-theme="dark"] .normative-traceability-panel.linked .normative-traceability-heading{
   background:#182718;
 }
+
+
+/* === Gestión de documentos normativos === */
+.normative-source-actions{display:flex;gap:6px;align-items:center}
+.normative-source-actions button{width:34px;height:34px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--muted);display:grid;place-items:center;cursor:pointer}
+.normative-source-actions button:hover{color:var(--navy2);border-color:#9fb7ce}
+.normative-source-actions .row-delete:hover{color:#b3443f;border-color:#e6b2ae}
+.normative-document-viewer{height:min(70vh,760px);min-height:520px;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:#fff}
+.normative-document-viewer iframe{width:100%;height:100%;border:0;display:block}
+@media(max-width:700px){.normative-document-viewer{min-height:65vh}.normative-source-actions{width:100%;justify-content:flex-end}}
