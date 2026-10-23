@@ -16,6 +16,7 @@ import { NormativePage } from './pages/NormativePage'
 import { ProjectImportPage } from './pages/ProjectImportPage'
 import { StaffPage } from './pages/StaffPage'
 import { AssignmentsPage } from './pages/AssignmentsPage'
+import { RulesPage } from './pages/RulesPage'
 import { useProject } from './hooks/useProject'
 import { useTheme } from './hooks/useTheme'
 
@@ -88,6 +89,7 @@ export default function App() {
     if (route === '/proyecto-json') return <ProjectImportPage project={project} navigate={go}/>
     if (route === '/profesorado') return <StaffPage project={project} navigate={go}/>
     if (route === '/asignaciones') return <AssignmentsPage project={project} navigate={go}/>
+    if (route === '/reglas') return <RulesPage project={project} navigate={go}/>
     return <PlaceholderPage title={active.label} description={descriptions[route] ?? 'Módulo preparado para su implementación.'}/>
   }
 
