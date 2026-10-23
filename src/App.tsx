@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   Bell, BookOpen, CalendarClock, CalendarDays, ChevronDown, ClipboardCheck,
-  FileJson, FileOutput, FileSearch, Gauge, GraduationCap, LayoutGrid, Menu, PanelLeftClose,
+  Braces, FileOutput, FileSearch, Gauge, GraduationCap, LayoutGrid, Menu, PanelLeftClose,
   ShieldCheck, SlidersHorizontal, Sparkles, Users, X,
 } from 'lucide-react'
 import { Logo } from './components/Logo'
@@ -28,7 +28,7 @@ const navigation = [
   { path: '/', label: 'Inicio', icon: Gauge },
   { path: '/cursos', label: 'Curso académico', icon: CalendarDays },
   { path: '/normativa', label: 'Normativa', icon: FileSearch },
-  { path: '/proyecto-json', label: 'Importar / exportar JSON', icon: FileJson },
+  { path: '/proyecto-json', label: 'Importar / exportar JSON', icon: Braces },
   { path: '/centro', label: 'Centro', icon: GraduationCap },
   { path: '/grupos', label: 'Estructura y grupos', icon: LayoutGrid },
   { path: '/jornada', label: 'Jornada y sesiones', icon: CalendarClock },
