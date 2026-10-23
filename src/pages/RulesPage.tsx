@@ -490,10 +490,8 @@ export function RulesPage({
           </article>)}</div>}
     </section>
 
-    <section className="notice amber rules-notice">
-      <FileCheck2 size={18}/>
-      <span><strong>Trazabilidad:</strong> una regla procedente de normativa mantiene el identificador de la regla aprobada que la originó. La Auditoría podrá explicar posteriormente por qué se aplicó.</span>
-    </section>
+    <NormativeTraceabilityPanel project={project}/>
+  
   </div>
 }
 
@@ -589,4 +587,128 @@ function comparisonLabel(value:string){
     equals:'Igual a',not_equals:'Distinto de',minimum:'Mínimo',maximum:'Máximo',avoid:'Evitar',prefer:'Preferir'
   }
   return labels[value]??value
+}
+
+
+function NormativeTraceabilityPanel({project}:{project:ViyeuticaProject}){
+  const linkedRules=project.rules.filter(rule=>rule.source==='normative'&&rule.normativeRuleId)
+  const approvedNormative=project.normativeRules.filter(rule=>rule.approved)
+
+  return <section className="normative-traceability-panel">
+    <div className="normative-traceability-heading">
+      <div>
+        <span className="panel-kicker">Trazabilidad normativa</span>
+        <h2>Qué normativa está influyendo en las reglas</h2>
+        <p>Viyeutica conserva el vínculo entre la regla operativa y el fragmento normativo que la originó para poder justificarla durante la prevalidación, generación y auditoría.</p>
+      </div>
+      <div className="normative-traceability-kpis">
+        <span><strong>{approvedNormative.length}</strong><small>reglas normativas aprobadas</small></span>
+        <span><strong>{linkedRules.length}</strong><small>incorporadas a Reglas</small></span>
+      </div>
+    </div>
+
+    {linkedRules.length===0
+      ? <div className="normative-traceability-empty">
+          <FileCheck2 size={20}/>
+          <div>
+            <strong>No hay reglas normativas incorporadas todavía</strong>
+            <p>{approvedNormative.length
+              ? `Hay ${approvedNormative.length} reglas aprobadas en Normativa, pero aún no se han convertido en reglas operativas. Usa “Incorporar normativa aprobada”.`
+              : 'No hay reglas normativas aprobadas en el proyecto actual. Las reglas visibles proceden de configuración manual o de una importación anterior.'}</p>
+          </div>
+        </div>
+      : <div className="normative-traceability-list">
+          {linkedRules.map(rule=><NormativeTraceabilityItem key={rule.id} project={project} rule={rule}/>)}
+        </div>}
+  </section>
+}
+
+function NormativeTraceabilityItem({project,rule}:{project:ViyeuticaProject;rule:CenterRule}){
+  const normative=project.normativeRules.find(item=>item.id===rule.normativeRuleId)
+  const source=normative?project.normativeSources.find(item=>item.id===normative.sourceId):undefined
+
+  if(!normative){
+    return <article className="normative-traceability-item broken">
+      <div className="normative-traceability-title">
+        <ShieldAlert size={18}/>
+        <div><strong>{humanRuleName(rule.code)}</strong><span>La referencia normativa original ya no está disponible.</span></div>
+      </div>
+    </article>
+  }
+
+  const applies=[
+    normative.stage&&`Etapa: ${normative.stage}`,
+    normative.level&&`Nivel: ${normative.level}`,
+    normative.subject&&`Materia: ${normative.subject}`,
+  ].filter(Boolean)
+
+  return <article className="normative-traceability-item">
+    <div className="normative-traceability-title">
+      <FileCheck2 size={18}/>
+      <div>
+        <strong>{humanRuleName(rule.code)}</strong>
+        <span>{rule.ruleType} · {rule.active?'Activa':'Inactiva'}{rule.reviewRequired?' · pendiente de revisión':''}</span>
+      </div>
+    </div>
+
+    <div className="normative-traceability-grid">
+      <div>
+        <span className="trace-label">Regla normativa de origen</span>
+        <strong>{normative.label}</strong>
+        <p>{normative.excerpt||'Sin fragmento textual disponible.'}</p>
+      </div>
+      <div>
+        <span className="trace-label">Fuente</span>
+        <strong>{source?.name??'Documento no disponible'}</strong>
+        <p>Página {normative.page} · confianza {Math.round(normative.confidence*100)}%</p>
+      </div>
+      <div>
+        <span className="trace-label">Dato extraído</span>
+        <strong>{normative.value!==null?`${normative.value} ${normativeUnitLabel(normative.unit)}`:'Regla textual'}</strong>
+        <p>{applies.length?applies.join(' · '):'Aplicación general o no determinada automáticamente.'}</p>
+      </div>
+      <div>
+        <span className="trace-label">Cómo se usa en Viyeutica</span>
+        <strong>{explainNormativeUse(rule,normative)}</strong>
+        <p>{explainNormativeImpact(rule,normative)}</p>
+      </div>
+    </div>
+  </article>
+}
+
+function normativeUnitLabel(unit:NormativeRule['unit']){
+  if(unit==='hours')return 'horas'
+  if(unit==='minutes')return 'minutos'
+  if(unit==='periods')return 'periodos'
+  return ''
+}
+
+function explainNormativeUse(rule:CenterRule,normative:NormativeRule){
+  if(normative.kind==='weekly_hours'||normative.kind==='weekly_minutes'||normative.kind==='weekly_periods'){
+    return 'Control de carga semanal'
+  }
+  if(normative.kind==='session_minutes'){
+    return 'Control de duración de sesiones'
+  }
+  if(normative.kind==='teacher_periods'){
+    return 'Control de carga del profesorado'
+  }
+  if(normative.kind==='subject_rule'){
+    return 'Restricción asociada a una materia'
+  }
+  if(normative.kind==='stage_rule'){
+    return 'Restricción asociada a una etapa'
+  }
+  return rule.ruleType==='HARD'?'Restricción obligatoria':'Preferencia de optimización'
+}
+
+function explainNormativeImpact(rule:CenterRule,normative:NormativeRule){
+  const value=normative.value!==null?` (${normative.value} ${normativeUnitLabel(normative.unit)})`:''
+  if(rule.reviewRequired){
+    return `Se ha creado a partir de la normativa${value}, pero todavía requiere revisión humana antes de considerarla definitiva.`
+  }
+  if(rule.ruleType==='HARD'){
+    return `Generación deberá respetarla obligatoriamente${value}. Auditoría comprobará su cumplimiento cuando la condición sea evaluable automáticamente.`
+  }
+  return `Generación la tratará como preferencia ponderada${value}; no invalida por sí sola el horario.`
 }
