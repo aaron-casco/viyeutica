@@ -4,6 +4,7 @@ import {
 } from 'lucide-react'
 import {
   latestGeneration,
+  uniqueGenerationRuns,
   type GenerationRun,
   type ViyeuticaProject,
   type Weekday,
@@ -22,7 +23,7 @@ export function TimetablesPage({
   project:ViyeuticaProject
   navigate:(path:string)=>void
 }) {
-  const runs=project.generationRuns
+  const runs=uniqueGenerationRuns(project.generationRuns)
   const latest=latestGeneration(project)
   const [runId,setRunId]=useState(latest?.id??'')
   const [mode,setMode]=useState<ViewMode>('group')
