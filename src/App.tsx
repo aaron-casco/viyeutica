@@ -29,7 +29,7 @@ const navigation = [
   { path: '/', label: 'Inicio', icon: Gauge },
   { path: '/cursos', label: 'Curso académico', icon: CalendarDays },
   { path: '/normativa', label: 'Normativa', icon: FileSearch },
-  { path: '/proyecto-json', label: 'Importar Plantilla', icon: Braces },
+  { path: '/proyecto-json', label: 'Importar Plantilla', icon: FileInput },
   { path: '/centro', label: 'Centro', icon: GraduationCap },
   { path: '/grupos', label: 'Estructura y grupos', icon: LayoutGrid },
   { path: '/jornada', label: 'Jornada y sesiones', icon: CalendarClock },
