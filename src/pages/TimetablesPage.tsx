@@ -3,6 +3,7 @@ import {
   AlertTriangle, CalendarDays, CheckCircle2, ExternalLink, GraduationCap, Plus, Sparkles, UserRound,
 } from 'lucide-react'
 import {
+  isGenerationProposalValid,
   latestGeneration,
   uniqueGenerationRuns,
   type GenerationRun,
@@ -26,8 +27,8 @@ export function TimetablesPage({
   project:ViyeuticaProject
   navigate:(path:string)=>void
 }) {
-  const runs=uniqueGenerationRuns(project.generationRuns)
-  const latest=latestGeneration(project)
+  const runs=uniqueGenerationRuns(project.generationRuns).filter(run=>isGenerationProposalValid(project,run))
+  const latest=runs[runs.length-1]??null
   const [runId]=useState(project.selectedGenerationRunId??latest?.id??'')
   const [mode,setMode]=useState<ViewMode>('group')
   const [selectedEntityIds,setSelectedEntityIds]=useState<string[]>(['all'])
