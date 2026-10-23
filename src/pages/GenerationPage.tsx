@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import {
-  AlertTriangle, CalendarDays, CheckCircle2, Clock3, RefreshCcw, Sparkles,
-  Trophy, XCircle,
+  AlertTriangle, CalendarDays, CheckCircle2, Info, RefreshCcw, Sparkles,
+  Trash2, Trophy, X, XCircle,
 } from 'lucide-react'
 import {
   isPrevalidationComplete,
@@ -28,6 +28,8 @@ export function GenerationPage({
   const [selectedRunId,setSelectedRunId]=useState(latestGeneration(project)?.id??'')
   const [selectedGroupId,setSelectedGroupId]=useState(project.groups.find(group=>group.active)?.id??'')
   const [running,setRunning]=useState(false)
+  const [showClearModal,setShowClearModal]=useState(false)
+  const [showIssuesModal,setShowIssuesModal]=useState(false)
 
   const runs=project.generationRuns
   const selectedRun=runs.find(run=>run.id===selectedRunId)??latestGeneration(project)
@@ -46,9 +48,9 @@ export function GenerationPage({
   }
 
   const clearRuns=()=>{
-    if(!window.confirm('¿Eliminar las propuestas de horario generadas? La configuración del centro no se modificará.')) return
     saveProject({...project,generationRuns:[]})
     setSelectedRunId('')
+    setShowClearModal(false)
   }
 
   if(!isPrevalidationComplete(project)){
@@ -79,7 +81,7 @@ export function GenerationPage({
         <p>Viyeutica probará hasta 60 distribuciones y conservará la mejor según cumplimiento HARD y penalización SOFT.</p>
       </div>
       <div className="generation-control-actions">
-        {runs.length>0&&<button className="btn ghost-inline" onClick={clearRuns}>Limpiar propuestas</button>}
+        {runs.length>0&&<button className="btn ghost-inline" onClick={()=>setShowClearModal(true)}>Limpiar propuestas</button>}
         <button className="btn primary" disabled={running} onClick={runGeneration}>
           {running?<RefreshCcw className="spin" size={16}/>:<Sparkles size={16}/>}
           {running?'Generando...':'Generar propuesta'}
@@ -127,9 +129,15 @@ export function GenerationPage({
             <Summary label="Estado" value={selectedRun.status==='complete'?'Completo':selectedRun.status==='partial'?'Parcial':'Fallido'} detail="resultado del motor"/>
           </section>
 
-          {selectedRun.notes.length>0&&<div className="generation-notes">
-            <AlertTriangle size={18}/>
-            <div><strong>Incidencias de generación</strong>{selectedRun.notes.slice(0,8).map((note,index)=><p key={index}>{note}</p>)}</div>
+          {(selectedRun.issues?.length??selectedRun.notes.length)>0&&<div className="generation-issues-summary">
+            <div>
+              <AlertTriangle size={18}/>
+              <span>
+                <strong>Hay incidencias que impiden completar el horario</strong>
+                <small>{generationIssueSummary(selectedRun,project)}</small>
+              </span>
+            </div>
+            <button className="btn secondary-light" onClick={()=>setShowIssuesModal(true)}>Ver incidencias</button>
           </div>}
 
           <div className="generation-toolbar">
@@ -144,6 +152,25 @@ export function GenerationPage({
           <SchedulePreview project={project} run={selectedRun} groupId={selectedGroupId}/>
         </section>}
       </>}
+
+    {showClearModal&&<Modal
+      title="Eliminar propuestas generadas"
+      icon={<Trash2 size={22}/>}
+      onClose={()=>setShowClearModal(false)}
+      footer={<>
+        <button className="btn secondary-light" onClick={()=>setShowClearModal(false)}>Cancelar</button>
+        <button className="btn danger-modal" onClick={clearRuns}>Eliminar propuestas</button>
+      </>}
+    >
+      <p>Se eliminará el historial de propuestas generadas, pero <strong>no se modificarán</strong> el centro, profesorado, asignaciones, reglas ni normativa.</p>
+    </Modal>}
+
+    {showIssuesModal&&selectedRun&&<GenerationIssuesModal
+      project={project}
+      run={selectedRun}
+      onClose={()=>setShowIssuesModal(false)}
+      navigate={navigate}
+    />}
   </div>
 }
 
@@ -196,3 +223,121 @@ function isBestRun(run:GenerationRun,runs:GenerationRun[]){
   return best?.id===run.id
 }
 function Summary({label,value,detail}:{label:string;value:string;detail:string}){return <article className="structure-summary-card"><span>{label}</span><strong>{value}</strong><small>{detail}</small></article>}
+
+
+function generationIssueSummary(run:GenerationRun,project:ViyeuticaProject){
+  const issues=humanGenerationIssues(run,project)
+  if(!issues.length) return 'La propuesta contiene incidencias técnicas que deben revisarse.'
+  const groups=new Set(issues.map(issue=>issue.group))
+  const teachers=new Set(issues.map(issue=>issue.teacher))
+  return `${issues.length} incidencias · ${groups.size} grupos afectados · ${teachers.size} docentes implicados`
+}
+
+function humanGenerationIssues(run:GenerationRun,project:ViyeuticaProject){
+  if(run.issues?.length){
+    return run.issues.map(issue=>{
+      const group=project.groups.find(item=>item.id===issue.groupId)?.name??'Grupo no identificado'
+      const subject=project.subjects.find(item=>item.id===issue.subjectId)?.name??'Materia no identificada'
+      const teacher=project.teachers.find(item=>item.id===issue.teacherId)?.name??'Docente no identificado'
+      const assignment=project.assignments.find(item=>item.id===issue.assignmentId)
+      const type=assignment?.assignmentType==='support'?'apoyo':assignment?.assignmentType==='co_teaching'?'codocencia':'docencia'
+      const reason=explainGenerationCause(project,issue.teacherId,issue.groupId,issue.subjectId)
+      return {
+        id:issue.id,
+        group,
+        subject,
+        teacher,
+        missing:issue.missingSessions,
+        severity:issue.severity,
+        title:issue.type==='unplaced_support'
+          ? `No se han podido colocar ${issue.missingSessions} sesiones de ${type}`
+          : `No se ha podido colocar ${issue.missingSessions===1?'una sesión':issue.missingSessions+' sesiones'}`,
+        reason,
+      }
+    })
+  }
+  return run.notes.map((note,index)=>({
+    id:'legacy_'+index,
+    group:'No identificado',
+    subject:'No identificada',
+    teacher:'No identificado',
+    missing:1,
+    severity:'error' as const,
+    title:'Incidencia de una propuesta anterior',
+    reason:'Esta propuesta fue generada con una versión anterior de Viyeutica. Vuelve a generar para obtener un diagnóstico detallado.',
+  }))
+}
+
+function explainGenerationCause(project:ViyeuticaProject,teacherId:string,groupId:string,subjectId:string){
+  const teacher=project.teachers.find(item=>item.id===teacherId)
+  const blocked=project.teacherAvailability.filter(item=>item.teacherId===teacherId&&(item.status==='unavailable'||item.status==='travel')).length
+  const fixed=project.assignments.find(item=>item.active&&item.teacherId===teacherId&&item.groupId===groupId&&item.subjectId===subjectId)?.fixedSlots?.length??0
+  const activeHard=project.rules.filter(rule=>rule.active&&rule.ruleType==='HARD').length
+  const clues:string[]=[]
+  if(blocked) clues.push(`${teacher?.name??'El docente'} tiene ${blocked} franjas no disponibles o de desplazamiento`)
+  if(fixed) clues.push(`la asignación tiene ${fixed} franjas fijadas`)
+  if(activeHard) clues.push(`hay ${activeHard} reglas obligatorias activas que restringen la colocación`)
+  if(!clues.length) clues.push('no queda una combinación libre de grupo, docente y sesión que cumpla las restricciones actuales')
+  return clues.join('; ')+'.'
+}
+
+function GenerationIssuesModal({
+  project,run,onClose,navigate,
+}:{
+  project:ViyeuticaProject
+  run:GenerationRun
+  onClose:()=>void
+  navigate:(path:string)=>void
+}){
+  const issues=humanGenerationIssues(run,project)
+  return <Modal
+    title="Incidencias de generación"
+    icon={<AlertTriangle size={22}/>}
+    onClose={onClose}
+    wide
+    footer={<>
+      <button className="btn secondary-light" onClick={onClose}>Cerrar</button>
+      <button className="btn primary" onClick={()=>{onClose();navigate('/prevalidacion')}}>Revisar prevalidación</button>
+    </>}
+  >
+    <div className="generation-issues-intro">
+      <Info size={18}/>
+      <p>Viyeutica no muestra códigos internos. Cada incidencia indica <strong>qué carga no ha podido colocarse</strong>, a quién afecta y una causa probable para orientar la corrección.</p>
+    </div>
+    <div className="generation-issues-list">
+      {issues.map((issue,index)=><article key={issue.id}>
+        <div className={'generation-issue-number '+issue.severity}>{index+1}</div>
+        <div className="generation-issue-body">
+          <strong>{issue.title}</strong>
+          <div className="generation-issue-tags">
+            <span>{issue.group}</span><span>{issue.subject}</span><span>{issue.teacher}</span>
+          </div>
+          <p><b>Por qué puede ocurrir:</b> {issue.reason}</p>
+          <p><b>Qué revisar:</b> disponibilidad del docente, franjas fijas, número de sesiones exigidas y reglas HARD que afecten a este grupo o materia.</p>
+        </div>
+      </article>)}
+    </div>
+  </Modal>
+}
+
+function Modal({
+  title,icon,onClose,children,footer,wide=false,
+}:{
+  title:string
+  icon:React.ReactNode
+  onClose:()=>void
+  children:React.ReactNode
+  footer?:React.ReactNode
+  wide?:boolean
+}){
+  return <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
+    <section className={'app-modal '+(wide?'wide':'')} role="dialog" aria-modal="true" aria-label={title} onMouseDown={event=>event.stopPropagation()}>
+      <header className="app-modal-header">
+        <div>{icon}<h2>{title}</h2></div>
+        <button className="modal-close" onClick={onClose} aria-label="Cerrar"><X size={18}/></button>
+      </header>
+      <div className="app-modal-body">{children}</div>
+      {footer&&<footer className="app-modal-footer">{footer}</footer>}
+    </section>
+  </div>
+}
