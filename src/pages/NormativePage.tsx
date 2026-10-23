@@ -1,10 +1,12 @@
 import { useMemo, useRef, useState } from 'react'
 import {
-  CheckCircle2, FileSearch, FileText, ShieldCheck, Trash2, UploadCloud, XCircle,
+  CheckCircle2, Eye, FileSearch, FileText, ShieldCheck, Trash2, UploadCloud, XCircle,
 } from 'lucide-react'
 import type { NormativeRule, NormativeSection, ViyeuticaProject } from '../domain/project'
 import { analyzeNormativeFile } from '../domain/normativeAnalyzer'
 import { saveProject } from '../store/projectStorage'
+import { AppModal } from '../components/AppModal'
+import { deleteNormativeFile, getNormativeFile, saveNormativeFile } from '../store/normativeFileStorage'
 
 const SECTION_LABELS:Record<NormativeSection,string>={
   center:'Centro',
@@ -22,6 +24,8 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState('')
   const [filter,setFilter]=useState<NormativeSection|'all'>('all')
+  const [viewer,setViewer]=useState<{name:string;url:string}|null>(null)
+  const [viewerError,setViewerError]=useState('')
 
   const approved=project.normativeRules.filter(rule=>rule.approved)
   const visibleRules=useMemo(
@@ -31,26 +35,63 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
 
   const persist=(patch:Partial<ViyeuticaProject>)=>saveProject({...project,...patch})
 
-  const upload=async(file:File)=>{
+  const uploadMany=async(files:FileList|File[])=>{
+    const selected=Array.from(files)
+    if(!selected.length)return
     setBusy(true)
     setError('')
     try{
-      const result=await analyzeNormativeFile(file)
-      const duplicate=project.normativeSources.some(source=>source.sha256===result.source.sha256)
-      if(duplicate){
-        setError('Este documento ya está cargado en Normativa.')
-        return
+      const nextSources=[...project.normativeSources]
+      const nextRules=[...project.normativeRules]
+      const knownByHash=new Map(nextSources.map(source=>[source.sha256,source]))
+      const messages:string[]=[]
+
+      for(const file of selected){
+        try{
+          const result=await analyzeNormativeFile(file)
+          const existing=knownByHash.get(result.source.sha256)
+          if(existing){
+            await saveNormativeFile(existing.id,file)
+            messages.push(`${file.name}: ya estaba registrado; se ha actualizado el archivo original para poder visualizarlo.`)
+            continue
+          }
+          nextSources.push(result.source)
+          nextRules.push(...result.rules)
+          knownByHash.set(result.source.sha256,result.source)
+          await saveNormativeFile(result.source.id,file)
+        }catch(err){
+          messages.push(`${file.name}: ${err instanceof Error?err.message:'no se ha podido analizar'}`)
+        }
       }
-      persist({
-        normativeSources:[...project.normativeSources,result.source],
-        normativeRules:[...project.normativeRules,...result.rules],
-      })
-    }catch(err){
-      setError(err instanceof Error ? err.message : 'No se ha podido analizar el documento.')
+
+      if(nextSources.length!==project.normativeSources.length||nextRules.length!==project.normativeRules.length){
+        persist({normativeSources:nextSources,normativeRules:nextRules})
+      }
+      if(messages.length)setError(messages.join(' · '))
     }finally{
       setBusy(false)
       if(inputRef.current) inputRef.current.value=''
     }
+  }
+
+  const openSource=async(sourceId:string,name:string)=>{
+    setViewerError('')
+    try{
+      const blob=await getNormativeFile(sourceId)
+      if(!blob){
+        setViewerError('El documento se cargó antes de que Viyeutica almacenase los archivos originales. Selecciónalo de nuevo y se asociará a esta ficha sin duplicarlo.')
+        return
+      }
+      const url=URL.createObjectURL(blob)
+      setViewer({name,url})
+    }catch(err){
+      setViewerError(err instanceof Error?err.message:'No se ha podido abrir el documento.')
+    }
+  }
+
+  const closeViewer=()=>{
+    if(viewer)URL.revokeObjectURL(viewer.url)
+    setViewer(null)
   }
 
   const toggleRule=(id:string)=>persist({
@@ -65,10 +106,13 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
     normativeRules:project.normativeRules.map(rule=>({...rule,approved:false})),
   })
 
-  const removeSource=(sourceId:string)=>persist({
-    normativeSources:project.normativeSources.filter(source=>source.id!==sourceId),
-    normativeRules:project.normativeRules.filter(rule=>rule.sourceId!==sourceId),
-  })
+  const removeSource=async(sourceId:string)=>{
+    await deleteNormativeFile(sourceId).catch(()=>undefined)
+    persist({
+      normativeSources:project.normativeSources.filter(source=>source.id!==sourceId),
+      normativeRules:project.normativeRules.filter(rule=>rule.sourceId!==sourceId),
+    })
+  }
 
   return <div className="normative-page">
     <section className="wizard-intro">
@@ -95,11 +139,12 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
         ref={inputRef}
         type="file"
         accept=".pdf,.txt,.md,application/pdf,text/plain,text/markdown"
+        multiple
         hidden
-        onChange={event=>event.target.files?.[0]&&upload(event.target.files[0])}
+        onChange={event=>event.target.files&&uploadMany(event.target.files)}
       />
       <button className="btn primary" disabled={busy} onClick={()=>inputRef.current?.click()}>
-        <UploadCloud size={16}/>{busy?'Analizando...':'Seleccionar archivo'}
+        <UploadCloud size={16}/>{busy?'Analizando...':'Seleccionar documentos'}
       </button>
     </section>
 
@@ -117,7 +162,10 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
             <small>{source.stages.length?source.stages.join(' · '):'Etapa no determinada'} · SHA-256 {source.sha256.slice(0,12)}…</small>
           </div>
           <div className="normative-source-count"><strong>{sourceApproved}/{sourceRules.length}</strong><small>reglas aprobadas</small></div>
-          <button className="row-delete" title="Eliminar fuente" onClick={()=>removeSource(source.id)}><Trash2 size={16}/></button>
+          <div className="normative-source-actions">
+            <button title="Ver documento" onClick={()=>openSource(source.id,source.name)}><Eye size={16}/></button>
+            <button className="row-delete" title="Eliminar fuente" onClick={()=>removeSource(source.id)}><Trash2 size={16}/></button>
+          </div>
         </article>
       })}
     </section>}
@@ -153,6 +201,20 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
             />)}
           </div>}
     </section>
+
+    {viewerError&&<div className="inline-error normative-error">{viewerError}</div>}
+
+    {viewer&&<AppModal
+      title={viewer.name}
+      icon={<FileText size={22}/>}
+      onClose={closeViewer}
+      wide
+      footer={<button className="btn secondary-light" onClick={closeViewer}>Cerrar</button>}
+    >
+      <div className="normative-document-viewer">
+        <iframe src={viewer.url} title={viewer.name}/>
+      </div>
+    </AppModal>}
 
     <section className="notice amber normative-notice">
       <ShieldCheck size={18}/>
