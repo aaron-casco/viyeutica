@@ -255,10 +255,13 @@ export function AssignmentsPage({
     </section>
   }
 
-  const coveredStudyEntries=new Set(
+  const coveredKeys=new Set(
     activeAssignments.map(item=>`${item.groupId}|${item.subjectId}`)
-  ).size
-  const totalStudyEntries=project.studyPlan.filter(item=>item.active).length
+  )
+  const activeStudyPlanEntries=project.studyPlan.filter(item=>item.active)
+  const coveredStudyEntries=activeStudyPlanEntries.filter(entry=>coveredKeys.has(`${entry.groupId}|${entry.subjectId}`)).length
+  const totalStudyEntries=activeStudyPlanEntries.length
+  const uncoveredStudyEntries=activeStudyPlanEntries.filter(entry=>!coveredKeys.has(`${entry.groupId}|${entry.subjectId}`))
   const teachersWithAssignments=new Set(activeAssignments.map(item=>item.teacherId)).size
 
   return <div className="wizard-page assignments-page">
@@ -279,6 +282,38 @@ export function AssignmentsPage({
       <Summary label="Docentes implicados" value={String(teachersWithAssignments)} detail={`de ${activeTeachers.length} activos`}/>
       <Summary label="Restricciones temporales" value={String(project.teacherAvailability.length)} detail="disponibilidad registrada"/>
     </section>
+
+    {uncoveredStudyEntries.length>0&&<section className="assignment-progress-alert">
+      <div className="assignment-progress-alert-icon"><CheckCircle2 size={18}/></div>
+      <div>
+        <strong>Asignaciones todavía en progreso</strong>
+        <p>Faltan {uncoveredStudyEntries.length} cargas del Plan de estudios por vincular a profesorado. El paso se marcará como completo cuando todas estén cubiertas.</p>
+        <div className="assignment-missing-list">
+          {uncoveredStudyEntries.map(entry=>{
+            const group=project.groups.find(item=>item.id===entry.groupId)
+            const subject=project.subjects.find(item=>item.id===entry.subjectId)
+            return <button
+              key={entry.id}
+              type="button"
+              onClick={()=>{
+                setDraft({
+                  groupId:entry.groupId,
+                  subjectId:entry.subjectId,
+                  teacherId:'',
+                  assignmentType:'main',
+                  weeklySessions:entry.weeklySessions>0?String(entry.weeklySessions):'',
+                  weeklyMinutes:(entry.weeklyMinutes??0)>0?String(entry.weeklyMinutes):'',
+                })
+                window.scrollTo({top:0,behavior:'smooth'})
+              }}
+            >
+              <span><strong>{group?.name??'Grupo'}</strong> · {subject?.name??'Materia'}</span>
+              <small>{entry.weeklySessions>0?`${entry.weeklySessions} ses./sem.`:''}{entry.weeklyMinutes?`${entry.weeklySessions>0?' · ':''}${entry.weeklyMinutes} min/sem.`:''} · Pulsa para completar</small>
+            </button>
+          })}
+        </div>
+      </div>
+    </section>}
 
     <section className="assignments-layout">
       <form className="form-card" onSubmit={submit}>
