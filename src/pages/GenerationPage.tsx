@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import {
-  AlertTriangle, CalendarDays, CheckCircle2, Info, RefreshCcw, Sparkles,
+  AlertTriangle, CalendarDays, CheckCircle2, Info, Plus, RefreshCcw, Sparkles,
   Trash2, Trophy, XCircle,
 } from 'lucide-react'
 import {
@@ -41,9 +41,13 @@ export function GenerationPage({
     if(!isPrevalidationComplete(project)) return
     setRunning(true)
     window.setTimeout(()=>{
-      const result=generateSchedule(project,60)
-      saveProject({...project,generationRuns:[...project.generationRuns,result]})
-      setSelectedRunId(result.id)
+      const baseIndex=project.generationRuns.length
+      const count=project.generationRuns.length===0?3:1
+      const results=Array.from({length:count},(_,index)=>
+        generateSchedule(project,60,baseIndex+index+1)
+      )
+      saveProject({...project,generationRuns:[...project.generationRuns,...results]})
+      setSelectedRunId(results[0]?.id??'')
       setRunning(false)
     },20)
   }
@@ -78,14 +82,20 @@ export function GenerationPage({
     <section className="generation-control-card">
       <div>
         <span className="panel-kicker">Motor heurístico</span>
-        <h2>Generar nueva propuesta</h2>
-        <p>Viyeutica probará hasta 60 distribuciones y conservará la mejor según cumplimiento HARD y penalización SOFT.</p>
+        <h2>{runs.length===0?'Generar 3 propuestas':'Añadir otra propuesta'}</h2>
+        <p>{runs.length===0
+          ? 'Viyeutica generará tres alternativas independientes para poder compararlas antes de decidir.'
+          : 'Genera una nueva alternativa sin eliminar las propuestas existentes.'}</p>
       </div>
       <div className="generation-control-actions">
         {runs.length>0&&<button className="btn ghost-inline" onClick={()=>setShowClearModal(true)}>Limpiar propuestas</button>}
         <button className="btn primary" disabled={running} onClick={runGeneration}>
-          {running?<RefreshCcw className="spin" size={16}/>:<Sparkles size={16}/>}
-          {running?'Generando...':'Generar propuesta'}
+          {running
+            ? <RefreshCcw className="spin" size={16}/>
+            : runs.length===0?<Sparkles size={16}/>:<Plus size={16}/>}
+          {running
+            ? (runs.length===0?'Generando 3 propuestas...':'Generando propuesta...')
+            : (runs.length===0?'Generar 3 propuestas':'Generar otra propuesta')}
         </button>
       </div>
     </section>
@@ -94,12 +104,15 @@ export function GenerationPage({
       ? <section className="generation-empty">
           <CalendarDays size={38}/>
           <h2>Todavía no hay propuestas</h2>
-          <p>Ejecuta el generador para crear la primera distribución semanal.</p>
+          <p>Genera tres alternativas iniciales para compararlas y elegir la que mejor encaje con el centro.</p>
         </section>
       : <>
         <section className="generation-history">
           <div className="groups-table-heading">
-            <div><span className="panel-kicker">Historial</span><h2>Propuestas generadas</h2></div>
+            <div><span className="panel-kicker">Comparación</span><h2>Propuestas generadas</h2></div>
+            <button className="btn ghost-inline generation-add-more" disabled={running} onClick={runGeneration}>
+              {running?<RefreshCcw className="spin" size={15}/>:<Plus size={15}/>} {running?'Generando...':'Generar otra propuesta'}
+            </button>
           </div>
           <div className="generation-run-list">
             {[...runs].reverse().map((run,index)=><RunCard
