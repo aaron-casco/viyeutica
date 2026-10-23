@@ -59,7 +59,8 @@ const descriptions: Record<string,string> = {
 const getRoute = () => {
   const raw = window.location.hash.replace(/^#/,'') || '/'
   const normalized = raw.startsWith('/') ? raw : '/' + raw
-  return normalized === '/configuracion' ? '/centro' : normalized
+  const [path]=normalized.split('?')
+  return path === '/configuracion' ? '/centro' : path
 }
 
 export default function App() {
