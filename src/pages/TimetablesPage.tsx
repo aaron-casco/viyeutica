@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  AlertTriangle, CalendarDays, CheckCircle2, GraduationCap, Sparkles, UserRound,
+  AlertTriangle, CalendarDays, CheckCircle2, GraduationCap, Plus, Sparkles, UserRound,
 } from 'lucide-react'
 import {
   latestGeneration,
   uniqueGenerationRuns,
   type GenerationRun,
+  type TeachingAssignment,
   type ViyeuticaProject,
   type Weekday,
 } from '../domain/project'
+import { saveProject } from '../store/projectStorage'
+import { AppModal } from '../components/AppModal'
 
 const dayLabels:Record<Weekday,string>={
   L:'Lunes',M:'Martes',X:'Miércoles',J:'Jueves',V:'Viernes',S:'Sábado',
@@ -30,6 +33,8 @@ export function TimetablesPage({
   const [selectedEntityIds,setSelectedEntityIds]=useState<string[]>(['all'])
   const [focusSlot,setFocusSlot]=useState<{day:string;sessionId:string}|null>(null)
   const [auditFocus,setAuditFocus]=useState('')
+  const [emptySlot,setEmptySlot]=useState<{groupId:string;day:Weekday;sessionId:string}|null>(null)
+  const [slotMessage,setSlotMessage]=useState('')
 
   const run=runs.find(item=>item.id===runId)??latest
   const groups=project.groups.filter(group=>group.active)
@@ -87,6 +92,36 @@ export function TimetablesPage({
   const totalCells=project.schedule.activeDays.length*teachingBlocks.length*Math.max(1,selectedIds.length)
   const subjects=new Set(selectedEntries.map(entry=>entry.subjectId)).size
   const relatedEntities=new Set(selectedEntries.map(entry=>mode==='group'?entry.teacherId:entry.groupId)).size
+
+  const slotCandidates=emptySlot?getEmptySlotCandidates(project,run,emptySlot):[]
+
+  const applySlotCandidate=(assignment:TeachingAssignment)=>{
+    if(!emptySlot)return
+    const fixedSlots=[...(assignment.fixedSlots??[])]
+    if(!fixedSlots.some(item=>item.day===emptySlot.day&&item.session===emptySlot.sessionId)){
+      fixedSlots.push({day:emptySlot.day,session:emptySlot.sessionId})
+    }
+    const assignments=project.assignments.map(item=>item.id===assignment.id?{...item,fixedSlots}:item)
+    const teacherAvailability=[
+      ...project.teacherAvailability.filter(item=>!(
+        item.teacherId===assignment.teacherId &&
+        item.day===emptySlot.day &&
+        item.session===emptySlot.sessionId
+      )),
+      {
+        teacherId:assignment.teacherId,
+        day:emptySlot.day,
+        session:emptySlot.sessionId,
+        status:'assigned' as const,
+        detail:'Franja fijada desde Horarios para cubrir un hueco.',
+      },
+    ]
+    saveProject({...project,assignments,teacherAvailability})
+    const subject=project.subjects.find(item=>item.id===assignment.subjectId)?.name??'Materia'
+    const teacher=project.teachers.find(item=>item.id===assignment.teacherId)?.name??'Docente'
+    setSlotMessage(subject+' · '+teacher+' se ha fijado en esta franja. Regenera la propuesta para aplicar el cambio.')
+    setEmptySlot(null)
+  }
 
   if(!run){
     return <section className="empty-state-card">
@@ -150,6 +185,7 @@ export function TimetablesPage({
     </section>
 
     {auditFocus&&<section className="template-result audit-context-banner"><CheckCircle2 size={16}/><span>{auditFocus}</span></section>}
+    {slotMessage&&<section className="template-result audit-context-banner"><CheckCircle2 size={16}/><span>{slotMessage}</span><button className="btn ghost-inline" onClick={()=>navigate('/generacion')}>Regenerar</button></section>}
 
     <section className="structure-summary">
       <Summary label="Sesiones ocupadas" value={String(occupiedCells)} detail={`de ${totalCells} franjas`}/>
@@ -186,7 +222,19 @@ export function TimetablesPage({
                   {project.schedule.activeDays.map(day=>{
                     const cell=entries.filter(entry=>entry.day===day&&entry.sessionId===block.id)
                     const focused=focusSlot?.day===day&&focusSlot?.sessionId===block.id
-                    if(!cell.length)return <td key={day} className={'empty-slot '+(focused?'audit-slot-focus':'')}><span>Libre</span></td>
+                    if(!cell.length){
+                      if(mode==='group'){
+                        return <td key={day} className={'empty-slot timetable-empty-problem '+(focused?'audit-slot-focus':'')}>
+                          <button
+                            className="timetable-empty-plus"
+                            title="Resolver hueco"
+                            aria-label={'Resolver hueco de '+label+' · '+dayLabels[day]+' · '+block.label}
+                            onClick={()=>{setSlotMessage('');setEmptySlot({groupId:entityId,day,sessionId:block.id})}}
+                          ><Plus size={24}/></button>
+                        </td>
+                      }
+                      return <td key={day} className={'empty-slot '+(focused?'audit-slot-focus':'')}><span>Libre</span></td>
+                    }
                     if(mode==='group'){
                       const primary=cell[0]
                       const subject=project.subjects.find(item=>item.id===primary.subjectId)
@@ -208,9 +256,110 @@ export function TimetablesPage({
         })}
       </div>
     </section>
+
+    {emptySlot&&<AppModal
+      title="Completar hueco del horario"
+      icon={<Plus size={22}/>}
+      onClose={()=>setEmptySlot(null)}
+      wide
+      footer={<button className="btn secondary-light" onClick={()=>setEmptySlot(null)}>Cerrar</button>}
+    >
+      <EmptySlotModalContent
+        project={project}
+        run={run}
+        slot={emptySlot}
+        candidates={slotCandidates}
+        onSelect={applySlotCandidate}
+      />
+    </AppModal>}
   </div>
 }
 
 function Summary({label,value,detail}:{label:string;value:string;detail:string}) {
   return <article className="structure-summary-card"><span>{label}</span><strong>{value}</strong><small>{detail}</small></article>
+}
+
+
+function getEmptySlotCandidates(
+  project:ViyeuticaProject,
+  run:GenerationRun,
+  slot:{groupId:string;day:Weekday;sessionId:string},
+){
+  const entries=project.studyPlan.filter(entry=>entry.active&&entry.groupId===slot.groupId)
+  const result:{assignment:TeachingAssignment;missing:number}[]=[]
+  for(const entry of entries){
+    const assignments=project.assignments.filter(assignment=>
+      assignment.active &&
+      assignment.assignmentType==='main' &&
+      assignment.groupId===slot.groupId &&
+      assignment.subjectId===entry.subjectId
+    )
+    for(const assignment of assignments){
+      const expected=(assignment.weeklySessions??0)>0
+        ? assignment.weeklySessions!
+        : entry.weeklySessions
+      const placed=run.entries.filter(item=>item.assignmentId===assignment.id).length
+      const missing=Math.max(0,expected-placed)
+      if(missing<=0)continue
+
+      const unavailable=project.teacherAvailability.some(item=>
+        item.teacherId===assignment.teacherId &&
+        item.day===slot.day &&
+        item.session===slot.sessionId &&
+        (item.status==='unavailable'||item.status==='travel')
+      )
+      if(unavailable)continue
+
+      const teacherBusy=run.entries.some(item=>
+        item.teacherId===assignment.teacherId &&
+        item.day===slot.day &&
+        item.sessionId===slot.sessionId
+      )
+      if(teacherBusy)continue
+
+      result.push({assignment,missing})
+    }
+  }
+  return result
+}
+
+function EmptySlotModalContent({
+  project,run,slot,candidates,onSelect,
+}:{
+  project:ViyeuticaProject
+  run:GenerationRun
+  slot:{groupId:string;day:Weekday;sessionId:string}
+  candidates:{assignment:TeachingAssignment;missing:number}[]
+  onSelect:(assignment:TeachingAssignment)=>void
+}){
+  const group=project.groups.find(item=>item.id===slot.groupId)
+  const block=project.schedule.blocks.find(item=>item.id===slot.sessionId)
+  return <div className="empty-slot-modal">
+    <div className="empty-slot-context">
+      <strong>{group?.name??'Grupo'} · {dayLabels[slot.day]} · {block?.label??'Sesión'}</strong>
+      <p>Solo se muestran cargas ya previstas en el Plan de estudios que aún tienen sesiones pendientes y cuyo docente está disponible.</p>
+    </div>
+    {candidates.length===0
+      ? <div className="empty-slot-no-options">
+          <AlertTriangle size={20}/>
+          <div>
+            <strong>No hay opciones automáticas compatibles</strong>
+            <p>Este hueco no puede rellenarse sin modificar el Plan de estudios, una asignación o la disponibilidad docente. Revísalo antes de añadir una carga nueva.</p>
+          </div>
+        </div>
+      : <div className="empty-slot-options">
+          {candidates.map(({assignment,missing})=>{
+            const subject=project.subjects.find(item=>item.id===assignment.subjectId)
+            const teacher=project.teachers.find(item=>item.id===assignment.teacherId)
+            return <button key={assignment.id} onClick={()=>onSelect(assignment)}>
+              <span><strong>{subject?.name??'Materia'}</strong><small>{teacher?.name??'Docente'} · {missing} sesión{missing===1?'':'es'} pendiente{missing===1?'':'s'}</small></span>
+              <Plus size={18}/>
+            </button>
+          })}
+        </div>}
+    <div className="empty-slot-footnote">
+      <CheckCircle2 size={16}/>
+      <span>Al elegir una opción, Viyeutica registra la franja fija en Asignaciones y la marca como asignada en la disponibilidad docente. Después debe regenerarse el horario.</span>
+    </div>
+  </div>
 }
