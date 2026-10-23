@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
   CheckCircle2, FileCheck2, Pencil, Plus, Save, ShieldAlert, ShieldCheck,
   SlidersHorizontal, Trash2,
@@ -107,6 +107,7 @@ export function RulesPage({
   const [error,setError]=useState('')
   const [templateMessage,setTemplateMessage]=useState('')
   const [filter,setFilter]=useState<'all'|'HARD'|'SOFT'>('all')
+  const [auditFocus,setAuditFocus]=useState('')
 
   const validation=useMemo(()=>validateRules(project),[project])
   const activeRules=project.rules.filter(rule=>rule.active)
@@ -114,6 +115,24 @@ export function RulesPage({
   const softCount=activeRules.filter(rule=>rule.ruleType==='SOFT').length
   const normativeCount=activeRules.filter(rule=>rule.source==='normative').length
   const importedCount=activeRules.filter(rule=>rule.source==='imported').length
+
+  useEffect(()=>{
+    const raw=window.location.hash.split('?')[1]
+    if(!raw)return
+    const params=new URLSearchParams(raw)
+    const code=params.get('auditCode')
+    if(!code)return
+    const rule=project.rules.find(item=>item.code===code)
+    if(rule){
+      setEditingId(rule.id)
+      setDraft(draftFromRule(rule))
+      setFilter(rule.ruleType)
+      setAuditFocus('Regla cargada desde Auditoría: '+humanRuleName(rule.code))
+      window.setTimeout(()=>window.scrollTo({top:0,behavior:'smooth'}),60)
+    }else{
+      setAuditFocus('Auditoría ha señalado '+code+', pero no existe una regla editable con ese código.')
+    }
+  },[])
 
   const persist=(rules:CenterRule[])=>saveProject({...project,rules})
 
@@ -295,6 +314,8 @@ export function RulesPage({
     </section>
 
     <WizardStepper currentStep={7} project={project} navigate={navigate}/>
+
+    {auditFocus&&<section className="template-result audit-context-banner"><CheckCircle2 size={16}/><span>{auditFocus}</span></section>}
 
     <section className="structure-summary">
       <Summary label="Reglas activas" value={String(activeRules.length)} detail="total aplicable"/>
