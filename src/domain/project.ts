@@ -211,6 +211,7 @@ export interface ViyeuticaProject {
   assignments: TeachingAssignment[]
   rules: CenterRule[]
   generationRuns: GenerationRun[]
+  selectedGenerationRunId?: string | null
   normativeSources: NormativeSource[]
   normativeRules: NormativeRule[]
   updatedAt: string | null
@@ -260,6 +261,7 @@ export const EMPTY_PROJECT: ViyeuticaProject = {
   assignments: [],
   rules: [],
   generationRuns: [],
+  selectedGenerationRunId: null,
   normativeSources: [],
   normativeRules: [],
   updatedAt: null,
