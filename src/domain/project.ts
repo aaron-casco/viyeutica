@@ -540,3 +540,29 @@ export function isGenerationComplete(project: ViyeuticaProject) {
   const latest=latestGeneration(project)
   return Boolean(isPrevalidationComplete(project) && latest && latest.status==='complete' && latest.hardViolations===0)
 }
+
+
+export type AuditSeverity = 'error' | 'warning' | 'info'
+export interface AuditIssue {
+  id: string
+  severity: AuditSeverity
+  category: 'Solapes' | 'Disponibilidad' | 'Franjas fijas' | 'Cobertura' | 'Carga semanal' | 'Reglas' | 'Integridad'
+  code: string
+  message: string
+  detail?: string
+  teacherId?: string | null
+  groupId?: string | null
+  subjectId?: string | null
+  day?: Weekday | null
+  sessionId?: string | null
+}
+
+export interface AuditResult {
+  runId: string
+  createdAt: string
+  passed: boolean
+  errors: number
+  warnings: number
+  infos: number
+  issues: AuditIssue[]
+}
