@@ -817,3 +817,5 @@ main .generated-schedule th strong{
   transform:translateX(-50%) translateY(-2px);
 }
 .proposal-diff-badge{display:none!important}
+
+.proposal-diff-tooltip{white-space:pre-line}
