@@ -7,6 +7,7 @@ import {
   isScheduleComplete,
   isStructureComplete,
   isStudyPlanComplete,
+  isStaffComplete,
   type ViyeuticaProject,
 } from '../domain/project'
 
@@ -15,7 +16,7 @@ const steps = [
   { number:2, label:'Estructura y grupos', icon:LayoutGrid, route:'/grupos' },
   { number:3, label:'Jornada y sesiones', icon:CalendarClock, route:'/jornada' },
   { number:4, label:'Plan de estudios', icon:BookOpen, route:'/materias' },
-  { number:5, label:'Profesorado', icon:Users, route:null },
+  { number:5, label:'Profesorado', icon:Users, route:'/profesorado' },
   { number:6, label:'Asignaciones', icon:SlidersHorizontal, route:null },
   { number:7, label:'Reglas', icon:ShieldCheck, route:null },
   { number:8, label:'Prevalidación', icon:CheckCircle2, route:null },
@@ -36,6 +37,7 @@ export function WizardStepper({
     2:isStructureComplete(project),
     3:isScheduleComplete(project),
     4:isStudyPlanComplete(project),
+    5:isStaffComplete(project),
   }
 
   return (
