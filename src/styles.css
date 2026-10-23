@@ -324,3 +324,18 @@ button.wizard-step:focus-visible{outline:3px solid rgba(89,180,17,.22);outline-o
 .compact-info-panel strong{font-size:11px}
 .compact-info-panel p{margin:4px 0 0;color:var(--muted);font-size:9px;line-height:1.5}
 @media(max-width:1180px){.staff-layout{grid-template-columns:1fr}.staff-info-grid{grid-template-columns:1fr}}
+
+
+/* === Step 6: Asignaciones === */
+.assignments-layout{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:16px;align-items:start}
+.assignments-table{min-width:1120px}
+.availability-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}
+.availability-form{display:grid;grid-template-columns:1.2fr .8fr 1.1fr 1fr 1.4fr auto;gap:8px;padding:14px 16px;border-top:1px solid var(--border)}
+.availability-form select,.availability-form input{height:40px;border:1px solid #dbe2eb;border-radius:10px;background:var(--field-bg,#fff);color:inherit;padding:0 10px;font:inherit;font-size:10px;outline:0}
+.availability-list{display:grid;gap:8px;padding:0 16px 16px}
+.availability-list article{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;border:1px solid var(--border);border-radius:11px}
+.availability-list strong,.availability-list span,.availability-list small{display:block}
+.availability-list strong{font-size:10.5px}.availability-list span{margin-top:3px;color:var(--muted);font-size:9px}.availability-list small{margin-top:3px;color:var(--muted);font-size:8.5px}
+[data-theme="dark"] .availability-form select,[data-theme="dark"] .availability-form input{border-color:#2b394d;background:var(--field-bg)}
+@media(max-width:1180px){.assignments-layout{grid-template-columns:1fr}.availability-form{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:650px){.availability-form{grid-template-columns:1fr}}
