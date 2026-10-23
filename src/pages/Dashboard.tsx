@@ -2,7 +2,7 @@ import {
   AlertTriangle, ArrowRight, BookOpenCheck, CalendarClock, CalendarDays, CheckCircle2,
   Clock3, GraduationCap, LayoutGrid, ShieldCheck, Sparkles, Users,
 } from 'lucide-react'
-import { isCenterComplete, isStructureComplete, isScheduleComplete, isStudyPlanComplete, isStaffComplete, isAssignmentsComplete, isRulesComplete, type ViyeuticaProject } from '../domain/project'
+import { isCenterComplete, isStructureComplete, isScheduleComplete, isStudyPlanComplete, isStaffComplete, isAssignmentsComplete, isRulesComplete, isPrevalidationComplete, type ViyeuticaProject } from '../domain/project'
 
 export function Dashboard({
   navigate,
@@ -18,6 +18,7 @@ export function Dashboard({
   const staffDone = isStaffComplete(project)
   const assignmentsDone = isAssignmentsComplete(project)
   const rulesDone = isRulesComplete(project)
+  const prevalidationDone = isPrevalidationComplete(project)
   const activeGroups = project.groups.filter(group => group.active)
   const students = activeGroups.reduce((sum,group) => sum + (group.students ?? 0),0)
   const teachingSessions = project.schedule.blocks.filter(block => block.active && block.type === 'teaching').length
@@ -30,18 +31,20 @@ export function Dashboard({
     ['Profesorado', staffDone ? 'done' : studyPlanDone ? 'progress' : 'pending'],
     ['Asignaciones', assignmentsDone ? 'done' : staffDone ? 'progress' : 'pending'],
     ['Reglas', rulesDone ? 'done' : assignmentsDone ? 'progress' : 'pending'],
-    ['Prevalidación','pending'],
+    ['Prevalidación', prevalidationDone ? 'done' : rulesDone ? 'progress' : 'pending'],
   ] as const
 
-  const progress = rulesDone ? 77 : assignmentsDone ? 66 : staffDone ? 55 : studyPlanDone ? 44 : scheduleDone ? 33 : structureDone ? 22 : centerDone ? 11 : 0
-  const nextRoute = !centerDone ? '/centro' : !structureDone ? '/grupos' : !scheduleDone ? '/jornada' : !studyPlanDone ? '/materias' : !staffDone ? '/profesorado' : !assignmentsDone ? '/asignaciones' : '/reglas'
+  const progress = prevalidationDone ? 88 : rulesDone ? 77 : assignmentsDone ? 66 : staffDone ? 55 : studyPlanDone ? 44 : scheduleDone ? 33 : structureDone ? 22 : centerDone ? 11 : 0
+  const nextRoute = !centerDone ? '/centro' : !structureDone ? '/grupos' : !scheduleDone ? '/jornada' : !studyPlanDone ? '/materias' : !staffDone ? '/profesorado' : !assignmentsDone ? '/asignaciones' : !rulesDone ? '/reglas' : '/prevalidacion'
 
   return <div className="dashboard-stack">
     <section className="hero-card">
       <div>
         <span className="eyebrow"><Sparkles size={15}/> Viyeutica 0.4</span>
-        <h1>{rulesDone ? 'Las reglas del generador ya están preparadas.' : assignmentsDone ? 'Las responsabilidades docentes ya están asignadas.' : staffDone ? 'La plantilla docente ya está preparada.' : studyPlanDone ? 'El plan de estudios ya está definido.' : scheduleDone ? 'La rejilla temporal del centro ya está lista.' : structureDone ? 'Ahora toca definir la jornada escolar.' : centerDone ? 'Ahora toca construir la estructura académica.' : 'Configura el centro antes de construir el horario.'}</h1>
-        <p>{rulesDone
+        <h1>{prevalidationDone ? 'El proyecto ha superado la prevalidación.' : rulesDone ? 'Las reglas del generador ya están preparadas.' : assignmentsDone ? 'Las responsabilidades docentes ya están asignadas.' : staffDone ? 'La plantilla docente ya está preparada.' : studyPlanDone ? 'El plan de estudios ya está definido.' : scheduleDone ? 'La rejilla temporal del centro ya está lista.' : structureDone ? 'Ahora toca definir la jornada escolar.' : centerDone ? 'Ahora toca construir la estructura académica.' : 'Configura el centro antes de construir el horario.'}</h1>
+        <p>{prevalidationDone
+          ? `${project.center.name} · configuración lista para iniciar la generación del horario.`
+          : rulesDone
           ? `${project.center.name} · ${project.rules.filter(rule=>rule.active).length} reglas activas listas para prevalidación.`
           : assignmentsDone
           ? `${project.center.name} · ${project.assignments.filter(assignment=>assignment.active).length} asignaciones docentes activas listas para aplicar reglas.`
@@ -57,7 +60,7 @@ export function Dashboard({
               ? 'Define niveles, líneas y grupos reales. Viyeutica utilizará esta estructura para jornada, materias, profesorado y solver.'
               : 'Introduce los datos maestros del centro. Viyeutica los conservará en este navegador y los reutilizará en todo el flujo.'}</p>
         <div className="hero-actions">
-          <button className="btn primary" onClick={() => navigate(nextRoute)}>{rulesDone ? 'Revisar reglas' : 'Continuar configuración'} <ArrowRight size={17}/></button>
+          <button className="btn primary" onClick={() => navigate(nextRoute)}>{prevalidationDone ? 'Revisar prevalidación' : 'Continuar configuración'} <ArrowRight size={17}/></button>
           <button className="btn secondary" onClick={() => navigate('/horarios')}>Ver módulo de horarios</button>
         </div>
       </div>
@@ -88,7 +91,7 @@ export function Dashboard({
       </article>
 
       <article className="panel">
-        <div className="panel-heading"><div><span className="panel-kicker">Siguiente paso</span><h2>{!centerDone ? 'Completar los datos del centro' : !structureDone ? 'Definir grupos y unidades' : !scheduleDone ? 'Configurar jornada y sesiones' : !studyPlanDone ? 'Preparar el plan de estudios' : !staffDone ? 'Configurar profesorado' : !assignmentsDone ? 'Configurar asignaciones' : !rulesDone ? 'Definir reglas' : 'Ejecutar prevalidación'}</h2></div><GraduationCap className="panel-heading-icon" size={24}/></div>
+        <div className="panel-heading"><div><span className="panel-kicker">Siguiente paso</span><h2>{!centerDone ? 'Completar los datos del centro' : !structureDone ? 'Definir grupos y unidades' : !scheduleDone ? 'Configurar jornada y sesiones' : !studyPlanDone ? 'Preparar el plan de estudios' : !staffDone ? 'Configurar profesorado' : !assignmentsDone ? 'Configurar asignaciones' : !rulesDone ? 'Definir reglas' : !prevalidationDone ? 'Ejecutar prevalidación' : 'Generar horario'}</h2></div><GraduationCap className="panel-heading-icon" size={24}/></div>
         <p className="panel-copy">{!centerDone
           ? 'Primero necesitamos identificar el centro, su ubicación y las etapas que imparte.'
           : !structureDone
@@ -103,9 +106,11 @@ export function Dashboard({
                     ? 'Relaciona profesorado, grupos y materias, incluyendo apoyos, codocencias y disponibilidades.'
                     : !rulesDone
                       ? 'Define restricciones HARD/SOFT, reglas del centro y reglas procedentes de normativa.'
-                      : 'El siguiente bloque comprobará la coherencia completa antes de permitir la generación.'}</p>
-        <div className="notice amber"><AlertTriangle size={17}/><span>{rulesDone ? 'El Paso 8 — Prevalidación será el siguiente módulo.' : 'Completa este paso antes de seguir.'}</span></div>
-        <button className="btn primary wide" onClick={() => navigate(nextRoute)}>{rulesDone ? 'Revisar reglas' : 'Continuar'} <ArrowRight size={16}/></button>
+                      : !prevalidationDone
+                        ? 'Comprueba la coherencia completa antes de permitir la generación.'
+                        : 'El proyecto está listo para pasar al motor de generación de horarios.'}</p>
+        <div className="notice amber"><AlertTriangle size={17}/><span>{prevalidationDone ? 'El Paso 9 — Generación será el siguiente módulo.' : 'Completa este paso antes de seguir.'}</span></div>
+        <button className="btn primary wide" onClick={() => navigate(nextRoute)}>{prevalidationDone ? 'Revisar prevalidación' : 'Continuar'} <ArrowRight size={16}/></button>
       </article>
 
       <article className="panel">
