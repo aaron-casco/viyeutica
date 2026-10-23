@@ -27,7 +27,7 @@ export function TimetablesPage({
   const latest=latestGeneration(project)
   const [runId,setRunId]=useState(latest?.id??'')
   const [mode,setMode]=useState<ViewMode>('group')
-  const [entityId,setEntityId]=useState(project.groups.find(group=>group.active)?.id??'')
+  const [selectedEntityIds,setSelectedEntityIds]=useState<string[]>(['all'])
   const [focusSlot,setFocusSlot]=useState<{day:string;sessionId:string}|null>(null)
   const [auditFocus,setAuditFocus]=useState('')
 
@@ -47,10 +47,10 @@ export function TimetablesPage({
     const auditCode=params.get('auditCode')
     if(groupId){
       setMode('group')
-      setEntityId(groupId)
+      setSelectedEntityIds([groupId])
     }else if(teacherId){
       setMode('teacher')
-      setEntityId(teacherId)
+      setSelectedEntityIds([teacherId])
     }
     if(day&&sessionId)setFocusSlot({day,sessionId})
     if(auditCode)setAuditFocus('Vista abierta desde Auditoría · '+auditCode)
@@ -60,23 +60,33 @@ export function TimetablesPage({
     ? groups.map(group=>({id:group.id,label:group.name}))
     : teachers.map(teacher=>({id:teacher.id,label:teacher.name}))
 
-  const normalizedEntityId=options.some(option=>option.id===entityId)
-    ? entityId
-    : options[0]?.id??''
+  const selectedIds=selectedEntityIds.includes('all')
+    ? options.map(option=>option.id)
+    : selectedEntityIds.filter(id=>options.some(option=>option.id===id))
 
-  const entries=useMemo(()=>{
+  const toggleEntity=(id:string)=>{
+    if(id==='all'){
+      setSelectedEntityIds(['all'])
+      return
+    }
+    setSelectedEntityIds(current=>{
+      const withoutAll=current.filter(item=>item!=='all')
+      const exists=withoutAll.includes(id)
+      const next=exists?withoutAll.filter(item=>item!==id):[...withoutAll,id]
+      return next.length?next:['all']
+    })
+  }
+
+  const selectedEntries=useMemo(()=>{
     if(!run)return []
-    return run.entries.filter(entry=>
-      mode==='group'
-        ? entry.groupId===normalizedEntityId
-        : entry.teacherId===normalizedEntityId
-    )
-  },[run,mode,normalizedEntityId])
+    const allowed=new Set(selectedIds)
+    return run.entries.filter(entry=>mode==='group'?allowed.has(entry.groupId):allowed.has(entry.teacherId))
+  },[run,mode,selectedIds.join('|')])
 
-  const occupiedCells=new Set(entries.map(entry=>entry.day+'|'+entry.sessionId)).size
-  const totalCells=project.schedule.activeDays.length*teachingBlocks.length
-  const subjects=new Set(entries.map(entry=>entry.subjectId)).size
-  const relatedEntities=new Set(entries.map(entry=>mode==='group'?entry.teacherId:entry.groupId)).size
+  const occupiedCells=new Set(selectedEntries.map(entry=>entry.day+'|'+entry.sessionId+'|'+(mode==='group'?entry.groupId:entry.teacherId))).size
+  const totalCells=project.schedule.activeDays.length*teachingBlocks.length*Math.max(1,selectedIds.length)
+  const subjects=new Set(selectedEntries.map(entry=>entry.subjectId)).size
+  const relatedEntities=new Set(selectedEntries.map(entry=>mode==='group'?entry.teacherId:entry.groupId)).size
 
   if(!run){
     return <section className="empty-state-card">
@@ -113,19 +123,29 @@ export function TimetablesPage({
       <div className="timetable-view-switch">
         <button className={mode==='group'?'active':''} onClick={()=>{
           setMode('group')
-          setEntityId(groups[0]?.id??'')
+          setSelectedEntityIds(['all'])
         }}><GraduationCap size={16}/> Por grupo</button>
         <button className={mode==='teacher'?'active':''} onClick={()=>{
           setMode('teacher')
-          setEntityId(teachers[0]?.id??'')
+          setSelectedEntityIds(['all'])
         }}><UserRound size={16}/> Por docente</button>
       </div>
 
-      <div className="timetable-control-block entity">
-        <span className="panel-kicker">{mode==='group'?'Grupo':'Docente'}</span>
-        <select value={normalizedEntityId} onChange={event=>setEntityId(event.target.value)}>
-          {options.map(option=><option key={option.id} value={option.id}>{option.label}</option>)}
-        </select>
+      <div className="timetable-control-block entity timetable-entity-tags-block">
+        <span className="panel-kicker">{mode==='group'?'Grupos':'Docentes'}</span>
+        <div className="timetable-entity-tags">
+          <button
+            type="button"
+            className={selectedEntityIds.includes('all')?'active':''}
+            onClick={()=>toggleEntity('all')}
+          >Todos</button>
+          {options.map(option=><button
+            key={option.id}
+            type="button"
+            className={!selectedEntityIds.includes('all')&&selectedEntityIds.includes(option.id)?'active':''}
+            onClick={()=>toggleEntity(option.id)}
+          >{option.label}</button>)}
+        </div>
       </div>
     </section>
 
@@ -147,36 +167,45 @@ export function TimetablesPage({
     <section className="timetable-board">
       <div className="groups-table-heading">
         <div>
-          <span className="panel-kicker">{mode==='group'?'Horario de grupo':'Horario docente'}</span>
-          <h2>{options.find(option=>option.id===normalizedEntityId)?.label??'Sin selección'}</h2>
+          <span className="panel-kicker">{mode==='group'?'Horarios de grupo':'Horarios docentes'}</span>
+          <h2>{selectedEntityIds.includes('all')?'Todos':selectedIds.length+' seleccionados'}</h2>
         </div>
         <button className="btn ghost-inline" onClick={()=>navigate('/auditoria')}>Ir a Auditoría</button>
       </div>
-      <div className="generated-schedule-wrap">
-        <table className="generated-schedule timetables-full">
-          <thead><tr><th>Sesión</th>{project.schedule.activeDays.map(day=><th key={day}>{dayLabels[day]}</th>)}</tr></thead>
-          <tbody>{teachingBlocks.map(block=><tr key={block.id}>
-            <th><strong>{block.label}</strong><small>{block.start}–{block.end}</small></th>
-            {project.schedule.activeDays.map(day=>{
-              const cell=entries.filter(entry=>entry.day===day&&entry.sessionId===block.id)
-              const focused=focusSlot?.day===day&&focusSlot?.sessionId===block.id
-              if(!cell.length)return <td key={day} className={'empty-slot '+(focused?'audit-slot-focus':'')}><span>Libre</span></td>
-              if(mode==='group'){
-                const primary=cell[0]
-                const subject=project.subjects.find(item=>item.id===primary.subjectId)
-                const teacherNames=[...new Set(cell.map(entry=>project.teachers.find(item=>item.id===entry.teacherId)?.name).filter(Boolean))]
-                return <td key={day} className={focused?'audit-slot-focus':''}><strong>{subject?.name??'Materia'}</strong><small>{teacherNames.join(' + ')}</small></td>
-              }
-              return <td key={day} className={focused?'audit-slot-focus':''}>
-                {cell.map(entry=>{
-                  const subject=project.subjects.find(item=>item.id===entry.subjectId)
-                  const group=project.groups.find(item=>item.id===entry.groupId)
-                  return <span className="teacher-slot-item" key={entry.id}><strong>{subject?.name??'Materia'}</strong><small>{group?.name??'Grupo'}</small></span>
-                })}
-              </td>
-            })}
-          </tr>)}</tbody>
-        </table>
+      <div className="timetable-multi-list">
+        {selectedIds.map(entityId=>{
+          const label=options.find(option=>option.id===entityId)?.label??'Sin selección'
+          const entries=run.entries.filter(entry=>mode==='group'?entry.groupId===entityId:entry.teacherId===entityId)
+          return <section className="timetable-entity-section" key={entityId}>
+            <div className="timetable-entity-heading"><strong>{label}</strong></div>
+            <div className="generated-schedule-wrap">
+              <table className="generated-schedule timetables-full">
+                <thead><tr><th>Sesión</th>{project.schedule.activeDays.map(day=><th key={day}>{dayLabels[day]}</th>)}</tr></thead>
+                <tbody>{teachingBlocks.map(block=><tr key={block.id}>
+                  <th><strong>{block.label}</strong><small>{block.start}–{block.end}</small></th>
+                  {project.schedule.activeDays.map(day=>{
+                    const cell=entries.filter(entry=>entry.day===day&&entry.sessionId===block.id)
+                    const focused=focusSlot?.day===day&&focusSlot?.sessionId===block.id
+                    if(!cell.length)return <td key={day} className={'empty-slot '+(focused?'audit-slot-focus':'')}><span>Libre</span></td>
+                    if(mode==='group'){
+                      const primary=cell[0]
+                      const subject=project.subjects.find(item=>item.id===primary.subjectId)
+                      const teacherNames=[...new Set(cell.map(entry=>project.teachers.find(item=>item.id===entry.teacherId)?.name).filter(Boolean))]
+                      return <td key={day} className={focused?'audit-slot-focus':''}><strong>{subject?.name??'Materia'}</strong><small>{teacherNames.join(' + ')}</small></td>
+                    }
+                    return <td key={day} className={focused?'audit-slot-focus':''}>
+                      {cell.map(entry=>{
+                        const subject=project.subjects.find(item=>item.id===entry.subjectId)
+                        const group=project.groups.find(item=>item.id===entry.groupId)
+                        return <div className="teacher-cell-entry" key={entry.id}><strong>{subject?.name??'Materia'}</strong><small>{group?.name??'Grupo'}</small></div>
+                      })}
+                    </td>
+                  })}
+                </tr>)}</tbody>
+              </table>
+            </div>
+          </section>
+        })}
       </div>
     </section>
   </div>
