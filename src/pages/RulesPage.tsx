@@ -22,7 +22,15 @@ interface Draft {
   code:string
   description:string
   weight:string
-  parameters:string
+  conditionKind:string
+  teacherId:string
+  groupId:string
+  subjectId:string
+  stage:string
+  day:string
+  sessionId:string
+  value:string
+  comparison:string
 }
 
 const emptyDraft:Draft={
@@ -31,7 +39,15 @@ const emptyDraft:Draft={
   code:'',
   description:'',
   weight:'',
-  parameters:'{}',
+  conditionKind:'generic',
+  teacherId:'',
+  groupId:'',
+  subjectId:'',
+  stage:'',
+  day:'',
+  sessionId:'',
+  value:'',
+  comparison:'equals',
 }
 
 const scopes=[
@@ -46,10 +62,37 @@ const scopes=[
 
 const uid=()=> 'rule_'+crypto.randomUUID()
 
-function safeParseParameters(value:string){
-  const parsed=JSON.parse(value)
-  if(parsed===null||Array.isArray(parsed)||typeof parsed!=='object') throw new Error('Los parámetros deben ser un objeto JSON.')
-  return parsed as Record<string,unknown>
+function buildParameters(draft:Draft){
+  const parameters:Record<string,unknown>={conditionKind:draft.conditionKind}
+  if(draft.teacherId) parameters.teacherId=draft.teacherId
+  if(draft.groupId) parameters.groupId=draft.groupId
+  if(draft.subjectId) parameters.subjectId=draft.subjectId
+  if(draft.stage) parameters.stage=draft.stage
+  if(draft.day) parameters.day=draft.day
+  if(draft.sessionId) parameters.sessionId=draft.sessionId
+  if(draft.value!=='') parameters.value=Number.isNaN(Number(draft.value))?draft.value:Number(draft.value)
+  if(draft.comparison) parameters.comparison=draft.comparison
+  return parameters
+}
+
+function draftFromRule(rule:CenterRule):Draft{
+  const p=rule.parameters??{}
+  return {
+    scope:rule.scope,
+    ruleType:rule.ruleType,
+    code:rule.code,
+    description:rule.description,
+    weight:rule.weight?String(rule.weight):'',
+    conditionKind:String(p.conditionKind??'generic'),
+    teacherId:String(p.teacherId??''),
+    groupId:String(p.groupId??''),
+    subjectId:String(p.subjectId??''),
+    stage:String(p.stage??''),
+    day:String(p.day??''),
+    sessionId:String(p.sessionId??''),
+    value:p.value===undefined||p.value===null?'':String(p.value),
+    comparison:String(p.comparison??'equals'),
+  }
 }
 
 export function RulesPage({
@@ -86,13 +129,7 @@ export function RulesPage({
       setError('Indica código y descripción.')
       return
     }
-    let parameters:Record<string,unknown>
-    try{
-      parameters=safeParseParameters(draft.parameters)
-    }catch(err){
-      setError(err instanceof Error?err.message:'Parámetros JSON no válidos.')
-      return
-    }
+    const parameters=buildParameters(draft)
     const weight=draft.ruleType==='SOFT'
       ? Number(draft.weight)
       : null
@@ -129,14 +166,7 @@ export function RulesPage({
 
   const edit=(rule:CenterRule)=>{
     setEditingId(rule.id)
-    setDraft({
-      scope:rule.scope,
-      ruleType:rule.ruleType,
-      code:rule.code,
-      description:rule.description,
-      weight:rule.weight?String(rule.weight):'',
-      parameters:JSON.stringify(rule.parameters??{},null,2),
-    })
+    setDraft(draftFromRule(rule))
     setError('')
     window.scrollTo({top:0,behavior:'smooth'})
   }
@@ -306,9 +336,82 @@ export function RulesPage({
         <Field label="Descripción" required>
           <textarea value={draft.description} onChange={e=>setDraft({...draft,description:e.target.value})} placeholder="Describe de forma inequívoca la condición..."/>
         </Field>
-        <Field label="Parámetros JSON">
-          <textarea className="rule-json-editor" value={draft.parameters} onChange={e=>setDraft({...draft,parameters:e.target.value})}/>
-        </Field>
+        <section className="rule-condition-builder">
+          <div className="rule-condition-builder-heading">
+            <span className="panel-kicker">Condición de la regla</span>
+            <h3>Construir condición</h3>
+            <p>Selecciona únicamente los campos que necesites. Viyeutica guardará la estructura técnica automáticamente.</p>
+          </div>
+
+          <div className="form-grid two">
+            <Field label="Tipo de condición">
+              <select value={draft.conditionKind} onChange={e=>setDraft({...draft,conditionKind:e.target.value})}>
+                <option value="generic">Condición general</option>
+                <option value="availability">Disponibilidad / indisponibilidad</option>
+                <option value="daily_limit">Límite diario</option>
+                <option value="consecutive_limit">Sesiones consecutivas</option>
+                <option value="fixed_slot">Franja fija</option>
+                <option value="avoid_slot">Evitar franja</option>
+                <option value="weekly_load">Carga semanal</option>
+              </select>
+            </Field>
+            <Field label="Comparación">
+              <select value={draft.comparison} onChange={e=>setDraft({...draft,comparison:e.target.value})}>
+                <option value="equals">Debe ser igual a</option>
+                <option value="not_equals">Debe ser distinto de</option>
+                <option value="minimum">Como mínimo</option>
+                <option value="maximum">Como máximo</option>
+                <option value="avoid">Evitar</option>
+                <option value="prefer">Preferir</option>
+              </select>
+            </Field>
+
+            <Field label="Profesor/a">
+              <select value={draft.teacherId} onChange={e=>setDraft({...draft,teacherId:e.target.value})}>
+                <option value="">Cualquiera / no aplica</option>
+                {project.teachers.filter(t=>t.active).map(t=><option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+            </Field>
+            <Field label="Grupo">
+              <select value={draft.groupId} onChange={e=>setDraft({...draft,groupId:e.target.value})}>
+                <option value="">Cualquiera / no aplica</option>
+                {project.groups.filter(g=>g.active).map(g=><option key={g.id} value={g.id}>{g.name}</option>)}
+              </select>
+            </Field>
+
+            <Field label="Materia">
+              <select value={draft.subjectId} onChange={e=>setDraft({...draft,subjectId:e.target.value})}>
+                <option value="">Cualquiera / no aplica</option>
+                {project.subjects.filter(s=>s.active).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </Field>
+            <Field label="Etapa">
+              <select value={draft.stage} onChange={e=>setDraft({...draft,stage:e.target.value})}>
+                <option value="">Cualquiera / no aplica</option>
+                {project.center.stages.map(stage=><option key={stage} value={stage}>{stage}</option>)}
+              </select>
+            </Field>
+
+            <Field label="Día">
+              <select value={draft.day} onChange={e=>setDraft({...draft,day:e.target.value})}>
+                <option value="">Cualquiera / no aplica</option>
+                {project.schedule.activeDays.map(day=><option key={day} value={day}>{day==='L'?'Lunes':day==='M'?'Martes':day==='X'?'Miércoles':day==='J'?'Jueves':day==='V'?'Viernes':'Sábado'}</option>)}
+              </select>
+            </Field>
+            <Field label="Sesión">
+              <select value={draft.sessionId} onChange={e=>setDraft({...draft,sessionId:e.target.value})}>
+                <option value="">Cualquiera / no aplica</option>
+                {project.schedule.blocks.filter(b=>b.active).map(block=><option key={block.id} value={block.id}>{block.label} · {block.start}-{block.end}</option>)}
+              </select>
+            </Field>
+
+            <Field label="Valor">
+              <input value={draft.value} onChange={e=>setDraft({...draft,value:e.target.value})} placeholder="Ej. 2"/>
+            </Field>
+          </div>
+
+          <RuleConditionPreview draft={draft} project={project}/>
+        </section>
 
         {error&&<div className="inline-error">{error}</div>}
 
@@ -376,7 +479,7 @@ export function RulesPage({
             <div className="rule-card-main">
               <div className="rule-title-row"><strong>{humanRuleName(rule.code)}</strong><span>{scopeLabel(rule.scope)}</span>{rule.source&&<span>{sourceLabel(rule.source)}</span>}{rule.reviewRequired&&<span className="review-tag">Revisar</span>}</div>
               <p>{rule.description}</p>
-              <small>Parámetros: <code>{JSON.stringify(rule.parameters)}</code>{rule.ruleType==='SOFT'&&<> · Peso <strong>{rule.weight??'—'}</strong></>}</small>
+              <small>{describeParameters(rule,project)}{rule.ruleType==='SOFT'&&<> · Peso <strong>{rule.weight??'—'}</strong></>}</small>
               {rule.source==='normative'&&rule.normativeRuleId&&<NormativeTrace project={project} id={rule.normativeRuleId}/>}
             </div>
             <div className="rule-card-actions">
@@ -449,4 +552,41 @@ function humanRuleName(code:string){
     REDUCIR_HUECOS_DOCENTES:'Reducir huecos del profesorado',
   }
   return names[code]??code.replace(/_/g,' ').toLowerCase().replace(/^./,letter=>letter.toUpperCase())
+}
+
+
+function describeParameters(rule:CenterRule, project:ViyeuticaProject){
+  const p=rule.parameters??{}
+  const parts:string[]=[]
+  const teacher=project.teachers.find(item=>item.id===p.teacherId)
+  const group=project.groups.find(item=>item.id===p.groupId)
+  const subject=project.subjects.find(item=>item.id===p.subjectId)
+  const block=project.schedule.blocks.find(item=>item.id===p.sessionId)
+  if(teacher) parts.push('Profesor: '+teacher.name)
+  if(group) parts.push('Grupo: '+group.name)
+  if(subject) parts.push('Materia: '+subject.name)
+  if(p.stage) parts.push('Etapa: '+String(p.stage))
+  if(p.day) parts.push('Día: '+dayName(String(p.day)))
+  if(block) parts.push('Sesión: '+block.label)
+  if(p.value!==undefined) parts.push(comparisonLabel(String(p.comparison??'equals'))+' '+String(p.value))
+  return parts.length?parts.join(' · '):'Sin condiciones específicas'
+}
+
+function RuleConditionPreview({draft,project}:{draft:Draft;project:ViyeuticaProject}){
+  const temp:CenterRule={
+    id:'preview',scope:draft.scope,ruleType:draft.ruleType,code:draft.code||'VISTA_PREVIA',
+    description:draft.description||'Vista previa',parameters:buildParameters(draft),
+    weight:draft.ruleType==='SOFT'?(Number(draft.weight)||null):null,source:'manual',active:true,
+  }
+  return <div className="rule-condition-preview"><strong>Así se interpretará:</strong><span>{describeParameters(temp,project)}</span></div>
+}
+
+function dayName(day:string){
+  return day==='L'?'Lunes':day==='M'?'Martes':day==='X'?'Miércoles':day==='J'?'Jueves':day==='V'?'Viernes':day==='S'?'Sábado':day
+}
+function comparisonLabel(value:string){
+  const labels:Record<string,string>={
+    equals:'Igual a',not_equals:'Distinto de',minimum:'Mínimo',maximum:'Máximo',avoid:'Evitar',prefer:'Preferir'
+  }
+  return labels[value]??value
 }
