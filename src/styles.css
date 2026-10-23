@@ -604,3 +604,23 @@ button.wizard-step:focus-visible{outline:3px solid rgba(89,180,17,.22);outline-o
 .generation-difference{margin-top:3px!important;color:#526b84!important}
 [data-theme="dark"] .generation-uniqueness-notice{background:#2a2414;border-color:#5d5127;color:#d6c784}
 @media(max-width:700px){.generation-history-actions{width:100%}.generation-history-actions .btn{flex:1}}
+
+
+/* === Filtros por grupo y diferencias entre propuestas === */
+.generation-toolbar-tags{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.generation-toolbar-tags>div:first-child{min-width:0;flex:1}
+.generation-group-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.generation-group-tags button{border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--muted);padding:7px 10px;font-size:8.2px;font-weight:800;cursor:pointer}
+.generation-group-tags button.active{background:#eef7e9;border-color:#9dce7b;color:#4b8b24}
+.generation-multi-schedule{display:grid;gap:14px}
+.generation-group-schedule{display:grid;gap:7px}
+.generation-group-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.generation-group-heading strong{font-size:10px}.generation-group-heading small{color:var(--muted);font-size:8px}
+.generation-diff-legend{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:8.5px;margin:2px 0 8px}
+.diff-swatch{width:14px;height:14px;border-radius:4px;background:#fff3cf;border:1px solid #d9a728}
+.proposal-diff-cell{position:relative;background:#fff8df!important;box-shadow:inset 0 0 0 2px #d9a728}
+.proposal-diff-badge{display:inline-block;margin-top:4px;padding:2px 5px;border-radius:999px;background:#f5d36f;color:#6a5311;font-size:6.8px;font-style:normal;font-weight:900;text-transform:uppercase;letter-spacing:.04em}
+[data-theme="dark"] .generation-group-tags button.active{background:#182718;border-color:#3f6135;color:#9fd079}
+[data-theme="dark"] .proposal-diff-cell{background:#2a2414!important;box-shadow:inset 0 0 0 2px #c49a3b}
+[data-theme="dark"] .diff-swatch{background:#2a2414;border-color:#c49a3b}
+@media(max-width:700px){.generation-toolbar-tags{align-items:stretch}.generation-toolbar-tags>.btn{width:100%}.generation-group-heading{align-items:flex-start;flex-direction:column}}
