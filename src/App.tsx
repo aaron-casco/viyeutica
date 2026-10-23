@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   Bell, BookOpen, CalendarClock, CalendarDays, ChevronDown, ClipboardCheck,
-  FileOutput, FileSearch, Gauge, GraduationCap, LayoutGrid, Menu, PanelLeftClose,
+  FileJson, FileOutput, FileSearch, Gauge, GraduationCap, LayoutGrid, Menu, PanelLeftClose,
   ShieldCheck, SlidersHorizontal, Sparkles, Users, X,
 } from 'lucide-react'
 import { Logo } from './components/Logo'
@@ -13,6 +13,7 @@ import { GroupsPage } from './pages/GroupsPage'
 import { SchedulePage } from './pages/SchedulePage'
 import { StudyPlanPage } from './pages/StudyPlanPage'
 import { NormativePage } from './pages/NormativePage'
+import { ProjectImportPage } from './pages/ProjectImportPage'
 import { useProject } from './hooks/useProject'
 import { useTheme } from './hooks/useTheme'
 
@@ -20,6 +21,7 @@ const navigation = [
   { path: '/', label: 'Inicio', icon: Gauge },
   { path: '/cursos', label: 'Curso académico', icon: CalendarDays },
   { path: '/normativa', label: 'Normativa', icon: FileSearch },
+  { path: '/proyecto-json', label: 'Importar / exportar JSON', icon: FileJson },
   { path: '/centro', label: 'Centro', icon: GraduationCap },
   { path: '/grupos', label: 'Estructura y grupos', icon: LayoutGrid },
   { path: '/jornada', label: 'Jornada y sesiones', icon: CalendarClock },
@@ -81,6 +83,7 @@ export default function App() {
     if (route === '/jornada') return <SchedulePage project={project} navigate={go}/>
     if (route === '/materias') return <StudyPlanPage project={project} navigate={go}/>
     if (route === '/normativa') return <NormativePage project={project}/>
+    if (route === '/proyecto-json') return <ProjectImportPage project={project} navigate={go}/>
     return <PlaceholderPage title={active.label} description={descriptions[route] ?? 'Módulo preparado para su implementación.'}/>
   }
 
