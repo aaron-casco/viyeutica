@@ -8,6 +8,7 @@ import type {
 } from './project'
 import {
   fixedSlotFromRule,
+  softRuleFinalCost,
   softRulePlacementCost,
   violatesAvoidRule,
   violatesConsecutiveLimitRule,
@@ -344,20 +345,8 @@ function evaluateSoft(project:ViyeuticaProject,entries:GeneratedScheduleEntry[],
   for(const rule of reduceGaps) penalty+=teacherGapPenalty(entries,slots)*(rule.weight??1)
 
   const orderBySession=new Map(slots.map(slot=>[slot.sessionId,slot.order]))
-  const evaluatedEntries:GeneratedScheduleEntry[]=[]
-  const softRules=project.rules.filter(r=>r.active&&r.ruleType==='SOFT'&&r.code!=='REDUCIR_HUECOS_DOCENTES')
-
-  for(const entry of entries){
-    const assignment=project.assignments.find(a=>a.id===entry.assignmentId)
-    const slot=slots.find(s=>s.day===entry.day&&s.sessionId===entry.sessionId)
-    if(!assignment||!slot){
-      evaluatedEntries.push(entry)
-      continue
-    }
-    for(const rule of softRules){
-      penalty+=softRulePlacementCost(rule,assignment,slot,evaluatedEntries,orderBySession)
-    }
-    evaluatedEntries.push(entry)
+  for(const rule of project.rules.filter(r=>r.active&&r.ruleType==='SOFT'&&r.code!=='REDUCIR_HUECOS_DOCENTES')){
+    penalty+=softRuleFinalCost(rule,entries,orderBySession)
   }
   return penalty
 }
