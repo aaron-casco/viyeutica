@@ -4,7 +4,6 @@ import {
 } from 'lucide-react'
 import {
   isGenerationProposalValid,
-  latestGeneration,
   uniqueGenerationRuns,
   type GenerationRun,
   type TeachingAssignment,
