@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
-  CheckCircle2, FileCheck2, Pencil, Plus, Save, ShieldAlert, ShieldCheck,
+  CheckCircle2, ChevronDown, FileCheck2, Pencil, Plus, Save, Search, ShieldAlert, ShieldCheck,
   SlidersHorizontal, Trash2,
 } from 'lucide-react'
 import {
@@ -25,11 +25,16 @@ interface Draft {
   weight:string
   conditionKind:string
   teacherId:string
+  teacherIds:string[]
   groupId:string
+  groupIds:string[]
   subjectId:string
+  subjectIds:string[]
   stage:string
   day:string
+  days:string[]
   sessionId:string
+  sessionIds:string[]
   value:string
   comparison:string
 }
@@ -42,11 +47,16 @@ const emptyDraft:Draft={
   weight:'',
   conditionKind:'generic',
   teacherId:'',
+  teacherIds:[],
   groupId:'',
+  groupIds:[],
   subjectId:'',
+  subjectIds:[],
   stage:'',
   day:'',
+  days:[],
   sessionId:'',
+  sessionIds:[],
   value:'',
   comparison:'equals',
 }
@@ -121,11 +131,16 @@ function normalizeDraftForScope(draft:Draft,scope:string):Draft{
     ...draft,
     scope,
     teacherId:'',
+    teacherIds:[],
     groupId:'',
+    groupIds:[],
     subjectId:'',
+    subjectIds:[],
     stage:'',
     day:'',
+    days:[],
     sessionId:'',
+    sessionIds:[],
   }
 }
 
@@ -139,12 +154,27 @@ function targetFieldOrder(scope:string):ConditionField[]{
 
 function buildParameters(draft:Draft){
   const parameters:Record<string,unknown>={conditionKind:draft.conditionKind}
-  if(conditionUses(draft.conditionKind,'teacherId')&&draft.teacherId) parameters.teacherId=draft.teacherId
-  if(conditionUses(draft.conditionKind,'groupId')&&draft.groupId) parameters.groupId=draft.groupId
-  if(conditionUses(draft.conditionKind,'subjectId')&&draft.subjectId) parameters.subjectId=draft.subjectId
+  if(conditionUses(draft.conditionKind,'teacherId')){
+    if(draft.teacherIds.length) parameters.teacherIds=draft.teacherIds
+    else if(draft.teacherId) parameters.teacherId=draft.teacherId
+  }
+  if(conditionUses(draft.conditionKind,'groupId')){
+    if(draft.groupIds.length) parameters.groupIds=draft.groupIds
+    else if(draft.groupId) parameters.groupId=draft.groupId
+  }
+  if(conditionUses(draft.conditionKind,'subjectId')){
+    if(draft.subjectIds.length) parameters.subjectIds=draft.subjectIds
+    else if(draft.subjectId) parameters.subjectId=draft.subjectId
+  }
   if(conditionUses(draft.conditionKind,'stage')&&draft.stage) parameters.stage=draft.stage
-  if(conditionUses(draft.conditionKind,'day')&&draft.day) parameters.day=draft.day
-  if(conditionUses(draft.conditionKind,'sessionId')&&draft.sessionId) parameters.sessionId=draft.sessionId
+  if(conditionUses(draft.conditionKind,'day')){
+    if(draft.days.length) parameters.days=draft.days
+    else if(draft.day) parameters.day=draft.day
+  }
+  if(conditionUses(draft.conditionKind,'sessionId')){
+    if(draft.sessionIds.length) parameters.sessionIds=draft.sessionIds
+    else if(draft.sessionId) parameters.sessionId=draft.sessionId
+  }
   if(conditionUses(draft.conditionKind,'value')&&draft.value!=='') parameters.value=Number.isNaN(Number(draft.value))?draft.value:Number(draft.value)
   if(conditionUses(draft.conditionKind,'comparison')&&draft.comparison) parameters.comparison=draft.comparison
   if(draft.conditionKind==='fixed_slot') parameters.comparison='equals'
@@ -161,11 +191,16 @@ function draftFromRule(rule:CenterRule):Draft{
     weight:rule.weight?String(rule.weight):'',
     conditionKind:String(p.conditionKind??'generic'),
     teacherId:String(p.teacherId??''),
+    teacherIds:Array.isArray(p.teacherIds)?p.teacherIds.map(String):[],
     groupId:String(p.groupId??''),
+    groupIds:Array.isArray(p.groupIds)?p.groupIds.map(String):[],
     subjectId:String(p.subjectId??''),
+    subjectIds:Array.isArray(p.subjectIds)?p.subjectIds.map(String):[],
     stage:String(p.stage??''),
     day:String(p.day??''),
+    days:Array.isArray(p.days)?p.days.map(String):[],
     sessionId:String(p.sessionId??''),
+    sessionIds:Array.isArray(p.sessionIds)?p.sessionIds.map(String):[],
     value:p.value===undefined||p.value===null?'':String(p.value),
     comparison:String(p.comparison??'equals'),
   }
