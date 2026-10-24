@@ -1357,3 +1357,20 @@ main .generated-schedule th strong{
   border-color:#304c2c;
   color:#a8cf98;
 }
+
+
+.normative-incorporate-wrap{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  flex-wrap:wrap;
+}
+.normative-incorporate-wrap small{
+  color:var(--muted);
+  font-size:10px;
+}
+.normative-incorporate-rule:disabled{
+  opacity:.55;
+  cursor:not-allowed;
+  border-style:dashed;
+}
