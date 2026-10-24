@@ -630,7 +630,14 @@ export function runPrevalidation(project: ViyeuticaProject): PrevalidationIssue[
       push('warning','Reglas','REGLA_NO_EVALUABLE',`La regla "${rule.description}" todavía no está soportada por el motor común de evaluación y no puede comprobarse automáticamente.`,undefined,rule.id)
     }
     if (rule.ruleType==='SOFT') {
-      push('info','Reglas','REGLA_SOFT',`Preferencia activa: ${rule.description}`,`Peso: ${rule.weight??'—'}`,rule.id)
+      const priority=
+        rule.weight===1?'Baja':
+        rule.weight===3?'Normal':
+        rule.weight===5?'Alta':
+        rule.weight===8?'Muy alta':
+        rule.weight===10?'Crítica':
+        rule.weight?`Personalizada (${rule.weight})`:'Sin definir'
+      push('info','Reglas','REGLA_SOFT',`Preferencia activa: ${rule.description}`,`Prioridad: ${priority}`,rule.id)
     }
   }
 
