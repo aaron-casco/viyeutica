@@ -349,16 +349,21 @@ function evaluateSoft(project:ViyeuticaProject,entries:GeneratedScheduleEntry[],
   const reduceGaps=project.rules.filter(r=>r.active&&r.ruleType==='SOFT'&&r.code==='REDUCIR_HUECOS_DOCENTES')
   for(const rule of reduceGaps) penalty+=teacherGapPenalty(entries,slots)*(rule.weight??1)
 
-  for(const rule of project.rules.filter(r=>r.active&&r.ruleType==='SOFT'&&r.code!=='REDUCIR_HUECOS_DOCENTES')){
-    const weight=rule.weight??1
-    for(const entry of entries){
-      const assignment=project.assignments.find(a=>a.id===entry.assignmentId)
-      const slot=slots.find(s=>s.day===entry.day&&s.sessionId===entry.sessionId)
-      if(!assignment||!slot||!ruleMatchesAssignment(rule,assignment)) continue
-      const kind=ruleConditionKind(rule),cmp=ruleComparison(rule)
-      if((kind==='avoid_slot'||cmp==='avoid')&&ruleSlotMatches(rule,slot)) penalty+=weight*10
-      if(cmp==='prefer'&&(rule.parameters?.day||rule.parameters?.sessionId)&&!ruleSlotMatches(rule,slot)) penalty+=weight*2
+  const orderBySession=new Map(slots.map(slot=>[slot.sessionId,slot.order]))
+  const evaluatedEntries:GeneratedScheduleEntry[]=[]
+  const softRules=project.rules.filter(r=>r.active&&r.ruleType==='SOFT'&&r.code!=='REDUCIR_HUECOS_DOCENTES')
+
+  for(const entry of entries){
+    const assignment=project.assignments.find(a=>a.id===entry.assignmentId)
+    const slot=slots.find(s=>s.day===entry.day&&s.sessionId===entry.sessionId)
+    if(!assignment||!slot){
+      evaluatedEntries.push(entry)
+      continue
     }
+    for(const rule of softRules){
+      penalty+=softRulePlacementCost(rule,assignment,slot,evaluatedEntries,orderBySession)
+    }
+    evaluatedEntries.push(entry)
   }
   return penalty
 }
