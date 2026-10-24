@@ -42,7 +42,7 @@ export function Dashboard({
   return <div className="dashboard-stack">
     <section className="hero-card">
       <div>
-        <span className="eyebrow"><Sparkles size={15}/> Viyeutica 0.4</span>
+        <span className="eyebrow"><Sparkles size={15}/> ⩒Yeutika 0.4</span>
         <h1>{generationDone ? 'El horario ya tiene una propuesta completa.' : prevalidationDone ? 'El proyecto ha superado la prevalidación.' : rulesDone ? 'Las reglas del generador ya están preparadas.' : assignmentsDone ? 'Las responsabilidades docentes ya están asignadas.' : staffDone ? 'La plantilla docente ya está preparada.' : studyPlanDone ? 'El plan de estudios ya está definido.' : scheduleDone ? 'La rejilla temporal del centro ya está lista.' : structureDone ? 'Ahora toca definir la jornada escolar.' : centerDone ? 'Ahora toca construir la estructura académica.' : 'Configura el centro antes de construir el horario.'}</h1>
         <p>{generationDone
           ? `${project.center.name} · propuesta de horario completa generada y lista para revisión.`
@@ -61,14 +61,14 @@ export function Dashboard({
           : structureDone
             ? 'Define días lectivos, sesiones, recreos y duraciones. Esa será la base temporal del generador.'
             : centerDone
-              ? 'Define niveles, líneas y grupos reales. Viyeutica utilizará esta estructura para jornada, materias, profesorado y solver.'
-              : 'Introduce los datos maestros del centro. Viyeutica los conservará en este navegador y los reutilizará en todo el flujo.'}</p>
+              ? 'Define niveles, líneas y grupos reales. ⩒Yeutika utilizará esta estructura para jornada, materias, profesorado y solver.'
+              : 'Introduce los datos maestros del centro. ⩒Yeutika los conservará en este navegador y los reutilizará en todo el flujo.'}</p>
         <div className="hero-actions">
           <button className="btn primary" onClick={() => navigate(nextRoute)}>{generationDone ? 'Revisar generación' : 'Continuar configuración'} <ArrowRight size={17}/></button>
           <button className="btn secondary" onClick={() => navigate('/horarios')}>Ver módulo de horarios</button>
         </div>
       </div>
-      <div className="hero-mark hero-logo-full"><img src="./brand/viyeutica-logo.svg" alt="Logo de Viyeutica"/></div>
+      <div className="hero-mark hero-logo-full"><img src="./brand/viyeutica-logo.svg" alt="Logo de ⩒Yeutika"/></div>
     </section>
 
     <section className="metric-grid metric-grid-five">
