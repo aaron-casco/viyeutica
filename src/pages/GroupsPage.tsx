@@ -159,7 +159,7 @@ export function GroupsPage({
     return <section className="empty-state-card">
       <GraduationCap size={34}/>
       <h1>Primero configura el centro</h1>
-      <p>Las etapas seleccionadas en el paso 1 determinan qué niveles puede ofrecer Viyeutica.</p>
+      <p>Las etapas seleccionadas en el paso 1 determinan qué niveles puede ofrecer ⩒Yeutika.</p>
       <button className="btn primary" onClick={() => navigate('/centro')}>Ir a Datos del centro</button>
     </section>
   }
@@ -168,7 +168,7 @@ export function GroupsPage({
     <section className="wizard-intro">
       <div>
         <h1 className="wizard-page-title"><LayoutGrid size={28}/> Estructura y grupos</h1>
-        <p>Define las unidades reales del curso. Después Viyeutica relacionará cada grupo con jornada, materias, profesorado y restricciones.</p>
+        <p>Define las unidades reales del curso. Después ⩒Yeutika relacionará cada grupo con jornada, materias, profesorado y restricciones.</p>
       </div>
       <div className="wizard-progress-summary"><strong>2 <span>de 9</span></strong><small>Estructura y grupos</small></div>
     </section>
