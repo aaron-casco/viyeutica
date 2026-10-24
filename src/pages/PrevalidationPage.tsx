@@ -4,6 +4,7 @@ import {
   ShieldCheck, Sparkles,
 } from 'lucide-react'
 import {
+  isAssignmentsComplete,
   isRulesComplete,
   runPrevalidation,
   type PrevalidationIssue,
@@ -25,12 +26,12 @@ export function PrevalidationPage({
   const infos=issues.filter(issue=>issue.severity==='info')
   const ready=errors.length===0 && isRulesComplete(project)
 
-  if(!isRulesComplete(project)){
+  if(!isAssignmentsComplete(project)){
     return <section className="empty-state-card">
       <ClipboardCheck size={34}/>
-      <h1>Completa primero Reglas</h1>
-      <p>La prevalidación necesita toda la configuración de los pasos 1–7 para poder comprobar el proyecto de forma transversal.</p>
-      <button className="btn primary" onClick={()=>navigate('/reglas')}>Ir a Reglas</button>
+      <h1>Completa primero Asignaciones</h1>
+      <p>La prevalidación necesita la configuración de los pasos 1–6. Las incidencias de Reglas se mostrarán aquí para que puedas corregirlas antes de generar.</p>
+      <button className="btn primary" onClick={()=>navigate('/asignaciones')}>Ir a Asignaciones</button>
     </section>
   }
 
@@ -100,7 +101,7 @@ export function PrevalidationPage({
         <ShieldCheck size={24}/>
         <span>
           <strong>Cómo se usan las reglas</strong>
-          <small>Las HARD forman parte de los bloqueos y restricciones obligatorias. Las SOFT no invalidan el proyecto: se trasladarán al generador como preferencias ponderadas para comparar soluciones.</small>
+          <small>Las HARD forman parte de los bloqueos y restricciones obligatorias. Las SOFT no invalidan el proyecto: se trasladarán al generador como preferencias con prioridad para comparar soluciones.</small>
         </span>
       </div>
       <div className="rule-counts">
