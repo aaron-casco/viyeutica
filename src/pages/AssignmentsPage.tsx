@@ -594,7 +594,7 @@ function MultiCheckSelect({
         ? selectedLabels.join(', ')
         : selectedLabels.length+' seleccionados'
 
-  return <label className="availability-compact-field">
+  return <div className="availability-compact-field">
     <span>{label}</span>
     <details className="multicheck-select">
       <summary>
@@ -625,7 +625,7 @@ function MultiCheckSelect({
         {values.length>0&&<button type="button" className="multicheck-clear" onClick={()=>onChange([])}>Limpiar selección</button>}
       </div>
     </details>
-  </label>
+  </div>
 }
 
 function Summary({label,value,detail}:{label:string;value:string;detail:string}){return <article className="structure-summary-card"><span>{label}</span><strong>{value}</strong><small>{detail}</small></article>}
