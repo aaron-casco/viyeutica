@@ -61,6 +61,11 @@ export function GroupsPage({
   const studentTotal = activeGroups.reduce((sum,group) => sum + (group.students ?? 0),0)
   const levelTotal = new Set(activeGroups.map(group => `${group.stage}|${group.level}`)).size
   const complete = isStructureComplete(project)
+  const groupReady=Boolean(draft.stage&&draft.level&&draft.line.trim())
+  const groupGuide=!draft.stage?'Selecciona la etapa del grupo.'
+    :!draft.level?'Selecciona el nivel.'
+    :!draft.line.trim()?'Indica la línea o identificador del grupo.'
+    :'El grupo tiene los datos mínimos necesarios. Ya puedes añadirlo.'
 
   const resetDraft = () => {
     setDraft(emptyDraft)
@@ -225,12 +230,13 @@ export function GroupsPage({
           <textarea value={draft.notes} onChange={e => setDraft({...draft,notes:e.target.value})} placeholder="Información útil para la planificación..."/>
         </label>
         {error && <div className="inline-error">{error}</div>}
+        <div className={'form-guide '+(groupReady?'complete':'partial')}><strong>{groupReady?'Grupo listo':'Siguiente paso'}</strong><span>{groupGuide}</span></div>
 
         <div className="form-actions">
           <button type="button" className="btn secondary-light" onClick={() => navigate('/configuracion')}><ArrowLeft size={16}/> Paso anterior</button>
           <div className="form-actions-right">
             {editingId && <button type="button" className="btn ghost-inline" onClick={resetDraft}>Cancelar</button>}
-            <button type="submit" className="btn primary"><Save size={16}/>{editingId?'Guardar cambios':'Añadir grupo'}</button>
+            <button type="submit" className="btn primary" disabled={!groupReady}><Save size={16}/>{editingId?'Guardar cambios':'Añadir grupo'}</button>
           </div>
         </div>
       </form>
