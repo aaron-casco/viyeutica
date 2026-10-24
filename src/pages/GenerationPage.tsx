@@ -16,6 +16,7 @@ import {
   type Weekday,
 } from '../domain/project'
 import { generateSchedule } from '../domain/generationEngine'
+import { auditGeneration } from '../domain/auditEngine'
 import { saveProject } from '../store/projectStorage'
 import {
   clearGenerationUndo,
@@ -78,6 +79,9 @@ export function GenerationPage({
   const teachingBlocks=project.schedule.blocks.filter(block=>block.active&&block.type==='teaching')
   const baselineRun=runs[0]??null
 
+  const proposalIsValid=(run:GenerationRun)=>
+    isGenerationProposalValid(project,run)&&auditGeneration(project,run).passed
+
   const toggleGroup=(groupId:string)=>{
     if(groupId==='all'){
       setSelectedGroupIds(['all'])
@@ -114,7 +118,7 @@ export function GenerationPage({
 
       for(let index=0;index<maxSearch&&additions.length<target;index++){
         const result=generateSchedule(project,80,baseIndex+index+1)
-        if(!isGenerationProposalValid(project,result)){
+        if(!proposalIsValid(result)){
           rejected.push(result)
           continue
         }
@@ -220,7 +224,7 @@ export function GenerationPage({
       setAlternativeSimulation(current=>({
         ...current,
         [alternative.id]:{
-          valid:isGenerationProposalValid(simulatedProject,result),
+          valid:isGenerationProposalValid(simulatedProject,result)&&auditGeneration(simulatedProject,result).passed,
           emptySlots:emptyGroupTeachingSlots(simulatedProject,result).length,
           hardViolations:result.hardViolations,
           softPenalty:result.softPenalty,
