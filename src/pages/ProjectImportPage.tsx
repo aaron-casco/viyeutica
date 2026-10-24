@@ -141,7 +141,7 @@ export function ProjectImportPage({project,navigate}:{project:ViyeuticaProject;n
   return <div className="project-import-page">
     <section className="wizard-intro">
       <div>
-        <h1 className="template-page-title"><FileInput size={28}/> Importar Plantilla</h1>
+        <h1 className="wizard-page-title"><FileInput size={28}/> Importar Plantilla</h1>
         <p>Descarga una plantilla vacía, complétala con los datos del centro y vuelve a importarla en formato JSON o Excel. Proyecto actual: <strong>{project.center.name||'sin centro configurado'}</strong>.</p>
       </div>
     </section>
