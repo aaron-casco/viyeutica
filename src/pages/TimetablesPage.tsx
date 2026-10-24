@@ -12,6 +12,7 @@ import {
   type Weekday,
 } from '../domain/project'
 import { saveProject } from '../store/projectStorage'
+import { auditGeneration } from '../domain/auditEngine'
 import { AppModal } from '../components/AppModal'
 
 const dayLabels:Record<Weekday,string>={
@@ -39,6 +40,7 @@ export function TimetablesPage({
 
   const run=runs.find(item=>item.id===runId)??runs.find(item=>item.id===project.selectedGenerationRunId)??latest
   const runNumber=run?Math.max(1,runs.findIndex(item=>item.id===run.id)+1):0
+  const audit=useMemo(()=>run?auditGeneration(project,run):null,[project,run])
   const groups=project.groups.filter(group=>group.active)
   const teachers=project.teachers.filter(teacher=>teacher.active)
   const teachingBlocks=project.schedule.blocks.filter(block=>block.active&&block.type==='teaching')
@@ -60,7 +62,7 @@ export function TimetablesPage({
       setSelectedEntityIds([teacherId])
     }
     if(day&&sessionId)setFocusSlot({day,sessionId})
-    if(auditCode)setAuditFocus('Vista abierta desde Auditoría · '+auditCode)
+    if(auditCode)setAuditFocus('Vista abierta desde Auditoría para revisar una incidencia del horario.')
   },[])
 
   const options=mode==='group'
@@ -140,11 +142,28 @@ export function TimetablesPage({
         <h1 className="wizard-page-title"><CalendarDays size={28}/> Horarios</h1>
         <p>Consulta la propuesta generada por grupo o por docente antes de realizar la auditoría final.</p>
       </div>
-      <div className={'timetable-status '+run.status}>
-        {run.status==='complete'?<CheckCircle2 size={18}/>:<AlertTriangle size={18}/>}
-        <span><strong>{run.status==='complete'?'Propuesta completa':run.status==='partial'?'Propuesta parcial':'Propuesta fallida'}</strong><small>HARD {run.hardViolations} · SOFT {run.softPenalty}</small></span>
+      <div className={'timetable-status '+(audit?.passed?'complete':'partial')}>
+        {audit?.passed?<CheckCircle2 size={18}/>:<AlertTriangle size={18}/>}
+        <span>
+          <strong>{audit?.passed?'Propuesta completa y auditada':'Propuesta pendiente de corrección'}</strong>
+          <small>{audit
+            ? String(audit.errors)+' '+(audit.errors===1?'error':'errores')+' · '+String(audit.warnings)+' '+(audit.warnings===1?'advertencia':'advertencias')
+            : 'HARD '+run.hardViolations+' · SOFT '+run.softPenalty}</small>
+        </span>
       </div>
     </section>
+
+    {audit&&!audit.passed&&<section className="generation-uniqueness-notice">
+      <AlertTriangle size={18}/>
+      <span><strong>Esta propuesta todavía no supera Auditoría.</strong> Corrige las incidencias antes de considerarla definitiva o exportarla.</span>
+      <button className="btn ghost-inline" onClick={()=>navigate('/auditoria')}>Ver Auditoría</button>
+    </section>}
+
+    {audit?.passed&&<section className="template-result">
+      <CheckCircle2 size={18}/>
+      <span>La propuesta supera las comprobaciones automáticas de Auditoría.</span>
+      <button className="btn ghost-inline" onClick={()=>navigate('/auditoria')}>Ver Auditoría</button>
+    </section>}
 
     <section className="timetable-controls timetable-controls-stacked">
       <div className="timetable-controls-main">
