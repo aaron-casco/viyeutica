@@ -152,6 +152,7 @@ function candidateScore(
   assignment:TeachingAssignment,
   slot:Slot,
   entries:GeneratedScheduleEntry[],
+  slots:Slot[],
 ){
   let score=softCost(project,assignment,slot,entries,slots)
   const sameSubjectDay=entries.filter(entry=>
@@ -173,7 +174,7 @@ function trySingleRepair(
 ){
   const targetSlots=shuffle(slots,random)
     .filter(slot=>!unavailable(project,assignment.teacherId,slot))
-    .sort((a,b)=>candidateScore(project,assignment,a,entries)-candidateScore(project,assignment,b,entries))
+    .sort((a,b)=>candidateScore(project,assignment,a,entries,slots)-candidateScore(project,assignment,b,entries,slots))
 
   for(const target of targetSlots){
     const blockers=entries.filter(entry=>
@@ -204,7 +205,7 @@ function trySingleRepair(
     const alternatives=shuffle(slots,random)
       .filter(slot=>!(slot.day===target.day&&slot.sessionId===target.sessionId))
       .filter(slot=>hardAllows(project,blockerAssignment,slot,entries,occupancy,slots))
-      .sort((a,b)=>candidateScore(project,blockerAssignment,a,entries)-candidateScore(project,blockerAssignment,b,entries))
+      .sort((a,b)=>candidateScore(project,blockerAssignment,a,entries,slots)-candidateScore(project,blockerAssignment,b,entries,slots))
 
     const alternative=alternatives[0]
     if(alternative){
@@ -262,7 +263,7 @@ function tryBoundedBacktrack(
     const assignment=queue[index]
     const candidates=shuffle(slots,random)
       .filter(slot=>hardAllows(project,assignment,slot,entries,occupancy,slots))
-      .sort((a,b)=>candidateScore(project,assignment,a,entries)-candidateScore(project,assignment,b,entries))
+      .sort((a,b)=>candidateScore(project,assignment,a,entries,slots)-candidateScore(project,assignment,b,entries,slots))
 
     for(const slot of candidates.slice(0,10)){
       explored++
@@ -412,7 +413,7 @@ function generateAttempt(project:ViyeuticaProject,attempt:number){
 
       candidates=candidates
         .filter(slot=>hardAllows(project,assignment,slot,entries,occupancy,slots))
-        .sort((a,b)=>candidateScore(project,assignment,a,entries)-candidateScore(project,assignment,b,entries))
+        .sort((a,b)=>candidateScore(project,assignment,a,entries,slots)-candidateScore(project,assignment,b,entries,slots))
 
       const slot=candidates[0]
       if(!slot){
