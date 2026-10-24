@@ -52,8 +52,10 @@ export function PrevalidationPage({
           <span className="panel-kicker">{ready?'Resultado':'Revisión necesaria'}</span>
           <h2>{ready?'Proyecto listo para generar':'La generación está bloqueada'}</h2>
           <p>{ready
-            ? 'No se han detectado errores estructurales ni incumplimientos bloqueantes en la configuración actual.'
-            : `Hay ${errors.length} errores que deben resolverse antes de generar un horario.`}</p>
+            ? warnings.length
+              ? `No hay errores bloqueantes. Quedan ${warnings.length} ${warnings.length===1?'advertencia que conviene revisar':'advertencias que conviene revisar'} antes de generar.`
+              : 'No se han detectado errores estructurales ni incumplimientos bloqueantes en la configuración actual.'
+            : `Hay ${errors.length} ${errors.length===1?'error que debe resolverse':'errores que deben resolverse'} antes de generar un horario.`}</p>
         </div>
       </div>
       <button className="btn ghost-inline" onClick={()=>setVersion(value=>value+1)}><RefreshCcw size={15}/> Volver a comprobar</button>
@@ -134,13 +136,40 @@ function IssueSection({
       ? <div className="prevalidation-empty"><CheckCircle2 size={18}/><span>Sin incidencias</span></div>
       : <div className="prevalidation-issue-list">{issues.map(issue=><article key={issue.id}>
           <div>
-            <div className="prevalidation-issue-meta"><span>{issue.section}</span><code>{issue.code}</code></div>
+            <div className="prevalidation-issue-meta"><span>{issue.section}</span></div>
             <strong>{issue.message}</strong>
             {issue.detail&&<p>{issue.detail}</p>}
+            <p className="prevalidation-guidance"><strong>Qué hacer:</strong> {issueGuidance(issue)}</p>
           </div>
-          <button className="btn ghost-inline" onClick={()=>navigate(sectionRoute(issue.section))}>Revisar</button>
+          <button
+            className="btn ghost-inline"
+            onClick={()=>navigate(issueRoute(issue,project))}
+          >{severity==='error'?'Corregir':severity==='warning'?'Revisar':'Ver'}</button>
         </article>)}</div>}
   </section>
+}
+
+function issueGuidance(issue:PrevalidationIssue){
+  if(issue.code==='SOBRECARGA_DOCENTE')return 'Revisa la carga lectiva del docente y sus asignaciones semanales; reduce carga, cambia asignaciones o corrige el máximo configurado.'
+  if(issue.code==='DOCENTE_PENDIENTE')return 'Confirma el docente definitivo o deja constancia de que seguirá pendiente antes de generar.'
+  if(issue.code==='REGLA_PENDIENTE_REVISION')return 'Abre la regla, comprueba su origen y parámetros y márcala como revisada cuando sea correcta.'
+  if(issue.code==='REGLA_NO_EVALUABLE')return 'Comprueba si esta regla puede expresarse con una condición estructurada compatible con el motor.'
+  if(issue.code==='FRANJA_FIJA_DUPLICADA')return 'Revisa las franjas fijadas del profesorado y elimina la duplicidad.'
+  if(issue.code==='NORMATIVA_SIN_APROBAR')return 'Revisa la normativa detectada y aprueba únicamente las reglas aplicables al horario.'
+  if(issue.code==='SIN_NORMATIVA')return 'No es obligatorio corregir nada. Añade normativa solo si quieres trazabilidad normativa en la auditoría.'
+  if(issue.code==='LISTO_PARA_GENERAR')return 'No requiere acción. Puedes continuar a Generación.'
+  if(issue.section==='Reglas')return 'Abre Reglas y corrige la condición indicada hasta que la prevalidación deje de marcarla.'
+  if(issue.section==='Asignaciones')return 'Revisa las asignaciones relacionadas con la incidencia y vuelve a comprobar.'
+  if(issue.section==='Profesorado')return 'Revisa los datos del docente afectado y vuelve a comprobar.'
+  return `Revisa la sección ${issue.section} y corrige la configuración señalada.`
+}
+
+function issueRoute(issue:PrevalidationIssue,project:ViyeuticaProject){
+  if(issue.section==='Reglas'&&issue.entityId){
+    const rule=project.rules.find(item=>item.id===issue.entityId)
+    if(rule)return '/reglas?auditCode='+encodeURIComponent(rule.code)
+  }
+  return sectionRoute(issue.section)
 }
 
 function sectionRoute(section:string){
