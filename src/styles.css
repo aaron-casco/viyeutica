@@ -1116,3 +1116,132 @@ main .generated-schedule th strong{
   .availability-detail-field{grid-column:auto}
   .availability-submit{width:100%}
 }
+
+
+/* === Asignaciones: multiselect compacto con checks === */
+.availability-form-multiple{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+  align-items:end;
+}
+.availability-compact-field,
+.availability-single-field{
+  display:grid;
+  gap:6px;
+  min-width:0;
+}
+.availability-compact-field>span,
+.availability-single-field>span{
+  font-size:11px;
+  font-weight:800;
+  color:var(--text);
+}
+.multicheck-select{
+  position:relative;
+  min-width:0;
+}
+.multicheck-select>summary{
+  list-style:none;
+  min-height:42px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:9px 10px;
+  border:1px solid var(--border);
+  border-radius:10px;
+  background:var(--surface);
+  color:var(--text);
+  cursor:pointer;
+  user-select:none;
+}
+.multicheck-select>summary::-webkit-details-marker{display:none}
+.multicheck-select[open]>summary{
+  border-color:var(--navy2);
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--navy2) 14%,transparent);
+}
+.multicheck-select>summary svg{
+  flex:0 0 auto;
+  transition:transform .18s ease;
+}
+.multicheck-select[open]>summary svg{transform:rotate(180deg)}
+.multicheck-select .placeholder{color:var(--muted)}
+.multicheck-select .has-value{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.multicheck-menu{
+  position:absolute;
+  z-index:40;
+  top:calc(100% + 6px);
+  left:0;
+  right:0;
+  min-width:220px;
+  max-height:300px;
+  overflow:hidden;
+  display:grid;
+  border:1px solid var(--border);
+  border-radius:11px;
+  background:var(--surface);
+  box-shadow:0 16px 36px rgba(15,23,42,.16);
+}
+.multicheck-search{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  padding:8px;
+  border-bottom:1px solid var(--border);
+}
+.multicheck-search input{
+  width:100%;
+  min-width:0;
+  border:0;
+  outline:0;
+  background:transparent;
+  color:var(--text);
+}
+.multicheck-options{
+  max-height:220px;
+  overflow:auto;
+  padding:6px;
+}
+.multicheck-option{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:7px 8px;
+  border-radius:7px;
+  cursor:pointer;
+}
+.multicheck-option:hover{background:var(--surface-subtle,#f5f7fa)}
+.multicheck-option input{margin:0}
+.multicheck-option span{font-size:12px}
+.multicheck-clear{
+  border:0;
+  border-top:1px solid var(--border);
+  background:transparent;
+  color:var(--muted);
+  text-align:left;
+  padding:8px 10px;
+  cursor:pointer;
+  font-size:11px;
+}
+.multicheck-clear:hover{color:var(--text)}
+.multicheck-empty{
+  padding:10px;
+  color:var(--muted);
+  font-size:11px;
+}
+.availability-detail-field{grid-column:span 2}
+.availability-submit{justify-self:start}
+[data-theme="dark"] .multicheck-option:hover{background:#202b39}
+@media(max-width:900px){
+  .availability-form-multiple{grid-template-columns:1fr 1fr}
+}
+@media(max-width:620px){
+  .availability-form-multiple{grid-template-columns:1fr}
+  .availability-detail-field{grid-column:auto}
+  .availability-submit{width:100%}
+}
