@@ -326,12 +326,22 @@ export function AssignmentsPage({
   }
 
   if(!isStaffComplete(project)){
-    return <section className="empty-state-card">
-      <SlidersHorizontal size={34}/>
-      <h1>Completa primero Profesorado</h1>
-      <p>Las asignaciones necesitan grupos, materias y docentes activos.</p>
-      <button className="btn primary" onClick={()=>navigate('/profesorado')}>Ir a Profesorado</button>
-    </section>
+    return <div className="wizard-page assignments-page">
+      <section className="wizard-intro">
+        <div>
+          <h1 className="wizard-page-title"><SlidersHorizontal size={28}/> Asignaciones</h1>
+          <p>Relaciona cada carga del plan de estudios con el profesorado que la imparte y define apoyos, codocencias y disponibilidad temporal.</p>
+        </div>
+        <div className="wizard-progress-summary"><strong>6 <span>de 9</span></strong><small>Asignaciones</small></div>
+      </section>
+      <WizardStepper currentStep={6} project={project} navigate={navigate}/>
+      <section className="empty-state-card">
+        <SlidersHorizontal size={34}/>
+        <h1>Completa primero Profesorado</h1>
+        <p>Las asignaciones necesitan grupos, materias y docentes activos.</p>
+        <button className="btn primary" onClick={()=>navigate('/profesorado')}>Ir a Profesorado</button>
+      </section>
+    </div>
   }
 
   const coveredKeys=new Set(
