@@ -268,12 +268,22 @@ export function GenerationPage({
   }
 
   if(!isPrevalidationComplete(project)){
-    return <section className="empty-state-card">
-      <Sparkles size={34}/>
-      <h1>Primero debe superarse la Prevalidación</h1>
-      <p>Generación solo se habilita cuando no existen errores bloqueantes en los pasos anteriores.</p>
-      <button className="btn primary" onClick={()=>navigate('/prevalidacion')}>Ir a Prevalidación</button>
-    </section>
+    return <div className="wizard-page generation-page">
+      <section className="wizard-intro">
+        <div>
+          <h1 className="wizard-page-title"><Sparkles size={28}/> Generación</h1>
+          <p>Construye propuestas utilizando asignaciones, disponibilidades y reglas activas. Las condiciones HARD restringen la colocación; las SOFT puntúan y permiten comparar soluciones.</p>
+        </div>
+        <div className="wizard-progress-summary"><strong>9 <span>de 9</span></strong><small>Generación</small></div>
+      </section>
+      <WizardStepper currentStep={9} project={project} navigate={navigate}/>
+      <section className="empty-state-card">
+        <Sparkles size={34}/>
+        <h1>Primero debe superarse la Prevalidación</h1>
+        <p>Generación solo se habilita cuando no existen errores bloqueantes en los pasos anteriores.</p>
+        <button className="btn primary" onClick={()=>navigate('/prevalidacion')}>Ir a Prevalidación</button>
+      </section>
+    </div>
   }
 
   return <div className="wizard-page generation-page">
