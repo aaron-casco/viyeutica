@@ -1,5 +1,4 @@
 import type {
-  CenterRule,
   GeneratedScheduleEntry,
   GenerationRun,
   TeachingAssignment,
@@ -9,11 +8,6 @@ import type {
 } from './project'
 import {
   fixedSlotFromRule,
-  ruleComparison,
-  ruleConditionKind,
-  ruleMatchesAssignment,
-  ruleNumericValue,
-  ruleSlotMatches,
   softRulePlacementCost,
   violatesAvoidRule,
   violatesConsecutiveLimitRule,
