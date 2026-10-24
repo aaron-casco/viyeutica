@@ -93,8 +93,7 @@ export function CoursesPage({
   return <div className="courses-page">
     <section className="wizard-intro">
       <div>
-        <span className="eyebrow dark"><CalendarDays size={15}/> Gestión por curso</span>
-        <h1>Curso académico</h1>
+        <h1 className="wizard-page-title"><CalendarDays size={28}/> Curso académico</h1>
         <p>Conserva el histórico del centro por curso y trabaja siempre sobre un único curso activo para evitar mezclar configuraciones, horarios o auditorías de años distintos.</p>
       </div>
     </section>
