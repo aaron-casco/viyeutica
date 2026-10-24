@@ -154,8 +154,8 @@ export function GenerationPage({
       }else if(target===3&&additions.length<3){
         setGenerationNotice(
           additions.length===1
-            ? 'Viyeutica ha encontrado una única propuesta válida sin huecos en la búsqueda realizada.'
-            : `Viyeutica ha encontrado ${additions.length} propuestas válidas distintas de las 3 solicitadas.`
+            ? '⩒Yeutika ha encontrado una única propuesta válida sin huecos en la búsqueda realizada.'
+            : `⩒Yeutika ha encontrado ${additions.length} propuestas válidas distintas de las 3 solicitadas.`
         )
       }else if(mode==='add'&&additions.length===0){
         setGenerationNotice('No se ha encontrado una nueva propuesta válida y distinta. Se mantienen todas las propuestas existentes.')
@@ -288,7 +288,7 @@ export function GenerationPage({
         <span className="panel-kicker">Motor heurístico</span>
         <h2>{runs.length===0?'Generar 3 propuestas':'Añadir otra propuesta'}</h2>
         <p>{runs.length===0
-          ? 'Viyeutica generará tres alternativas independientes para poder compararlas antes de decidir.'
+          ? '⩒Yeutika generará tres alternativas independientes para poder compararlas antes de decidir.'
           : 'Genera una nueva alternativa sin eliminar las propuestas existentes.'}</p>
       </div>
       <div className="generation-control-actions">
@@ -636,7 +636,7 @@ function humanGenerationIssues(run:GenerationRun,project:ViyeuticaProject){
     missing:1,
     severity:'error' as const,
     title:'Incidencia de una propuesta anterior',
-    reason:'Esta propuesta fue generada con una versión anterior de Viyeutica. Vuelve a generar para obtener un diagnóstico detallado.',
+    reason:'Esta propuesta fue generada con una versión anterior de ⩒Yeutika. Vuelve a generar para obtener un diagnóstico detallado.',
   }))
 }
 
@@ -698,7 +698,7 @@ function GenerationIssuesModal({
   >
     <div className="generation-issues-intro">
       <Info size={18}/>
-      <p>Viyeutica no muestra códigos internos. Cada incidencia indica <strong>qué carga no ha podido colocarse</strong>, a quién afecta y una causa probable para orientar la corrección.</p>
+      <p>⩒Yeutika no muestra códigos internos. Cada incidencia indica <strong>qué carga no ha podido colocarse</strong>, a quién afecta y una causa probable para orientar la corrección.</p>
     </div>
     <div className="generation-issues-list">
       {issues.map((issue,index)=><article key={issue.id}>
