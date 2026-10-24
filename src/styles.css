@@ -1141,7 +1141,7 @@ main .generated-schedule th strong{
   position:relative;
   min-width:0;
 }
-.multicheck-select>summary{
+.multicheck-trigger{
   list-style:none;
   min-height:42px;
   display:flex;
@@ -1156,16 +1156,16 @@ main .generated-schedule th strong{
   cursor:pointer;
   user-select:none;
 }
-.multicheck-select>summary::-webkit-details-marker{display:none}
-.multicheck-select[open]>summary{
+.multicheck-trigger::-webkit-details-marker{display:none}
+.multicheck-select.open>.multicheck-trigger{
   border-color:var(--navy2);
   box-shadow:0 0 0 2px color-mix(in srgb,var(--navy2) 14%,transparent);
 }
-.multicheck-select>summary svg{
+.multicheck-trigger svg{
   flex:0 0 auto;
   transition:transform .18s ease;
 }
-.multicheck-select[open]>summary svg{transform:rotate(180deg)}
+.multicheck-select.open>.multicheck-trigger svg{transform:rotate(180deg)}
 .multicheck-select .placeholder{color:var(--muted)}
 .multicheck-select .has-value{
   overflow:hidden;
@@ -1411,7 +1411,7 @@ main .generated-schedule th strong{
   border-color:var(--border);
   color:var(--muted);
 }
-.availability-compact-field.disabled .multicheck-select>summary{
+.availability-compact-field.disabled .multicheck-trigger{
   cursor:not-allowed;
   opacity:.72;
   background:var(--surface-subtle,#f5f7fa);
@@ -1472,4 +1472,14 @@ main .generated-schedule th strong{
   cursor:not-allowed;
   opacity:.68;
   background:var(--surface-subtle,#f5f7fa);
+}
+
+
+.multicheck-trigger{
+  width:100%;
+  text-align:left;
+  font:inherit;
+}
+.multicheck-trigger:disabled{
+  cursor:not-allowed;
 }
