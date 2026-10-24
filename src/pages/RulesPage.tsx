@@ -1311,9 +1311,17 @@ function RuleConditionGuide({draft,project}:{draft:Draft;project:ViyeuticaProjec
         title=`Has cubierto ${coveredCount===1?'al profesor':'a los profesores'} ${coveredNames}`
         message=`Queda${pendingSubjectTeachers.length===1?'':'n'} pendiente${pendingSubjectTeachers.length===1?'':'s'} ${pendingSubjectTeachers.map(item=>item.name).join(', ')}. ${pendingSubjectTeachers.length===1?'Sus materias son':'Materias disponibles'}: ${pendingSubjectDetails.join(' · ')}.`
         tone='partial'
+      }else if(conditionUses(draft.conditionKind,'value')&&!draft.value){
+        title=`Indica el valor para ${condition}`
+        message='La selección de profesorado, grupos y materias ya está completa. Introduce ahora el número que debe cumplir esta regla.'
+        tone='empty'
+      }else if(draft.ruleType==='SOFT'&&!draft.weight){
+        title='Selecciona la prioridad de la preferencia'
+        message='La selección de profesorado, grupos y materias ya está completa. Indica ahora cuánto debe priorizar Viyeutica esta preferencia.'
+        tone='empty'
       }else{
-        title='Todos los profesores están cubiertos por materia'
-        message=`Las materias seleccionadas cubren a ${selectedNames(teachers,project.teachers)}. Continúa con el siguiente dato de la regla.`
+        title='Regla lista para revisar'
+        message=generateRuleDescription(draft,project)
         tone='complete'
       }
     }else if(conditionUses(draft.conditionKind,'subjectId')&&
