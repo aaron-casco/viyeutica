@@ -209,6 +209,7 @@ function selectedNames(ids:string[],items:{id:string;name:string}[]){
 }
 
 function generateRuleDescription(draft:Draft,project:ViyeuticaProject){
+  if(!draft.conditionKind||!draft.scope)return ''
   const teachers=draft.teacherIds.length?draft.teacherIds:draft.teacherId?[draft.teacherId]:[]
   const groups=draft.groupIds.length?draft.groupIds:draft.groupId?[draft.groupId]:[]
   const subjects=draft.subjectIds.length?draft.subjectIds:draft.subjectId?[draft.subjectId]:[]
@@ -596,13 +597,29 @@ export function RulesPage({
 
         <div className="form-grid two">
           <Field label="Tipo" required>
-            <select value={draft.ruleType} onChange={e=>setDraft({...draft,ruleType:e.target.value as RuleType})}>
+            <select
+              value={draft.ruleType}
+              onChange={e=>{
+                const ruleType=e.target.value as RuleType
+                setDraft({...draft,ruleType,weight:ruleType==='HARD'?'':draft.weight})
+              }}
+            >
               <option value="HARD">HARD · obligatoria</option>
               <option value="SOFT">SOFT · preferencia</option>
             </select>
           </Field>
-          <Field label="Peso">
-            <input type="number" min="1" disabled={draft.ruleType==='HARD'} value={draft.ruleType==='HARD'?'':draft.weight} onChange={e=>setDraft({...draft,weight:e.target.value})} placeholder={draft.ruleType==='SOFT'?'Ej. 5':'No aplica'}/>
+          <Field label="Prioridad">
+            <select
+              disabled={draft.ruleType==='HARD'}
+              value={draft.ruleType==='HARD'?'':draft.weight}
+              onChange={e=>setDraft({...draft,weight:e.target.value})}
+            >
+              <option value="">{draft.ruleType==='HARD'?'No aplica · las reglas HARD son obligatorias':'Selecciona prioridad'}</option>
+              {PRIORITY_OPTIONS.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+            <small className="field-help">{draft.ruleType==='HARD'
+              ? 'Las reglas HARD se cumplen obligatoriamente.'
+              : 'Cuanto mayor sea la prioridad, más penalizará el generador incumplir esta preferencia.'}</small>
           </Field>
         </div>
         <section className="rule-condition-builder">
@@ -613,8 +630,9 @@ export function RulesPage({
           </div>
 
           <div className="form-grid two">
-            <Field label="Tipo de condición">
+            <Field label="Tipo de condición" required>
               <select value={draft.conditionKind} onChange={e=>setDraft(normalizeDraftForCondition(draft,e.target.value))}>
+                <option value="">Selecciona el tipo de condición</option>
                 <option value="generic">Condición general</option>
                 <option value="availability">Disponibilidad / indisponibilidad</option>
                 <option value="daily_limit">Límite diario</option>
@@ -625,7 +643,12 @@ export function RulesPage({
               </select>
             </Field>
             <Field label="Ámbito" required>
-              <select value={draft.scope} onChange={e=>setDraft(normalizeDraftForScope(draft,e.target.value))}>
+              <select
+                disabled={!draft.conditionKind}
+                value={draft.scope}
+                onChange={e=>setDraft(normalizeDraftForScope(draft,e.target.value))}
+              >
+                <option value="">{draft.conditionKind?'Selecciona el ámbito':'Selecciona primero el tipo de condición'}</option>
                 {scopes
                   .filter(([value])=>allowedScopes(draft.conditionKind).includes(value))
                   .map(([value,label])=><option key={value} value={value}>{label}</option>)}
@@ -649,9 +672,12 @@ export function RulesPage({
 
         <Field label="Descripción" required>
           <textarea
+            disabled={!draft.conditionKind||!draft.scope}
             value={draft.description}
             onChange={e=>{setDescriptionCustomized(true);setDraft({...draft,description:e.target.value})}}
-            placeholder="La descripción se genera automáticamente a partir de la condición."
+            placeholder={draft.conditionKind&&draft.scope
+              ? 'La descripción se genera automáticamente a partir de la condición.'
+              : 'Completa primero el tipo de condición y el ámbito.'}
           />
           {descriptionCustomized&&<button
             type="button"
@@ -666,7 +692,7 @@ export function RulesPage({
           <button type="button" className="btn secondary-light" onClick={()=>navigate('/asignaciones')}>Paso anterior</button>
           <div className="form-actions-right">
             {editingId&&<button type="button" className="btn ghost-inline" onClick={reset}>Cancelar</button>}
-            <button className="btn primary" type="submit"><Save size={16}/>{editingId?'Guardar cambios':'Añadir regla'}</button>
+            <button className="btn primary" type="submit" disabled={!isRuleDraftReady(draft)}><Save size={16}/>{editingId?'Guardar cambios':'Añadir regla'}</button>
           </div>
         </div>
       </form>
