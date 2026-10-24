@@ -196,21 +196,131 @@ export function softRulePlacementCost(
     const count=countRuleScopeOnDay(entries,assignment,slot.day,rule.scope,rule)
     const value=ruleNumericValue(rule)!
     if(cmp==='maximum'&&count>=value) cost+=weight*(count-value+1)*4
-    if(cmp==='minimum'&&count<value) cost+=weight
+    if(cmp==='equals'&&count>=value) cost+=weight*(count-value+1)*4
   }
   if(kind==='weekly_load'&&ruleNumericValue(rule)!==null){
     const count=countRuleScopeWeekly(entries,assignment,rule.scope,rule)
     const value=ruleNumericValue(rule)!
     if((cmp==='maximum'||cmp==='equals')&&count>=value) cost+=weight*(count-value+1)*4
-    if(cmp==='minimum'&&count<value) cost+=weight
   }
   if(kind==='consecutive_limit'&&ruleNumericValue(rule)!==null&&orderBySession){
     const run=consecutiveRunLength(entries,assignment,slot,rule.scope,orderBySession,rule)
     const value=ruleNumericValue(rule)!
     if((cmp==='maximum'||cmp==='equals')&&run>value) cost+=weight*(run-value)*6
-    if(cmp==='minimum'&&run<value) cost+=weight
   }
   return cost
+}
+
+
+function compareFinalCount(count:number,value:number,comparison:string,weight:number,multiplier:number){
+  if(comparison==='maximum') return Math.max(0,count-value)*weight*multiplier
+  if(comparison==='minimum') return Math.max(0,value-count)*weight*multiplier
+  if(comparison==='equals') return Math.abs(count-value)*weight*multiplier
+  return 0
+}
+
+function finalScopeKey(rule:CenterRule,entry:GeneratedScheduleEntry,withDay=false){
+  const day=withDay?'|'+entry.day:''
+  if(rule.scope==='teacher') return entry.teacherId+day
+  if(rule.scope==='group') return entry.groupId+day
+  if(rule.scope==='subject') return entry.groupId+'|'+entry.subjectId+day
+  return (withDay?entry.day:'center')
+}
+
+export function softRuleFinalCost(
+  rule:CenterRule,
+  entries:GeneratedScheduleEntry[],
+  orderBySession?:Map<string,number>,
+){
+  const weight=rule.weight??1
+  const kind=ruleConditionKind(rule)
+  const cmp=ruleComparison(rule)
+
+  if(kind==='avoid_slot'||cmp==='avoid'){
+    return entries.filter(entry=>
+      entryMatchesRuleFilters(rule,entry)&&
+      ruleSlotMatches(rule,{day:entry.day,sessionId:entry.sessionId})
+    ).length*weight*10
+  }
+
+  if(cmp==='prefer'&&(rule.parameters?.day||rule.parameters?.sessionId||
+    (Array.isArray(rule.parameters?.days)&&rule.parameters.days.length)||
+    (Array.isArray(rule.parameters?.sessionIds)&&rule.parameters.sessionIds.length))){
+    return entries.filter(entry=>
+      entryMatchesRuleFilters(rule,entry)&&
+      !ruleSlotMatches(rule,{day:entry.day,sessionId:entry.sessionId})
+    ).length*weight*2
+  }
+
+  const value=ruleNumericValue(rule)
+  if(value===null)return 0
+
+  if(kind==='daily_limit'){
+    const grouped=new Map<string,number>()
+    for(const entry of entries){
+      if(!entryMatchesRuleFilters(rule,entry))continue
+      const key=finalScopeKey(rule,entry,true)
+      grouped.set(key,(grouped.get(key)??0)+1)
+    }
+    let cost=0
+    for(const count of grouped.values())cost+=compareFinalCount(count,value,cmp,weight,4)
+    return cost
+  }
+
+  if(kind==='weekly_load'){
+    const grouped=new Map<string,number>()
+    for(const entry of entries){
+      if(!entryMatchesRuleFilters(rule,entry))continue
+      const key=finalScopeKey(rule,entry,false)
+      grouped.set(key,(grouped.get(key)??0)+1)
+    }
+
+    const p=rule.parameters??{}
+    const teachers=parameterValues(p,'teacherId','teacherIds')
+    const groups=parameterValues(p,'groupId','groupIds')
+    const subjects=parameterValues(p,'subjectId','subjectIds')
+    if(rule.scope==='teacher')for(const id of teachers)if(!grouped.has(id))grouped.set(id,0)
+    if(rule.scope==='group')for(const id of groups)if(!grouped.has(id))grouped.set(id,0)
+    if(rule.scope==='subject'){
+      for(const groupId of groups){
+        for(const subjectId of subjects){
+          const key=groupId+'|'+subjectId
+          if(!grouped.has(key))grouped.set(key,0)
+        }
+      }
+    }
+
+    let cost=0
+    for(const count of grouped.values())cost+=compareFinalCount(count,value,cmp,weight,4)
+    return cost
+  }
+
+  if(kind==='consecutive_limit'&&orderBySession){
+    const grouped=new Map<string,number[]>()
+    for(const entry of entries){
+      if(!entryMatchesRuleFilters(rule,entry))continue
+      const order=orderBySession.get(entry.sessionId)
+      if(order===undefined)continue
+      const key=finalScopeKey(rule,entry,true)
+      grouped.set(key,[...(grouped.get(key)??[]),order])
+    }
+    let cost=0
+    for(const orders of grouped.values()){
+      const sorted=[...new Set(orders)].sort((a,b)=>a-b)
+      let previous:number|undefined
+      let run=0
+      let maxRun=0
+      for(const order of sorted){
+        run=previous!==undefined&&order===previous+1?run+1:1
+        maxRun=Math.max(maxRun,run)
+        previous=order
+      }
+      cost+=compareFinalCount(maxRun,value,cmp,weight,6)
+    }
+    return cost
+  }
+
+  return 0
 }
 
 const BUILTIN_EVALUABLE_CODES=new Set([
