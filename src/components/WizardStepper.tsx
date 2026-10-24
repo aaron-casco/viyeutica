@@ -60,12 +60,12 @@ export function WizardStepper({
           : available
             ? (done?'Completo':'Disponible')
             : 'Próximamente'
-        const className='wizard-step '+(
-          active?'active':
-          done?'done':
-          available?'available':
-          'locked'
-        )
+        const className=[
+          'wizard-step',
+          done?'done':available?'available':'locked',
+          active?'active':'',
+          active&&!done?'in-progress':'',
+        ].filter(Boolean).join(' ')
 
         return (
           <button
@@ -78,7 +78,7 @@ export function WizardStepper({
             title={available ? `Ir a ${step.number}. ${step.label}` : `${step.label}: todavía no disponible`}
           >
             <span className="wizard-step-icon">
-              {done && !active ? <CheckCircle2 size={16}/> : available ? <Icon size={16}/> : <LockKeyhole size={14}/>}
+              {available ? <Icon size={16}/> : <LockKeyhole size={14}/>}
             </span>
             <span>
               <strong>{step.number}. {step.label}</strong>
