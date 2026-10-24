@@ -1321,3 +1321,39 @@ main .generated-schedule th strong{
 [data-theme="dark"] .normative-reference{
   background:#202b39;
 }
+
+
+/* === Normativa: incorporación directa a Reglas === */
+.normative-linked-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  padding:5px 8px;
+  border-radius:8px;
+  background:#eef7e9;
+  border:1px solid #c8dfbb;
+  color:#4f773c;
+  font-size:11px;
+  font-weight:800;
+}
+.normative-incorporate-rule{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  background:var(--surface);
+  color:var(--text);
+  padding:5px 8px;
+  cursor:pointer;
+  font-size:11px;
+  font-weight:800;
+}
+.normative-incorporate-rule:hover{
+  border-color:var(--navy2);
+}
+[data-theme="dark"] .normative-linked-badge{
+  background:#182718;
+  border-color:#304c2c;
+  color:#a8cf98;
+}
