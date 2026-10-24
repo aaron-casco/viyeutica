@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  ArrowUpToLine, Braces, CheckCircle2, Eye, FileJson,
+  ArrowUpToLine, CheckCircle2, Eye, FileInput, FileJson,
   FileSpreadsheet, ShieldAlert, Trash2, TriangleAlert,
 } from 'lucide-react'
 import { EMPTY_PROJECT, type ViyeuticaProject } from '../domain/project'
@@ -141,19 +141,19 @@ export function ProjectImportPage({project,navigate}:{project:ViyeuticaProject;n
   return <div className="project-import-page">
     <section className="wizard-intro">
       <div>
-        <span className="eyebrow dark"><Braces size={15}/> Entrada de datos del centro</span>
-        <h1>Importar Plantilla</h1>
+        <h1 className="template-page-title"><FileInput size={28}/> Importar Plantilla</h1>
         <p>Descarga una plantilla vacía, complétala con los datos del centro y vuelve a importarla en formato JSON o Excel. Proyecto actual: <strong>{project.center.name||'sin centro configurado'}</strong>.</p>
       </div>
     </section>
 
     <section className="import-grid template-import-grid">
       <article className="normative-upload-card">
-        <div className="normative-upload-icon"><FileJson size={28}/></div>
-        <div>
-          <span className="panel-kicker">Opción 1</span>
-          <h2>Importar desde JSON</h2>
-          <p>Para centros que ya dispongan de una plantilla Viyeutica o quieran trabajar con un formato estructurado.</p>
+        <div className="template-card-heading">
+          <div className="normative-upload-icon"><FileJson size={28}/></div>
+          <div>
+            <h2>Importar desde JSON</h2>
+            <p>Para centros que ya dispongan de una plantilla Viyeutica o quieran trabajar con un formato estructurado.</p>
+          </div>
         </div>
         <input ref={jsonInputRef} hidden type="file" accept=".json,application/json" onChange={e=>e.target.files?.[0]&&readJson(e.target.files[0])}/>
         <div className="template-option-actions">
@@ -165,11 +165,12 @@ export function ProjectImportPage({project,navigate}:{project:ViyeuticaProject;n
       </article>
 
       <article className="normative-upload-card">
-        <div className="normative-upload-icon"><FileSpreadsheet size={28}/></div>
-        <div>
-          <span className="panel-kicker">Opción 2</span>
-          <h2>Importar desde hoja de cálculo</h2>
-          <p>Utiliza la plantilla XLS de Viyeutica con hojas separadas para Centro, Grupos, Jornada, Materias, Profesorado, Asignaciones y Reglas.</p>
+        <div className="template-card-heading">
+          <div className="normative-upload-icon"><FileSpreadsheet size={28}/></div>
+          <div>
+            <h2>Importar desde hoja de cálculo</h2>
+            <p>Utiliza la plantilla XLS de Viyeutica con hojas separadas para Centro, Grupos, Jornada, Materias, Profesorado, Asignaciones y Reglas.</p>
+          </div>
         </div>
         <input ref={xlsInputRef} hidden type="file" accept=".xls,application/vnd.ms-excel,application/xml,text/xml" onChange={e=>e.target.files?.[0]&&readXls(e.target.files[0])}/>
         <div className="template-option-actions">
