@@ -769,7 +769,7 @@ export function RulesPage({
 function Summary({label,value,detail}:{label:string;value:string;detail:string}){return <article className="structure-summary-card"><span>{label}</span><strong>{value}</strong><small>{detail}</small></article>}
 function Field({label,required,children}:{label:string;required?:boolean;children:React.ReactNode}){return <div className="form-field"><span>{label}{required&&<em>*</em>}</span>{children}</div>}
 
-interface MultiCheckOption{value:string;label:string}
+interface MultiCheckOption{value:string;label:string;values?:string[]}
 
 function MultiCheckSelect({
   label,placeholder,options,values,onChange,disabled=false,searchable=false,
@@ -802,17 +802,21 @@ function MultiCheckSelect({
   const visibleOptions=normalized
     ? options.filter(option=>option.label.toLowerCase().includes(normalized))
     : options
-  const selectedLabels=values.map(value=>options.find(option=>option.value===value)?.label).filter(Boolean) as string[]
-  const summary=!values.length
+  const optionValues=(option:MultiCheckOption)=>option.values?.length?option.values:[option.value]
+  const optionSelected=(option:MultiCheckOption)=>optionValues(option).every(value=>values.includes(value))
+  const selectedLabels=options.filter(optionSelected).map(option=>option.label)
+  const summary=!selectedLabels.length
     ? placeholder
     : selectedLabels.length<=2
       ? selectedLabels.join(', ')
       : selectedLabels.length+' seleccionados'
 
-  const toggle=(value:string)=>{
-    const next=values.includes(value)
-      ? values.filter(item=>item!==value)
-      : [...values,value]
+  const toggle=(option:MultiCheckOption)=>{
+    const underlying=optionValues(option)
+    const selected=underlying.every(value=>values.includes(value))
+    const next=selected
+      ? values.filter(value=>!underlying.includes(value))
+      : [...new Set([...values,...underlying])]
     onChange(next)
   }
 
@@ -852,8 +856,8 @@ function MultiCheckSelect({
           {visibleOptions.map(option=><label key={option.value} className="multicheck-option">
             <input
               type="checkbox"
-              checked={values.includes(option.value)}
-              onChange={()=>toggle(option.value)}
+              checked={optionSelected(option)}
+              onChange={()=>toggle(option)}
             />
             <span>{option.label}</span>
           </label>)}
@@ -911,6 +915,17 @@ function RuleTargetFields({
     }
     return true
   })
+
+  const normalizedSubjectName=(name:string)=>name.trim().toLocaleLowerCase('es-ES')
+  const subjectOptionGroups=Array.from(
+    subjectOptions.reduce((map,subject)=>{
+      const key=normalizedSubjectName(subject.name)
+      const current=map.get(key)??{value:'subject-name:'+key,label:subject.name,values:[] as string[]}
+      current.values.push(subject.id)
+      map.set(key,current)
+      return map
+    },new Map<string,MultiCheckOption>()).values()
+  )
 
   const teacherOptions=project.teachers.filter(teacher=>{
     if(!teacher.active)return false
@@ -1065,7 +1080,7 @@ function RuleTargetFields({
 
     if(field==='subjectId'){
       if(multi)return <MultiCheckSelect key={field} label="Materia" placeholder={placeholder(field)} disabled={disabled(field)||subjectOptions.length===1}
-        searchable options={subjectOptions.map(item=>({value:item.id,label:item.name}))} values={draft.subjectIds} onChange={values=>updateMulti(field,values)}/>
+        searchable options={subjectOptionGroups} values={draft.subjectIds} onChange={values=>updateMulti(field,values)}/>
       return <Field key={field} label="Materia"><select disabled={disabled(field)} value={draft.subjectId} onChange={e=>updateSingle(field,e.target.value)}>
         <option value="">{placeholder(field)}</option>{subjectOptions.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
       </select></Field>
