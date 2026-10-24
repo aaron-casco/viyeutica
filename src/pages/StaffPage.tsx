@@ -140,12 +140,22 @@ export function StaffPage({
   }
 
   if(!isStudyPlanComplete(project)){
-    return <section className="empty-state-card">
-      <Users size={34}/>
-      <h1>Completa primero el Plan de estudios</h1>
-      <p>El profesorado se configurará sobre las etapas, grupos y materias ya definidas.</p>
-      <button className="btn primary" onClick={()=>navigate('/materias')}>Ir a Plan de estudios</button>
-    </section>
+    return <div className="wizard-page staff-page">
+      <section className="wizard-intro">
+        <div>
+          <h1 className="wizard-page-title"><Users size={28}/> Profesorado</h1>
+          <p>Define la plantilla docente que podrá participar en el horario: especialidades, tipo de jornada, cargos/reducciones e itinerancias.</p>
+        </div>
+        <div className="wizard-progress-summary"><strong>5 <span>de 9</span></strong><small>Profesorado</small></div>
+      </section>
+      <WizardStepper currentStep={5} project={project} navigate={navigate}/>
+      <section className="empty-state-card">
+        <Users size={34}/>
+        <h1>Completa primero el Plan de estudios</h1>
+        <p>El profesorado se configurará sobre las etapas, grupos y materias ya definidas.</p>
+        <button className="btn primary" onClick={()=>navigate('/materias')}>Ir a Plan de estudios</button>
+      </section>
+    </div>
   }
 
   return <div className="wizard-page staff-page">
