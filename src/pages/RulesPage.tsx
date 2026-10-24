@@ -903,82 +903,6 @@ function RuleTargetFields({
     return true
   })
 
-  const groupOptionIds=groupOptions.map(item=>item.id)
-  const subjectOptionIds=subjectOptions.map(item=>item.id)
-
-
-  useEffect(()=>{
-    if(!draft.scope||!conditionUses(draft.conditionKind,'groupId')||!isMultiField(draft,'groupId')) return
-
-    const upstreamReady=
-      draft.scope==='teacher' ? selectedTeachers.length>0 :
-      draft.scope==='subject' ? selectedSubjects.length>0 :
-      true
-    if(!upstreamReady) return
-
-    if(groupOptionIds.length===1){
-      const only=groupOptionIds[0]
-      if(draft.groupIds.length===1&&draft.groupIds[0]===only) return
-      onChange({
-        ...draft,
-        groupId:'',
-        groupIds:[only],
-        subjectId:'',
-        subjectIds:[],
-      })
-      return
-    }
-
-    const valid=draft.groupIds.filter(id=>groupOptionIds.includes(id))
-    if(valid.length===draft.groupIds.length) return
-    onChange({
-      ...draft,
-      groupId:'',
-      groupIds:valid,
-      subjectId:'',
-      subjectIds:[],
-    })
-  },[
-    draft.conditionKind,
-    draft.scope,
-    draft.teacherId,
-    draft.teacherIds.join('|'),
-    draft.subjectId,
-    draft.subjectIds.join('|'),
-    draft.groupIds.join('|'),
-    groupOptionIds.join('|'),
-  ])
-
-  useEffect(()=>{
-    if(!draft.scope||!conditionUses(draft.conditionKind,'subjectId')||!isMultiField(draft,'subjectId')) return
-
-    const upstreamReady=
-      ['group','assignment','teacher'].includes(draft.scope) ? selectedGroups.length>0 :
-      draft.scope==='subject' ? true :
-      true
-    if(!upstreamReady) return
-
-    if(subjectOptionIds.length===1){
-      const only=subjectOptionIds[0]
-      if(draft.subjectIds.length===1&&draft.subjectIds[0]===only) return
-      onChange({...draft,subjectId:'',subjectIds:[only]})
-      return
-    }
-
-    const valid=draft.subjectIds.filter(id=>subjectOptionIds.includes(id))
-    if(valid.length===draft.subjectIds.length) return
-    onChange({...draft,subjectId:'',subjectIds:valid})
-  },[
-    draft.conditionKind,
-    draft.scope,
-    draft.groupId,
-    draft.groupIds.join('|'),
-    draft.teacherId,
-    draft.teacherIds.join('|'),
-    draft.subjectIds.join('|'),
-    subjectOptionIds.join('|'),
-  ])
-
   const updateSingle=(field:ConditionField,value:string)=>{
     const next={...draft,[field]:value} as Draft
     if(field==='teacherId'){
@@ -1002,6 +926,7 @@ function RuleTargetFields({
 
   const updateMulti=(field:ConditionField,values:string[])=>{
     const next={...draft} as Draft
+
     if(field==='teacherId'){
       next.teacherId=''
       next.teacherIds=values
@@ -1010,18 +935,57 @@ function RuleTargetFields({
         next.groupIds=[]
         next.subjectId=''
         next.subjectIds=[]
+
+        const compatibleGroups=project.groups.filter(group=>
+          group.active&&activeAssignments.some(item=>values.includes(item.teacherId)&&item.groupId===group.id)
+        )
+        if(values.length>0&&compatibleGroups.length===1){
+          next.groupIds=[compatibleGroups[0].id]
+        }
       }
     }
+
     if(field==='groupId'){
-      next.groupId='';next.groupIds=values
-      next.subjectId='';next.subjectIds=[]
-      if(draft.scope==='group'||draft.scope==='subject'){next.teacherId='';next.teacherIds=[]}
+      next.groupId=''
+      next.groupIds=values
+      next.subjectId=''
+      next.subjectIds=[]
+
+      const compatibleSubjects=project.subjects.filter(subject=>{
+        if(!subject.active)return false
+        return activeAssignments.some(item=>
+          values.includes(item.groupId)&&
+          item.subjectId===subject.id&&
+          (!selectedTeachers.length||selectedTeachers.includes(item.teacherId))
+        ) || (!selectedTeachers.length&&project.studyPlan.some(item=>
+          item.active&&values.includes(item.groupId)&&item.subjectId===subject.id
+        ))
+      })
+      if(values.length>0&&compatibleSubjects.length===1){
+        next.subjectIds=[compatibleSubjects[0].id]
+      }
+
+      if(draft.scope==='group'||draft.scope==='subject'){
+        next.teacherId=''
+        next.teacherIds=[]
+      }
     }
+
     if(field==='subjectId'){
-      next.subjectId='';next.subjectIds=values
-      if(draft.scope==='subject'){next.groupId='';next.groupIds=[];next.teacherId='';next.teacherIds=[]}
-      if(draft.scope==='group'){next.teacherId='';next.teacherIds=[]}
+      next.subjectId=''
+      next.subjectIds=values
+      if(draft.scope==='subject'){
+        next.groupId=''
+        next.groupIds=[]
+        next.teacherId=''
+        next.teacherIds=[]
+      }
+      if(draft.scope==='group'){
+        next.teacherId=''
+        next.teacherIds=[]
+      }
     }
+
     if(field==='day'){next.day='';next.days=values}
     if(field==='sessionId'){next.sessionId='';next.sessionIds=values}
     onChange(next)
