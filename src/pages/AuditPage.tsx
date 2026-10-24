@@ -5,10 +5,8 @@ import {
 import { auditGeneration } from '../domain/auditEngine'
 import {
   isGenerationProposalValid,
-  latestGeneration,
   uniqueGenerationRuns,
   type AuditIssue,
-  type AuditResult,
   type ViyeuticaProject,
   type Weekday,
 } from '../domain/project'
