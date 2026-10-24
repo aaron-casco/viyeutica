@@ -167,8 +167,7 @@ export function GroupsPage({
   return <div className="wizard-page groups-page">
     <section className="wizard-intro">
       <div>
-        <span className="eyebrow dark"><LayoutGrid size={15}/> Paso 2 · Estructura académica</span>
-        <h1>Estructura y grupos</h1>
+        <h1 className="wizard-page-title"><LayoutGrid size={28}/> Estructura y grupos</h1>
         <p>Define las unidades reales del curso. Después Viyeutica relacionará cada grupo con jornada, materias, profesorado y restricciones.</p>
       </div>
       <div className="wizard-progress-summary"><strong>2 <span>de 9</span></strong><small>Estructura y grupos</small></div>
