@@ -86,11 +86,36 @@ function detectNumericRule(text:string,section:NormativeSection){
   return null
 }
 
+function detectReference(text:string){
+  const patterns=[
+    /\bArt[ií]culo\s+\d+(?:[.ºª]\d+)?(?:\s*[a-z])?/i,
+    /\bArt\.\s*\d+(?:[.ºª]\d+)?(?:\s*[a-z])?/i,
+    /\bApartado\s+\d+(?:\.\d+)*/i,
+    /\bDisposici[oó]n\s+(?:adicional|transitoria|final)\s+[\wÁÉÍÓÚáéíóúñÑ.-]+/i,
+  ]
+  for(const pattern of patterns){
+    const match=text.match(pattern)
+    if(match)return cleanText(match[0])
+  }
+  return null
+}
+
 function sentenceCandidates(text:string){
   const normalized=text
     .replace(/\s*\n\s*/g,' ')
     .replace(/([.;:])\s+/g,'$1\n')
-  return normalized.split(/\n+/).map(cleanText).filter(sentence=>sentence.length>=24 && sentence.length<=650)
+  const segments=normalized.split(/\n+/).map(cleanText).filter(Boolean)
+  const out:{text:string;reference:string|null}[]=[]
+  let currentReference:string|null=null
+
+  for(const segment of segments){
+    const directReference=detectReference(segment)
+    if(directReference)currentReference=directReference
+    if(segment.length>=24&&segment.length<=650){
+      out.push({text:segment,reference:directReference??currentReference})
+    }
+  }
+  return out
 }
 
 function inferRelevance(section:NormativeSection, kind:NormativeRuleKind, text:string){
@@ -103,7 +128,8 @@ function inferRelevance(section:NormativeSection, kind:NormativeRuleKind, text:s
 function buildRulesForPage(pageText:string,page:number,sourceId:string):NormativeRule[]{
   const rules:NormativeRule[]=[]
   const pageStage=inferStage(pageText)
-  for(const excerpt of sentenceCandidates(pageText)){
+  for(const candidate of sentenceCandidates(pageText)){
+    const excerpt=candidate.text
     const section=inferSection(excerpt)
     const numeric=detectNumericRule(excerpt,section)
     const subject=inferSubject(excerpt)
@@ -134,6 +160,7 @@ function buildRulesForPage(pageText:string,page:number,sourceId:string):Normativ
       confidence,
       approved:false,
       relevance:inferRelevance(section,kind,excerpt),
+      reference:candidate.reference,
     })
   }
   const seen=new Set<string>()
@@ -204,4 +231,54 @@ export async function analyzeNormativeFile(file:File){
     ruleCount:rules.length,
   }
   return {source,rules}
+}
+
+
+export interface NormativeConflict {
+  key:string
+  ruleIds:string[]
+  description:string
+}
+
+export function findNormativeConflicts(rules:NormativeRule[]):NormativeConflict[]{
+  const groups=new Map<string,NormativeRule[]>()
+
+  for(const rule of rules){
+    if(rule.value===null||!rule.unit)continue
+    const key=[
+      rule.kind,
+      rule.stage??'',
+      rule.level??'',
+      rule.subject??'',
+      rule.unit,
+    ].join('|').toLowerCase()
+    const list=groups.get(key)??[]
+    list.push(rule)
+    groups.set(key,list)
+  }
+
+  const conflicts:NormativeConflict[]=[]
+  for(const [key,items] of groups){
+    if(items.length<2)continue
+    const distinctValues=[...new Set(items.map(item=>item.value))]
+    if(distinctValues.length<2)continue
+
+    const sample=items[0]
+    const scope=[
+      sample.subject,
+      sample.level,
+      sample.stage,
+    ].filter(Boolean).join(' · ')||'mismo ámbito'
+    const values=items
+      .map(item=>item.value+' '+item.unit)
+      .filter((value,index,array)=>array.indexOf(value)===index)
+      .join(' / ')
+
+    conflicts.push({
+      key,
+      ruleIds:items.map(item=>item.id),
+      description:'Valores incompatibles para '+scope+': '+values+'.',
+    })
+  }
+  return conflicts
 }
