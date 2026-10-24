@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import {
   CheckCircle2, ChevronDown, FileCheck2, Pencil, Plus, Save, Search, ShieldAlert, ShieldCheck,
   SlidersHorizontal, Trash2,
@@ -159,9 +159,8 @@ function targetFieldOrder(scope:string):ConditionField[]{
 function isMultiField(draft:Draft,field:ConditionField){
   if(draft.conditionKind==='fixed_slot'||draft.scope==='assignment'||draft.conditionKind==='generic') return false
   if((draft.conditionKind==='availability'||draft.conditionKind==='avoid_slot')&&(field==='day'||field==='sessionId')) return true
+  if(field==='groupId'||field==='subjectId') return true
   if(draft.scope==='teacher'&&field==='teacherId') return true
-  if(draft.scope==='group'&&field==='groupId') return true
-  if(draft.scope==='subject'&&field==='subjectId') return true
   return false
 }
 
@@ -700,6 +699,17 @@ function MultiCheckSelect({
   searchable?:boolean
 }){
   const [query,setQuery]=useState('')
+  const detailsRef=useRef<HTMLDetailsElement>(null)
+
+  useEffect(()=>{
+    const closeOutside=(event:PointerEvent)=>{
+      const details=detailsRef.current
+      if(details?.open&&!details.contains(event.target as Node)) details.open=false
+    }
+    document.addEventListener('pointerdown',closeOutside)
+    return ()=>document.removeEventListener('pointerdown',closeOutside)
+  },[])
+
   const normalized=query.trim().toLowerCase()
   const visibleOptions=normalized
     ? options.filter(option=>option.label.toLowerCase().includes(normalized))
@@ -717,7 +727,14 @@ function MultiCheckSelect({
 
   return <label className={'availability-compact-field'+(disabled?' disabled':'')}>
     <span>{label}</span>
-    <details className="multicheck-select">
+    <details
+      ref={detailsRef}
+      className="multicheck-select"
+      onBlur={event=>{
+        const next=event.relatedTarget as Node|null
+        if(!next||!event.currentTarget.contains(next)) event.currentTarget.open=false
+      }}
+    >
       <summary
         aria-disabled={disabled}
         onClick={event=>{if(disabled)event.preventDefault()}}
@@ -769,8 +786,15 @@ function RuleTargetFields({
   const subjectOptions=project.subjects.filter(subject=>{
     if(!subject.active)return false
     if(selectedGroups.length){
-      return activeAssignments.some(item=>selectedGroups.includes(item.groupId)&&item.subjectId===subject.id) ||
-        project.studyPlan.some(item=>item.active&&selectedGroups.includes(item.groupId)&&item.subjectId===subject.id)
+      const assignmentMatch=activeAssignments.some(item=>
+        selectedGroups.includes(item.groupId)&&
+        item.subjectId===subject.id&&
+        (!selectedTeachers.length||selectedTeachers.includes(item.teacherId))
+      )
+      const planMatch=!selectedTeachers.length&&project.studyPlan.some(item=>
+        item.active&&selectedGroups.includes(item.groupId)&&item.subjectId===subject.id
+      )
+      return assignmentMatch||planMatch
     }
     if(draft.scope==='teacher'&&selectedTeachers.length){
       return activeAssignments.some(item=>selectedTeachers.includes(item.teacherId)&&item.subjectId===subject.id)
@@ -821,11 +845,12 @@ function RuleTargetFields({
     if(field==='groupId'){
       next.groupId='';next.groupIds=values
       next.subjectId='';next.subjectIds=[]
-      if(draft.scope==='group'){next.teacherId='';next.teacherIds=[]}
+      if(draft.scope==='group'||draft.scope==='subject'){next.teacherId='';next.teacherIds=[]}
     }
     if(field==='subjectId'){
       next.subjectId='';next.subjectIds=values
       if(draft.scope==='subject'){next.groupId='';next.groupIds=[];next.teacherId='';next.teacherIds=[]}
+      if(draft.scope==='group'){next.teacherId='';next.teacherIds=[]}
     }
     if(field==='day'){next.day='';next.days=values}
     if(field==='sessionId'){next.sessionId='';next.sessionIds=values}
