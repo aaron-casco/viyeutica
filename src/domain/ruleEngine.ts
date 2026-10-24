@@ -68,21 +68,38 @@ function entryMatchesScope(entry:GeneratedScheduleEntry,assignment:TeachingAssig
   return true
 }
 
+function entryMatchesRuleFilters(rule:CenterRule,entry:GeneratedScheduleEntry){
+  const p=rule.parameters??{}
+  if(!parameterMatches(p,'teacherId','teacherIds',entry.teacherId)) return false
+  if(!parameterMatches(p,'groupId','groupIds',entry.groupId)) return false
+  if(!parameterMatches(p,'subjectId','subjectIds',entry.subjectId)) return false
+  return true
+}
+
 export function countRuleScopeOnDay(
   entries:GeneratedScheduleEntry[],
   assignment:TeachingAssignment,
   day:Weekday,
   scope:string,
+  rule?:CenterRule,
 ){
-  return entries.filter(entry=>entry.day===day&&entryMatchesScope(entry,assignment,scope)).length
+  return entries.filter(entry=>
+    entry.day===day&&
+    entryMatchesScope(entry,assignment,scope)&&
+    (!rule||entryMatchesRuleFilters(rule,entry))
+  ).length
 }
 
 export function countRuleScopeWeekly(
   entries:GeneratedScheduleEntry[],
   assignment:TeachingAssignment,
   scope:string,
+  rule?:CenterRule,
 ){
-  return entries.filter(entry=>entryMatchesScope(entry,assignment,scope)).length
+  return entries.filter(entry=>
+    entryMatchesScope(entry,assignment,scope)&&
+    (!rule||entryMatchesRuleFilters(rule,entry))
+  ).length
 }
 
 export function violatesAvoidRule(rule:CenterRule,assignment:TeachingAssignment,slot:RuleSlot){
@@ -101,7 +118,7 @@ export function violatesDailyLimitRule(
   if(ruleConditionKind(rule)!=='daily_limit'||!ruleMatchesAssignment(rule,assignment)) return false
   const value=ruleNumericValue(rule)
   if(value===null) return false
-  const count=countRuleScopeOnDay(entries,assignment,slot.day,rule.scope)
+  const count=countRuleScopeOnDay(entries,assignment,slot.day,rule.scope,rule)
   return ['maximum','equals'].includes(ruleComparison(rule))&&count>=value
 }
 
@@ -113,7 +130,7 @@ export function violatesWeeklyLoadRule(
   if(ruleConditionKind(rule)!=='weekly_load'||!ruleMatchesAssignment(rule,assignment)) return false
   const value=ruleNumericValue(rule)
   if(value===null) return false
-  const count=countRuleScopeWeekly(entries,assignment,rule.scope)
+  const count=countRuleScopeWeekly(entries,assignment,rule.scope,rule)
   return ['maximum','equals'].includes(ruleComparison(rule))&&count>=value
 }
 
@@ -175,13 +192,13 @@ export function softRulePlacementCost(
   if((kind==='avoid_slot'||cmp==='avoid')&&matches) cost+=weight*10
   if(cmp==='prefer'&&!matches&&(rule.parameters?.day||rule.parameters?.sessionId)) cost+=weight*2
   if(kind==='daily_limit'&&ruleNumericValue(rule)!==null){
-    const count=countRuleScopeOnDay(entries,assignment,slot.day,rule.scope)
+    const count=countRuleScopeOnDay(entries,assignment,slot.day,rule.scope,rule)
     const value=ruleNumericValue(rule)!
     if(cmp==='maximum'&&count>=value) cost+=weight*(count-value+1)*4
     if(cmp==='minimum'&&count<value) cost+=weight
   }
   if(kind==='weekly_load'&&ruleNumericValue(rule)!==null){
-    const count=countRuleScopeWeekly(entries,assignment,rule.scope)
+    const count=countRuleScopeWeekly(entries,assignment,rule.scope,rule)
     const value=ruleNumericValue(rule)!
     if((cmp==='maximum'||cmp==='equals')&&count>=value) cost+=weight*(count-value+1)*4
     if(cmp==='minimum'&&count<value) cost+=weight
