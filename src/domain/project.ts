@@ -1,3 +1,5 @@
+import { isRuleAutomaticallyEvaluable } from './ruleEngine'
+
 export type Ownership = 'publico' | 'concertado' | 'privado' | ''
 export type CenterType = 'CEIP' | 'IES' | 'CEIPSO' | 'CRA' | 'COLEGIO' | 'OTRO' | ''
 export type EducationStage = 'Infantil' | 'Primaria' | 'ESO' | 'Bachillerato'
@@ -508,10 +510,8 @@ export function runPrevalidation(project: ViyeuticaProject): PrevalidationIssue[
     if (rule.reviewRequired) {
       push('warning','Reglas','REGLA_PENDIENTE_REVISION',`La regla "${rule.description}" requiere revisión.`,undefined,rule.id)
     }
-    const p=rule.parameters??{}
-    const known = new Set(['SIN_SOLAPE_DOCENTE','SIN_SOLAPE_GRUPO','RESPETAR_DISPONIBILIDAD_DOCENTE','RESPETAR_FRANJAS_FIJAS','REDUCIR_HUECOS_DOCENTES'])
-    if (!known.has(rule.code) && !p.conditionKind) {
-      push('warning','Reglas','REGLA_NO_EVALUABLE',`La regla "${rule.description}" no tiene una condición estructurada suficiente para comprobarla automáticamente.`,undefined,rule.id)
+    if (!isRuleAutomaticallyEvaluable(rule)) {
+      push('warning','Reglas','REGLA_NO_EVALUABLE',`La regla "${rule.description}" todavía no está soportada por el motor común de evaluación y no puede comprobarse automáticamente.`,undefined,rule.id)
     }
     if (rule.ruleType==='SOFT') {
       push('info','Reglas','REGLA_SOFT',`Preferencia activa: ${rule.description}`,`Peso: ${rule.weight??'—'}`,rule.id)
