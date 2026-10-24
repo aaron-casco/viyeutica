@@ -1156,11 +1156,35 @@ function RuleConditionGuide({draft,project}:{draft:Draft;project:ViyeuticaProjec
 
   const teacherCoverage=teachers.map(teacherId=>{
     const teacher=project.teachers.find(item=>item.id===teacherId)
-    const covered=groups.length>0&&activeAssignments.some(item=>item.teacherId===teacherId&&groups.includes(item.groupId))
-    return {name:teacher?.name??teacherId,covered}
+    const teacherGroupIds=[...new Set(activeAssignments
+      .filter(item=>item.teacherId===teacherId)
+      .map(item=>item.groupId))]
+    const covered=groups.length>0&&teacherGroupIds.some(groupId=>groups.includes(groupId))
+    return {
+      teacherId,
+      name:teacher?.name??teacherId,
+      groupIds:teacherGroupIds,
+      covered,
+    }
   })
-  const coveredTeacherCount=teacherCoverage.filter(item=>item.covered).length
-  const uncovered=teacherCoverage.filter(item=>!item.covered).map(item=>item.name)
+  const coveredTeachers=teacherCoverage.filter(item=>item.covered)
+  const pendingTeachers=teacherCoverage.filter(item=>!item.covered)
+  const coveredTeacherCount=coveredTeachers.length
+
+  const commonGroupIds=teachers.length>1
+    ? teacherCoverage.reduce<string[]>((common,item,index)=>
+        index===0
+          ? item.groupIds
+          : common.filter(groupId=>item.groupIds.includes(groupId))
+      ,[])
+    : []
+
+  const groupName=(groupId:string)=>project.groups.find(item=>item.id===groupId)?.name??groupId
+  const commonGroupNames=commonGroupIds.map(groupName)
+  const pendingTeacherDetails=pendingTeachers.map(item=>{
+    const names=item.groupIds.map(groupName)
+    return `${item.name}: ${names.length?names.join(', '):'sin grupos asignados'}`
+  })
 
   const condition=conditionKindLabel(draft.conditionKind)
 
@@ -1193,15 +1217,24 @@ function RuleConditionGuide({draft,project}:{draft:Draft;project:ViyeuticaProjec
     }else if(draft.scope==='teacher'&&teachers.length>1&&conditionUses(draft.conditionKind,'groupId')){
       if(groups.length===0){
         title=`Selecciona Grupo para ${condition}`
-        message=`0 de ${teachers.length} profesores cubiertos. Selecciona al menos un grupo compatible.`
+        if(commonGroupNames.length){
+          message=`Debes seleccionar un grupo de al menos uno de los docentes. ${selectedNames(teachers,project.teachers)} tienen en común ${commonGroupNames.length===1?'el grupo':'los grupos'} ${commonGroupNames.join(', ')}.`
+        }else{
+          message=`Debes seleccionar un grupo de al menos uno de los docentes. No tienen ningún grupo en común, por lo que tendrás que seleccionar grupos compatibles de uno o varios docentes.`
+        }
         tone='partial'
       }else if(coveredTeacherCount<teachers.length){
-        title=`${coveredTeacherCount} de ${teachers.length} profesores cubiertos`
-        message=`Sin grupo seleccionado compatible: ${uncovered.join(', ')}.`
+        const coveredNames=coveredTeachers.map(item=>item.name).join(', ')
+        title=`Has cubierto ${coveredTeacherCount===1?'al profesor':'a los profesores'} ${coveredNames}`
+        message=`Queda${pendingTeachers.length===1?'':'n'} pendiente${pendingTeachers.length===1?'':'s'} ${pendingTeachers.map(item=>item.name).join(', ')}. ${pendingTeachers.length===1?'Sus grupos son':'Grupos disponibles'}: ${pendingTeacherDetails.join(' · ')}.`
         tone='partial'
+      }else if(conditionUses(draft.conditionKind,'subjectId')&&subjects.length===0){
+        title='Todos los profesores están cubiertos'
+        message=`Los grupos seleccionados cubren a ${selectedNames(teachers,project.teachers)}. Selecciona ahora la materia para ${condition.toLowerCase()}.`
+        tone='complete'
       }else{
-        title=`${coveredTeacherCount} de ${teachers.length} profesores cubiertos`
-        message='Todos los profesores seleccionados tienen al menos un grupo incluido.'
+        title='Todos los profesores están cubiertos'
+        message=`Los grupos seleccionados cubren a ${selectedNames(teachers,project.teachers)}.`
         tone='complete'
       }
     }else if(conditionUses(draft.conditionKind,'subjectId')&&
