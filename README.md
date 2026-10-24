@@ -1,10 +1,10 @@
-# Viyeutica
+# ⩒Yeutika
 
 Planificación y generación inteligente de horarios escolares.
 
 ## Estado actual
 
-Viyeutica 0.1 incluye:
+⩒Yeutika 0.1 incluye:
 - identidad visual y símbolo vectorial;
 - React + TypeScript + Vite;
 - Dashboard responsive;
