@@ -1426,3 +1426,33 @@ main .generated-schedule th strong{
   border-color:#5f4b2e;
   color:#e8c17b;
 }
+
+
+/* === Reglas: guía contextual de construcción === */
+.rule-guide{
+  margin-top:12px;
+  display:grid;
+  gap:4px;
+}
+.rule-guide strong{
+  font-size:12px;
+}
+.rule-guide span{
+  color:var(--muted);
+}
+.rule-guide.complete{
+  border-color:#c8dfbb;
+  background:#eef7e9;
+}
+.rule-guide.partial{
+  border-color:#e8c58f;
+  background:#fff9ef;
+}
+[data-theme="dark"] .rule-guide.complete{
+  background:#182718;
+  border-color:#304c2c;
+}
+[data-theme="dark"] .rule-guide.partial{
+  background:#2d2417;
+  border-color:#5f4b2e;
+}
