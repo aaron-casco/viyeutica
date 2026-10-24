@@ -369,11 +369,7 @@ export function RulesPage({
   const importedCount=activeRules.filter(rule=>rule.source==='imported').length
 
   const automaticDescription=generateRuleDescription(draft,project)
-
-  useEffect(()=>{
-    if(descriptionCustomized)return
-    setDraft(current=>current.description===automaticDescription?current:{...current,description:automaticDescription})
-  },[automaticDescription,descriptionCustomized])
+  const displayedDescription=descriptionCustomized?draft.description:automaticDescription
 
   useEffect(()=>{
     const raw=window.location.hash.split('?')[1]
@@ -421,7 +417,7 @@ export function RulesPage({
     const code=previous&&previous.source!=='manual'
       ? previous.code
       : generatedRuleCode(draft,project,editingId)
-    const description=(draft.description.trim()||automaticDescription).trim()
+    const description=(displayedDescription.trim()||automaticDescription).trim()
     const rule:CenterRule={
       id:editingId??uid(),
       scope:draft.scope,
@@ -675,7 +671,7 @@ export function RulesPage({
         <Field label="Descripción" required>
           <textarea
             disabled={!draft.conditionKind||!draft.scope}
-            value={draft.description}
+            value={displayedDescription}
             onChange={e=>{setDescriptionCustomized(true);setDraft({...draft,description:e.target.value})}}
             placeholder={draft.conditionKind&&draft.scope
               ? 'La descripción se genera automáticamente a partir de la condición.'
@@ -684,7 +680,7 @@ export function RulesPage({
           {descriptionCustomized&&<button
             type="button"
             className="btn ghost-inline rule-auto-description"
-            onClick={()=>{setDescriptionCustomized(false);setDraft({...draft,description:automaticDescription})}}
+            onClick={()=>setDescriptionCustomized(false)}
           >Usar descripción automática</button>}
         </Field>
 
