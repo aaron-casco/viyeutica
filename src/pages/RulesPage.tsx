@@ -303,6 +303,7 @@ export function RulesPage({
   const [templateMessage,setTemplateMessage]=useState('')
   const [filter,setFilter]=useState<'all'|'HARD'|'SOFT'>('all')
   const [auditFocus,setAuditFocus]=useState('')
+  const [descriptionCustomized,setDescriptionCustomized]=useState(false)
 
   const validation=useMemo(()=>validateRules(project),[project])
   const activeRules=project.rules.filter(rule=>rule.active)
@@ -310,6 +311,13 @@ export function RulesPage({
   const softCount=activeRules.filter(rule=>rule.ruleType==='SOFT').length
   const normativeCount=activeRules.filter(rule=>rule.source==='normative').length
   const importedCount=activeRules.filter(rule=>rule.source==='imported').length
+
+  const automaticDescription=generateRuleDescription(draft,project)
+
+  useEffect(()=>{
+    if(descriptionCustomized)return
+    setDraft(current=>current.description===automaticDescription?current:{...current,description:automaticDescription})
+  },[automaticDescription,descriptionCustomized])
 
   useEffect(()=>{
     const raw=window.location.hash.split('?')[1]
@@ -321,6 +329,7 @@ export function RulesPage({
     if(rule){
       setEditingId(rule.id)
       setDraft(draftFromRule(rule))
+      setDescriptionCustomized(true)
       setFilter(rule.ruleType)
       setAuditFocus('Regla cargada desde Auditoría: '+humanRuleName(rule.code))
       window.setTimeout(()=>window.scrollTo({top:0,behavior:'smooth'}),60)
@@ -334,15 +343,12 @@ export function RulesPage({
   const reset=()=>{
     setDraft(emptyDraft)
     setEditingId(null)
+    setDescriptionCustomized(false)
     setError('')
   }
 
   const submit=(event:FormEvent)=>{
     event.preventDefault()
-    if(!draft.code.trim()||!draft.description.trim()){
-      setError('Indica código y descripción.')
-      return
-    }
     const parameters=buildParameters(draft)
     const weight=draft.ruleType==='SOFT'
       ? Number(draft.weight)
@@ -351,19 +357,17 @@ export function RulesPage({
       setError('Las reglas SOFT necesitan un peso mayor que cero.')
       return
     }
-    const duplicate=project.rules.some(rule=>rule.id!==editingId&&rule.code.trim().toLowerCase()===draft.code.trim().toLowerCase())
-    if(duplicate){
-      setError('Ya existe una regla con ese código.')
-      return
-    }
-
     const previous=editingId?project.rules.find(rule=>rule.id===editingId):undefined
+    const code=previous&&previous.source!=='manual'
+      ? previous.code
+      : generatedRuleCode(draft,project,editingId)
+    const description=(draft.description.trim()||automaticDescription).trim()
     const rule:CenterRule={
       id:editingId??uid(),
       scope:draft.scope,
       ruleType:draft.ruleType,
-      code:draft.code.trim(),
-      description:draft.description.trim(),
+      code,
+      description,
       parameters,
       weight,
       source:previous?.source??'manual',
@@ -381,6 +385,7 @@ export function RulesPage({
   const edit=(rule:CenterRule)=>{
     setEditingId(rule.id)
     setDraft(draftFromRule(rule))
+    setDescriptionCustomized(true)
     setError('')
     window.scrollTo({top:0,behavior:'smooth'})
   }
