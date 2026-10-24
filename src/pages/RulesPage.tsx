@@ -1201,6 +1201,40 @@ function RuleConditionGuide({draft,project}:{draft:Draft;project:ViyeuticaProjec
     return `${item.name}: ${names.length?names.join(', '):'sin grupos asignados'}`
   })
 
+  const subjectCoverage=teachers.map(teacherId=>{
+    const teacher=project.teachers.find(item=>item.id===teacherId)
+    const assignments=activeAssignments.filter(item=>
+      item.teacherId===teacherId&&
+      (!groups.length||groups.includes(item.groupId))
+    )
+    const subjectIds=[...new Set(assignments.map(item=>item.subjectId))]
+    const subjectNames=[...new Set(subjectIds
+      .map(subjectId=>project.subjects.find(item=>item.id===subjectId)?.name)
+      .filter(Boolean) as string[])]
+    const covered=subjects.length>0&&subjectIds.some(subjectId=>subjects.includes(subjectId))
+    return {
+      teacherId,
+      name:teacher?.name??teacherId,
+      subjectIds,
+      subjectNames,
+      covered,
+    }
+  })
+  const coveredSubjectTeachers=subjectCoverage.filter(item=>item.covered)
+  const pendingSubjectTeachers=subjectCoverage.filter(item=>!item.covered)
+
+  const commonSubjectNames=teachers.length>1
+    ? subjectCoverage.reduce<string[]>((common,item,index)=>{
+        const normalized=item.subjectNames.map(name=>name.trim().toLocaleLowerCase('es-ES'))
+        if(index===0)return [...item.subjectNames]
+        return common.filter(name=>normalized.includes(name.trim().toLocaleLowerCase('es-ES')))
+      },[])
+    : []
+
+  const pendingSubjectDetails=pendingSubjectTeachers.map(item=>
+    `${item.name}: ${item.subjectNames.length?item.subjectNames.join(', '):'sin materias compatibles'}`
+  )
+
   const condition=conditionKindLabel(draft.conditionKind)
 
   let title='Configura la regla paso a paso'
@@ -1229,7 +1263,12 @@ function RuleConditionGuide({draft,project}:{draft:Draft;project:ViyeuticaProjec
     }else if(draft.scope==='assignment'&&teachers.length===0){
       title=`Selecciona Profesor/a para ${condition}`
       message='Completa la asignación seleccionando el docente correspondiente.'
-    }else if(draft.scope==='teacher'&&teachers.length>1&&conditionUses(draft.conditionKind,'groupId')){
+    }else if(
+      draft.scope==='teacher'&&
+      teachers.length>1&&
+      conditionUses(draft.conditionKind,'groupId')&&
+      (groups.length===0||coveredTeacherCount<teachers.length)
+    ){
       if(groups.length===0){
         title=`Selecciona Grupo para ${condition}`
         if(commonGroupNames.length){
@@ -1238,18 +1277,35 @@ function RuleConditionGuide({draft,project}:{draft:Draft;project:ViyeuticaProjec
           message=`Debes seleccionar un grupo de al menos uno de los docentes. No tienen ningún grupo en común, por lo que tendrás que seleccionar grupos compatibles de uno o varios docentes.`
         }
         tone='partial'
-      }else if(coveredTeacherCount<teachers.length){
+      }else{
         const coveredNames=coveredTeachers.map(item=>item.name).join(', ')
         title=`Has cubierto ${coveredTeacherCount===1?'al profesor':'a los profesores'} ${coveredNames}`
         message=`Queda${pendingTeachers.length===1?'':'n'} pendiente${pendingTeachers.length===1?'':'s'} ${pendingTeachers.map(item=>item.name).join(', ')}. ${pendingTeachers.length===1?'Sus grupos son':'Grupos disponibles'}: ${pendingTeacherDetails.join(' · ')}.`
         tone='partial'
-      }else if(conditionUses(draft.conditionKind,'subjectId')&&subjects.length===0){
-        title='Todos los profesores están cubiertos'
-        message=`Los grupos seleccionados cubren a ${selectedNames(teachers,project.teachers)}. Selecciona ahora la materia para ${condition.toLowerCase()}.`
-        tone='complete'
+      }
+    }else if(
+      draft.scope==='teacher'&&
+      teachers.length>1&&
+      conditionUses(draft.conditionKind,'subjectId')&&
+      groups.length>0
+    ){
+      const coveredCount=coveredSubjectTeachers.length
+      if(subjects.length===0){
+        title=`Selecciona Materia para ${condition}`
+        if(commonSubjectNames.length){
+          message=`${selectedNames(teachers,project.teachers)} tienen en común ${commonSubjectNames.length===1?'la materia':'las materias'} ${commonSubjectNames.join(', ')}. Puedes seleccionar una materia común o elegir materias compatibles de cada docente.`
+        }else{
+          message='Los profesores seleccionados no tienen ninguna materia en común dentro de los grupos elegidos. Selecciona una o varias materias compatibles.'
+        }
+        tone='partial'
+      }else if(coveredCount<teachers.length){
+        const coveredNames=coveredSubjectTeachers.map(item=>item.name).join(', ')
+        title=`Has cubierto ${coveredCount===1?'al profesor':'a los profesores'} ${coveredNames}`
+        message=`Queda${pendingSubjectTeachers.length===1?'':'n'} pendiente${pendingSubjectTeachers.length===1?'':'s'} ${pendingSubjectTeachers.map(item=>item.name).join(', ')}. ${pendingSubjectTeachers.length===1?'Sus materias son':'Materias disponibles'}: ${pendingSubjectDetails.join(' · ')}.`
+        tone='partial'
       }else{
-        title='Todos los profesores están cubiertos'
-        message=`Los grupos seleccionados cubren a ${selectedNames(teachers,project.teachers)}.`
+        title='Todos los profesores están cubiertos por materia'
+        message=`Las materias seleccionadas cubren a ${selectedNames(teachers,project.teachers)}. Continúa con el siguiente dato de la regla.`
         tone='complete'
       }
     }else if(conditionUses(draft.conditionKind,'subjectId')&&
