@@ -367,7 +367,7 @@ export function AssignmentsPage({
       <div className="assignment-progress-alert-icon"><CheckCircle2 size={18}/></div>
       <div>
         <strong>Asignaciones todavía en progreso</strong>
-        <p>Faltan {uncoveredStudyEntries.length} cargas del Plan de estudios por vincular a profesorado. El paso se marcará como completo cuando todas estén cubiertas.</p>
+        <p>Faltan {uncoveredStudyEntries.length} {uncoveredStudyEntries.length===1?'carga':'cargas'} del Plan de estudios por vincular a profesorado. El paso se marcará como completo cuando todas estén cubiertas.</p>
         <div className="assignment-missing-list">
           {uncoveredStudyEntries.map(entry=>{
             const group=project.groups.find(item=>item.id===entry.groupId)
@@ -453,7 +453,7 @@ export function AssignmentsPage({
       <aside className="wizard-aside">
         <article className={'aside-card validation '+(validation.length===0&&activeAssignments.length?'ready':'')}>
           <span className="panel-kicker">Prevalidación</span>
-          <strong>{validation.length===0&&activeAssignments.length?'Asignaciones completas':validation.length?`${validation.length} incidencias`:'Sin asignaciones'}</strong>
+          <strong>{validation.length===0&&activeAssignments.length?'Asignaciones completas':validation.length?`${validation.length} ${validation.length===1?'incidencia':'incidencias'}`:'Sin asignaciones'}</strong>
           <p>{validation[0]??'Todas las cargas activas tienen profesorado asignado.'}</p>
         </article>
         <TemplatePanel
@@ -463,7 +463,7 @@ export function AssignmentsPage({
             {
               id:'imported-assignments',
               label:'Revisar asignaciones importadas',
-              description:project.assignments.length?`${project.assignments.length} asignaciones disponibles`:'No hay asignaciones importadas',
+              description:project.assignments.length?`${project.assignments.length} ${project.assignments.length===1?'asignación disponible':'asignaciones disponibles'}`:'No hay asignaciones importadas',
               disabled:project.assignments.length===0,
               onApply:useImportedTemplate,
             },
