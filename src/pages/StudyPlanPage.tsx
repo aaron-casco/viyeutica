@@ -279,8 +279,7 @@ export function StudyPlanPage({
   return <div className="wizard-page study-plan-page">
     <section className="wizard-intro">
       <div>
-        <span className="eyebrow dark"><BookOpen size={15}/> Paso 4 · Currículo operativo</span>
-        <h1>Plan de estudios</h1>
+        <h1 className="wizard-page-title"><BookOpen size={28}/> Plan de estudios</h1>
         <p>Define las materias y su carga semanal por grupo. Viyeutica no aplica aquí cargas normativas inventadas: los valores deben corresponder al centro y al curso configurado.</p>
       </div>
       <div className="wizard-progress-summary"><strong>4 <span>de 9</span></strong><small>Plan de estudios</small></div>
