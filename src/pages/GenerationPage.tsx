@@ -222,8 +222,7 @@ export function GenerationPage({
   return <div className="wizard-page generation-page">
     <section className="wizard-intro">
       <div>
-        <span className="eyebrow dark"><Sparkles size={15}/> Paso 9 · Construcción del horario</span>
-        <h1>Generación</h1>
+        <h1 className="wizard-page-title"><Sparkles size={28}/> Generación</h1>
         <p>Construye propuestas utilizando asignaciones, disponibilidades y reglas activas. Las condiciones HARD restringen la colocación; las SOFT puntúan y permiten comparar soluciones.</p>
       </div>
       <div className="wizard-progress-summary"><strong>9 <span>de 9</span></strong><small>Generación</small></div>
