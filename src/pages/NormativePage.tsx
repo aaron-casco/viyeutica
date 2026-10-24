@@ -28,6 +28,8 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
   const [relevanceFilter,setRelevanceFilter]=useState<NormativeRelevance>('timetable')
   const [viewer,setViewer]=useState<{name:string;url:string}|null>(null)
   const [viewerError,setViewerError]=useState('')
+  const [actionMessage,setActionMessage]=useState('')
+  const [pendingDeleteSource,setPendingDeleteSource]=useState<string|null>(null)
 
   const approved=project.normativeRules.filter(rule=>rule.approved)
   const conflicts=useMemo(()=>findNormativeConflicts(project.normativeRules),[project.normativeRules])
@@ -127,14 +129,19 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
     if(isNormativeRuleLinked(project.rules,rule.id))return
     const source=project.normativeSources.find(item=>item.id===rule.sourceId)
     persist({rules:[...project.rules,convertNormativeToCenterRule(rule,source)]})
+    setActionMessage('Regla incorporada. Revisa ahora sus parámetros en Reglas antes de considerarla definitiva.')
   }
 
   const removeSource=async(sourceId:string)=>{
     await deleteNormativeFile(sourceId).catch(()=>undefined)
+    const normativeRuleIds=new Set(project.normativeRules.filter(rule=>rule.sourceId===sourceId).map(rule=>rule.id))
     persist({
       normativeSources:project.normativeSources.filter(source=>source.id!==sourceId),
       normativeRules:project.normativeRules.filter(rule=>rule.sourceId!==sourceId),
+      rules:project.rules.filter(rule=>!rule.normativeRuleId||!normativeRuleIds.has(rule.normativeRuleId)),
     })
+    setPendingDeleteSource(null)
+    setActionMessage('Fuente normativa eliminada junto con las reglas incorporadas que dependían exclusivamente de ella.')
   }
 
   return <div className="normative-page">
@@ -172,6 +179,7 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
     </section>
 
     {error&&<div className="inline-error normative-error">{error}</div>}
+    {actionMessage&&<div className="template-result"><CheckCircle2 size={16}/><span>{actionMessage}</span></div>}
 
     {project.normativeSources.length>0&&<section className="normative-sources">
       {project.normativeSources.map(source=>{
@@ -187,7 +195,7 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
           <div className="normative-source-count"><strong>{sourceApproved}/{sourceRules.length}</strong><small>reglas aprobadas</small></div>
           <div className="normative-source-actions">
             <button title="Ver documento" onClick={()=>openSource(source.id,source.name)}><Eye size={16}/></button>
-            <button className="row-delete" title="Eliminar fuente" onClick={()=>removeSource(source.id)}><Trash2 size={16}/></button>
+            <button className="row-delete" title="Eliminar fuente" onClick={()=>setPendingDeleteSource(source.id)}><Trash2 size={16}/></button>
           </div>
         </article>
       })}
@@ -263,6 +271,19 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
     </section>
 
     {viewerError&&<div className="inline-error normative-error">{viewerError}</div>}
+
+    {pendingDeleteSource&&<AppModal
+      title="Eliminar fuente normativa"
+      icon={<Trash2 size={22}/>}
+      onClose={()=>setPendingDeleteSource(null)}
+      footer={<>
+        <button className="btn secondary-light" onClick={()=>setPendingDeleteSource(null)}>Cancelar</button>
+        <button className="btn primary" onClick={()=>removeSource(pendingDeleteSource)}>Eliminar fuente</button>
+      </>}
+    >
+      <p>Se eliminará el documento, sus reglas candidatas y cualquier regla de horario incorporada que dependa de esta fuente.</p>
+      <p style={{marginTop:8}}>Esta acción también invalidará las propuestas generadas existentes, porque cambia la configuración del proyecto.</p>
+    </AppModal>}
 
     {viewer&&<AppModal
       title={viewer.name}
