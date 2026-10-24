@@ -70,7 +70,7 @@ export function ExportPage({project,navigate}:{project:ViyeuticaProject;navigate
     const html=buildPrintableReport(project,selected,audit.issues,proposalNumber,official)
     const win=window.open('','_blank','noopener,noreferrer')
     if(!win){
-      setMessage('El navegador ha bloqueado la ventana de impresión. Permite ventanas emergentes para Viyeutica.')
+      setMessage('El navegador ha bloqueado la ventana de impresión. Permite ventanas emergentes para ⩒Yeutika.')
       return
     }
     win.document.open()
@@ -141,7 +141,7 @@ function ExportCard({icon,title,description,action,onClick}:{icon:ReactNode;titl
 
 function fileBase(project:ViyeuticaProject){
   const center=(project.center.name||'Centro').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/gi,'_').replace(/^_|_$/g,'')
-  return 'Viyeutica_'+center+'_'+project.academicYear.id
+  return '⩒Yeutika_'+center+'_'+project.academicYear.id
 }
 
 function downloadBlob(content:string,name:string,type:string){
@@ -244,9 +244,9 @@ function buildPrintableReport(project:ViyeuticaProject,run:GenerationRun,issues:
   const auditRows=issues.length
     ? issues.map(issue=>'<tr><td>'+xml(issue.severity)+'</td><td>'+xml(issue.category)+'</td><td>'+xml(issue.message)+'</td><td>'+xml(issue.detail??'')+'</td></tr>').join('')
     : '<tr><td colspan="4">Sin incidencias</td></tr>'
-  return '<!doctype html><html><head><meta charset="utf-8"><title>Viyeutica · Propuesta '+proposalNumber+'</title>'
+  return '<!doctype html><html><head><meta charset="utf-8"><title>⩒Yeutika · Propuesta '+proposalNumber+'</title>'
     +'<style>body{font-family:Arial,sans-serif;color:#1e293b;margin:24px}.cover{margin-bottom:28px}.draft{color:#b91c1c;font-weight:800}h1{font-size:24px;margin:0 0 6px}h2{font-size:17px;margin:24px 0 8px}p{font-size:12px}table{width:100%;border-collapse:collapse;margin:8px 0 24px;page-break-inside:avoid}th,td{border:1px solid #cbd5e1;padding:7px;font-size:10px;vertical-align:top}th{background:#edf2f7}.section-break{page-break-before:always}@media print{body{margin:10mm}h2{page-break-after:avoid}}</style>'
-    +'</head><body><div class="cover"><h1>'+xml(project.center.name||'Viyeutica')+'</h1><p>Curso '+xml(project.academicYear.label)+' · Propuesta '+proposalNumber+'</p>'
+    +'</head><body><div class="cover"><h1>'+xml(project.center.name||'⩒Yeutika')+'</h1><p>Curso '+xml(project.academicYear.label)+' · Propuesta '+proposalNumber+'</p>'
     +(official?'':'<p class="draft">BORRADOR · Auditoría con errores</p>')+'</div>'
     +'<h1>Horarios por grupos</h1>'+groupSections
     +'<div class="section-break"><h1>Horarios por docentes</h1></div>'+teacherSections
