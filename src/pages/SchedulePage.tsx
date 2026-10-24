@@ -62,6 +62,12 @@ export function SchedulePage({project,navigate}:{project:ViyeuticaProject;naviga
   const blocks=[...schedule.blocks].sort((a,b)=>a.start.localeCompare(b.start))
   const validation=useMemo(()=>validateSchedule(schedule),[schedule])
   const complete=isScheduleComplete(project)
+  const blockReady=Boolean(draft.label.trim()&&draft.start&&draft.end&&draft.start<draft.end)
+  const blockGuide=!draft.label.trim()?'Indica el nombre del tramo.'
+    :!draft.start?'Indica la hora de inicio.'
+    :!draft.end?'Indica la hora de fin.'
+    :draft.start>=draft.end?'La hora final debe ser posterior a la inicial.'
+    :'El tramo tiene los datos mínimos necesarios. Ya puedes añadirlo.'
 
   const persist=(patch:Partial<typeof schedule>)=>{
     saveProject({...project,schedule:{...schedule,...patch}})
@@ -234,12 +240,13 @@ export function SchedulePage({project,navigate}:{project:ViyeuticaProject;naviga
         </div>
         <div className="duration-preview"><Clock3 size={16}/><span>Duración:</span><strong>{formatMinutes(new Date(`1970-01-01T${draft.end}:00`).getTime()/60000-new Date(`1970-01-01T${draft.start}:00`).getTime()/60000)}</strong></div>
         {error&&<div className="inline-error">{error}</div>}
+        <div className={'form-guide '+(blockReady?'complete':'partial')}><strong>{blockReady?'Tramo listo':'Siguiente paso'}</strong><span>{blockGuide}</span></div>
 
         <div className="form-actions">
           <button type="button" className="btn secondary-light" onClick={()=>navigate('/grupos')}><ArrowLeft size={16}/> Paso anterior</button>
           <div className="form-actions-right">
             {editingId&&<button type="button" className="btn ghost-inline" onClick={reset}>Cancelar</button>}
-            <button className="btn primary" type="submit"><Save size={16}/>{editingId?'Guardar cambios':'Añadir tramo'}</button>
+            <button className="btn primary" type="submit" disabled={!blockReady}><Save size={16}/>{editingId?'Guardar cambios':'Añadir tramo'}</button>
           </div>
         </div>
       </form>
