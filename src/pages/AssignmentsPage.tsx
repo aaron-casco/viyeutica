@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
-  CalendarClock, CheckCircle2, Copy, Pencil, Plus, Save, SlidersHorizontal,
+  CalendarClock, CheckCircle2, ChevronDown, Copy, Pencil, Plus, Save, Search, SlidersHorizontal,
   Trash2, UsersRound,
 } from 'lucide-react'
 import {
@@ -488,59 +488,36 @@ export function AssignmentsPage({
     <section className="availability-card">
       <div className="groups-table-heading"><div><span className="panel-kicker">Disponibilidad</span><h2>Restricciones por día y sesión</h2></div><CalendarClock size={22}/></div>
       <form className="availability-form availability-form-multiple" onSubmit={submitAvailability}>
-        <label className="availability-multi-field">
-          <span>Docentes</span>
-          <select
-            multiple
-            size={Math.min(5,Math.max(3,activeTeachers.length))}
-            value={availabilityDraft.teacherIds}
-            onChange={e=>setAvailabilityDraft({
-              ...availabilityDraft,
-              teacherIds:Array.from(e.currentTarget.selectedOptions).map(option=>option.value),
-            })}
-          >
-            {activeTeachers.map(teacher=><option value={teacher.id} key={teacher.id}>{teacher.name}</option>)}
-          </select>
-          <small>{availabilityDraft.teacherIds.length
-            ? activeTeachers.filter(teacher=>availabilityDraft.teacherIds.includes(teacher.id)).map(teacher=>teacher.name).join(' · ')
-            : 'Selecciona uno o varios'}</small>
-        </label>
+        <MultiCheckSelect
+          label="Docentes"
+          placeholder="Selecciona docentes..."
+          searchable
+          options={activeTeachers.map(teacher=>({value:teacher.id,label:teacher.name}))}
+          values={availabilityDraft.teacherIds}
+          onChange={teacherIds=>setAvailabilityDraft({...availabilityDraft,teacherIds})}
+        />
 
-        <label className="availability-multi-field">
-          <span>Días</span>
-          <select
-            multiple
-            size={Math.min(5,Math.max(3,project.schedule.activeDays.length))}
-            value={availabilityDraft.days}
-            onChange={e=>setAvailabilityDraft({
-              ...availabilityDraft,
-              days:Array.from(e.currentTarget.selectedOptions).map(option=>option.value as Weekday),
-            })}
-          >
-            {project.schedule.activeDays.map(day=><option value={day} key={day}>{dayLabels[day]}</option>)}
-          </select>
-          <small>{availabilityDraft.days.length?availabilityDraft.days.map(day=>dayLabels[day]).join(' · '):'Selecciona uno o varios'}</small>
-        </label>
+        <MultiCheckSelect
+          label="Días"
+          placeholder="Selecciona días..."
+          options={project.schedule.activeDays.map(day=>({value:day,label:dayLabels[day]}))}
+          values={availabilityDraft.days}
+          onChange={values=>setAvailabilityDraft({...availabilityDraft,days:values as Weekday[]})}
+        />
 
-        <label className="availability-multi-field">
-          <span>Sesiones</span>
-          <select
-            multiple
-            size={Math.min(6,Math.max(4,project.schedule.blocks.filter(block=>block.active&&block.type==='teaching').length+1))}
-            value={availabilityDraft.sessions}
-            onChange={e=>{
-              const values=Array.from(e.currentTarget.selectedOptions).map(option=>option.value)
-              setAvailabilityDraft({
-                ...availabilityDraft,
-                sessions:values.includes('__all__')?['__all__']:values,
-              })
-            }}
-          >
-            <option value="__all__">Todas las sesiones</option>
-            {project.schedule.blocks.filter(block=>block.active&&block.type==='teaching').map(block=><option value={block.id} key={block.id}>{block.label} · {block.start}-{block.end}</option>)}
-          </select>
-          <small>{availabilityDraft.sessions.includes('__all__')?'Todas las sesiones':availabilityDraft.sessions.length?availabilityDraft.sessions.length+' seleccionadas':'Selecciona una o varias'}</small>
-        </label>
+        <MultiCheckSelect
+          label="Sesiones"
+          placeholder="Selecciona sesiones..."
+          allValue="__all__"
+          options={[
+            {value:'__all__',label:'Todas las sesiones'},
+            ...project.schedule.blocks
+              .filter(block=>block.active&&block.type==='teaching')
+              .map(block=>({value:block.id,label:block.label+' · '+block.start+'-'+block.end})),
+          ]}
+          values={availabilityDraft.sessions}
+          onChange={sessions=>setAvailabilityDraft({...availabilityDraft,sessions})}
+        />
 
         <label className="availability-single-field">
           <span>Estado</span>
@@ -567,6 +544,88 @@ export function AssignmentsPage({
       })}</div>}
     </section>
   </div>
+}
+
+type MultiCheckOption={value:string;label:string}
+
+function MultiCheckSelect({
+  label,
+  placeholder,
+  options,
+  values,
+  onChange,
+  searchable=false,
+  allValue,
+}:{
+  label:string
+  placeholder:string
+  options:MultiCheckOption[]
+  values:string[]
+  onChange:(values:string[])=>void
+  searchable?:boolean
+  allValue?:string
+}){
+  const [query,setQuery]=useState('')
+  const normalized=query.trim().toLowerCase()
+  const visibleOptions=normalized
+    ? options.filter(option=>option.label.toLowerCase().includes(normalized))
+    : options
+
+  const toggle=(value:string)=>{
+    if(allValue&&value===allValue){
+      onChange(values.includes(allValue)?[]:[allValue])
+      return
+    }
+    const current=allValue?values.filter(item=>item!==allValue):values
+    onChange(current.includes(value)
+      ? current.filter(item=>item!==value)
+      : [...current,value])
+  }
+
+  const selectedLabels=values
+    .map(value=>options.find(option=>option.value===value)?.label)
+    .filter(Boolean) as string[]
+
+  const summary=values.length===0
+    ? placeholder
+    : allValue&&values.includes(allValue)
+      ? options.find(option=>option.value===allValue)?.label??'Todos'
+      : selectedLabels.length<=2
+        ? selectedLabels.join(', ')
+        : selectedLabels.length+' seleccionados'
+
+  return <label className="availability-compact-field">
+    <span>{label}</span>
+    <details className="multicheck-select">
+      <summary>
+        <span className={values.length?'has-value':'placeholder'}>{summary}</span>
+        <ChevronDown size={16}/>
+      </summary>
+      <div className="multicheck-menu">
+        {searchable&&<div className="multicheck-search">
+          <Search size={14}/>
+          <input
+            value={query}
+            onChange={event=>setQuery(event.target.value)}
+            onClick={event=>event.stopPropagation()}
+            placeholder="Buscar..."
+          />
+        </div>}
+        <div className="multicheck-options">
+          {visibleOptions.map(option=><label key={option.value} className="multicheck-option">
+            <input
+              type="checkbox"
+              checked={values.includes(option.value)}
+              onChange={()=>toggle(option.value)}
+            />
+            <span>{option.label}</span>
+          </label>)}
+          {!visibleOptions.length&&<div className="multicheck-empty">Sin resultados</div>}
+        </div>
+        {values.length>0&&<button type="button" className="multicheck-clear" onClick={()=>onChange([])}>Limpiar selección</button>}
+      </div>
+    </details>
+  </label>
 }
 
 function Summary({label,value,detail}:{label:string;value:string;detail:string}){return <article className="structure-summary-card"><span>{label}</span><strong>{value}</strong><small>{detail}</small></article>}
