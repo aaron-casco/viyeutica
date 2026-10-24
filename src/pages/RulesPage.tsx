@@ -920,9 +920,12 @@ function RuleTargetFields({
   const subjectOptionGroups=Array.from(
     subjectOptions.reduce((map,subject)=>{
       const key=normalizedSubjectName(subject.name)
-      const current=map.get(key)??{value:'subject-name:'+key,label:subject.name,values:[] as string[]}
-      current.values.push(subject.id)
-      map.set(key,current)
+      const current=map.get(key)
+      if(current){
+        map.set(key,{...current,values:[...(current.values??[]),subject.id]})
+      }else{
+        map.set(key,{value:'subject-name:'+key,label:subject.name,values:[subject.id]})
+      }
       return map
     },new Map<string,MultiCheckOption>()).values()
   )
@@ -998,8 +1001,13 @@ function RuleTargetFields({
           item.active&&values.includes(item.groupId)&&item.subjectId===subject.id
         ))
       })
-      if(values.length>0&&compatibleSubjects.length===1){
-        next.subjectIds=[compatibleSubjects[0].id]
+      const compatibleSubjectGroups=compatibleSubjects.reduce((map,subject)=>{
+        const key=subject.name.trim().toLocaleLowerCase('es-ES')
+        map.set(key,[...(map.get(key)??[]),subject.id])
+        return map
+      },new Map<string,string[]>())
+      if(values.length>0&&compatibleSubjectGroups.size===1){
+        next.subjectIds=[...compatibleSubjectGroups.values()][0]
       }
 
       if(draft.scope==='group'||draft.scope==='subject'){
