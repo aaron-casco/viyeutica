@@ -1006,3 +1006,56 @@ main .generated-schedule th strong{
   .course-history-list article .btn{grid-column:1/-1;justify-self:end}
   .course-active-stats{display:grid;grid-template-columns:repeat(3,1fr)}
 }
+
+
+/* === Generación: simulación y deshacer === */
+.generation-alternative-list article{
+  grid-template-columns:auto minmax(0,1fr) auto;
+}
+.generation-alternative-impact{
+  grid-column:2/-1;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:9px 11px;
+  border-radius:9px;
+  border:1px solid var(--border);
+  background:var(--surface-subtle,#f7f9fb);
+}
+.generation-alternative-impact.valid{
+  border-color:#b9d9aa;
+  background:#f5fbf1;
+  color:#456b34;
+}
+.generation-alternative-impact.invalid{
+  border-color:#e8c58f;
+  background:#fff9ef;
+  color:#8b5b16;
+}
+.generation-alternative-impact span{
+  color:var(--muted);
+  font-size:11px;
+}
+.generation-applied-actions{
+  display:flex;
+  gap:8px;
+  margin-left:auto;
+  flex-wrap:wrap;
+}
+[data-theme="dark"] .generation-alternative-impact.valid{
+  background:#182718;
+  border-color:#304c2c;
+  color:#a8cf98;
+}
+[data-theme="dark"] .generation-alternative-impact.invalid{
+  background:#2d2417;
+  border-color:#5f4b2e;
+  color:#e8c17b;
+}
+@media(max-width:760px){
+  .generation-alternative-list article{grid-template-columns:auto 1fr}
+  .generation-alternative-actions,.generation-alternative-impact{grid-column:1/-1}
+  .generation-alternative-impact{align-items:flex-start;flex-direction:column}
+  .generation-applied-actions{margin-left:0;width:100%}
+}
