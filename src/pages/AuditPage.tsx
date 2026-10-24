@@ -114,14 +114,29 @@ function AuditSection({
       : <div className="audit-list">{issues.map(issue=><article key={issue.id}>
           <div className={'audit-icon '+issue.severity}>{issue.severity==='error'?<ShieldAlert size={17}/>:issue.severity==='warning'?<AlertTriangle size={17}/>:<Info size={17}/>}</div>
           <div className="audit-main">
-            <div className="audit-meta"><span>{issue.category}</span><code>{issue.code}</code></div>
+            <div className="audit-meta"><span>{issue.category}</span></div>
             <strong>{issue.message}</strong>
             <p>{describeIssue(issue,project)}</p>
             {issue.detail&&<small>{issue.detail}</small>}
+            <p className="audit-guidance"><strong>Qué hacer:</strong> {auditGuidance(issue)}</p>
           </div>
-          <button className="btn ghost-inline" onClick={()=>navigate(routeForIssue(issue))}>Revisar</button>
+          <button className="btn ghost-inline" onClick={()=>navigate(routeForIssue(issue))}>{issue.severity==='error'?'Corregir':'Revisar'}</button>
         </article>)}</div>}
   </section>
+}
+
+function auditGuidance(issue:AuditIssue){
+  if(issue.code==='SOLAPE_GRUPO')return 'Revisa las asignaciones principales del grupo en esa franja y deja una única docencia principal.'
+  if(issue.code==='SOLAPE_DOCENTE')return 'Revisa las actividades del docente en esa franja y elimina el solape.'
+  if(issue.code==='DOCENTE_NO_DISPONIBLE')return 'Corrige la disponibilidad del docente o mueve la sesión a una franja compatible.'
+  if(issue.code==='FRANJA_FIJA_INCUMPLIDA')return 'Revisa la franja fijada de la asignación y vuelve a generar el horario.'
+  if(issue.code==='HUECO_LECTIVO_GRUPO')return 'Revisa la carga del grupo y sus asignaciones; falta una docencia principal en esa franja.'
+  if(issue.code==='SESIONES_INCOMPLETAS')return 'Revisa la carga semanal y las restricciones de la asignación; faltan sesiones por colocar.'
+  if(issue.code==='SESIONES_EXCESIVAS')return 'Comprueba la carga configurada y elimina sesiones sobrantes o corrige el número de sesiones esperado.'
+  if(issue.code==='PLAN_SIN_PRESENCIA')return 'Comprueba que la materia tenga una asignación activa y carga suficiente para aparecer en el horario.'
+  if(issue.category==='Reglas')return 'Abre la regla afectada, revisa sus filtros, comparación y valor, y vuelve a generar para comprobar el resultado.'
+  if(issue.category==='Integridad')return 'Vuelve a Prevalidación y corrige la referencia inexistente o inactiva antes de regenerar.'
+  return 'Revisa los datos relacionados con esta incidencia y vuelve a generar o auditar el horario.'
 }
 
 function describeIssue(issue:AuditIssue,project:ViyeuticaProject){
