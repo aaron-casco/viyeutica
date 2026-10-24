@@ -818,6 +818,17 @@ function RuleTargetFields({
   const groupOptionIds=groupOptions.map(item=>item.id)
   const subjectOptionIds=subjectOptions.map(item=>item.id)
 
+  const selectedGroupIds=draft.groupIds.length?draft.groupIds:draft.groupId?[draft.groupId]:[]
+  const coverageTeachers=selectedTeachers.map(teacherId=>{
+    const teacher=project.teachers.find(item=>item.id===teacherId)
+    const covered=selectedGroupIds.length>0&&activeAssignments.some(item=>
+      item.teacherId===teacherId&&selectedGroupIds.includes(item.groupId)
+    )
+    return {teacherId,name:teacher?.name??teacherId,covered}
+  })
+  const coveredTeacherCount=coverageTeachers.filter(item=>item.covered).length
+  const uncoveredTeacherNames=coverageTeachers.filter(item=>!item.covered).map(item=>item.name)
+
   useEffect(()=>{
     if(!conditionUses(draft.conditionKind,'groupId')||!isMultiField(draft,'groupId')) return
     if(disabled('groupId')) return
@@ -930,11 +941,27 @@ function RuleTargetFields({
     }
 
     if(field==='groupId'){
-      if(multi)return <MultiCheckSelect key={field} label="Grupo" placeholder={placeholder(field)} disabled={disabled(field)||groupOptions.length===1}
-        searchable options={groupOptions.map(item=>({value:item.id,label:item.name}))} values={draft.groupIds} onChange={values=>updateMulti(field,values)}/>
-      return <Field key={field} label="Grupo"><select disabled={disabled(field)} value={draft.groupId} onChange={e=>updateSingle(field,e.target.value)}>
-        <option value="">{placeholder(field)}</option>{groupOptions.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
-      </select></Field>
+      const control=multi
+        ? <MultiCheckSelect key={field} label="Grupo" placeholder={placeholder(field)} disabled={disabled(field)||groupOptions.length===1}
+            searchable options={groupOptions.map(item=>({value:item.id,label:item.name}))} values={draft.groupIds} onChange={values=>updateMulti(field,values)}/>
+        : <Field key={field} label="Grupo"><select disabled={disabled(field)} value={draft.groupId} onChange={e=>updateSingle(field,e.target.value)}>
+            <option value="">{placeholder(field)}</option>{groupOptions.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
+          </select></Field>
+
+      if(draft.scope==='teacher'&&selectedTeachers.length>1){
+        return <div key={field} className="rule-dependent-field">
+          {control}
+          <div className={'rule-coverage '+(coveredTeacherCount===selectedTeachers.length?'complete':selectedGroupIds.length?'partial':'empty')}>
+            <strong>{coveredTeacherCount} de {selectedTeachers.length} profesores cubiertos</strong>
+            {selectedGroupIds.length===0
+              ? <span>Selecciona al menos un grupo para aplicar la regla a los profesores elegidos.</span>
+              : uncoveredTeacherNames.length>0
+                ? <span>Sin grupo seleccionado compatible: {uncoveredTeacherNames.join(', ')}.</span>
+                : <span>Todos los profesores seleccionados tienen al menos un grupo incluido.</span>}
+          </div>
+        </div>
+      }
+      return control
     }
 
     if(field==='subjectId'){
