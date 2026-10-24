@@ -301,8 +301,7 @@ export function AssignmentsPage({
   return <div className="wizard-page assignments-page">
     <section className="wizard-intro">
       <div>
-        <span className="eyebrow dark"><SlidersHorizontal size={15}/> Paso 6 · Responsabilidad docente</span>
-        <h1>Asignaciones</h1>
+        <h1 className="wizard-page-title"><SlidersHorizontal size={28}/> Asignaciones</h1>
         <p>Relaciona cada carga del plan de estudios con el profesorado que la imparte y define apoyos, codocencias y disponibilidad temporal.</p>
       </div>
       <div className="wizard-progress-summary"><strong>6 <span>de 9</span></strong><small>Asignaciones</small></div>
