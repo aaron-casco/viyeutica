@@ -153,6 +153,15 @@ export interface GeneratedScheduleEntry {
   sessionId: string
 }
 
+export interface GenerationIssueDiagnostics {
+  candidateSlots: number
+  unavailableCount: number
+  groupBusyCount: number
+  teacherBusyCount: number
+  hardRuleCount: number
+  fixedTarget: boolean
+}
+
 export interface GenerationIssue {
   id: string
   type: 'unplaced_main' | 'unplaced_support'
@@ -162,6 +171,7 @@ export interface GenerationIssue {
   teacherId: string
   missingSessions: number
   severity: 'error' | 'warning'
+  diagnostics?: GenerationIssueDiagnostics
 }
 
 export interface GenerationRun {
