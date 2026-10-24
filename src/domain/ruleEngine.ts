@@ -85,12 +85,13 @@ export function violatesDailyLimitRule(
   assignment:TeachingAssignment,
   slot:RuleSlot,
   entries:GeneratedScheduleEntry[],
+  orderBySession?:Map<string,number>,
 ){
   if(ruleConditionKind(rule)!=='daily_limit'||!ruleMatchesAssignment(rule,assignment)) return false
   const value=ruleNumericValue(rule)
   if(value===null) return false
   const count=countRuleScopeOnDay(entries,assignment,slot.day,rule.scope)
-  return ruleComparison(rule)==='maximum'&&count>=value
+  return ['maximum','equals'].includes(ruleComparison(rule))&&count>=value
 }
 
 export function violatesWeeklyLoadRule(
@@ -137,7 +138,7 @@ export function violatesConsecutiveLimitRule(
   const value=ruleNumericValue(rule)
   if(value===null) return false
   const run=consecutiveRunLength(entries,assignment,slot,rule.scope,orderBySession)
-  return ruleComparison(rule)==='maximum'&&run>value
+  return ['maximum','equals'].includes(ruleComparison(rule))&&run>value
 }
 
 export function fixedSlotFromRule(rule:CenterRule,assignment:TeachingAssignment){
@@ -170,8 +171,14 @@ export function softRulePlacementCost(
   if(kind==='weekly_load'&&ruleNumericValue(rule)!==null){
     const count=countRuleScopeWeekly(entries,assignment,rule.scope)
     const value=ruleNumericValue(rule)!
-    if(cmp==='maximum'&&count>=value) cost+=weight*(count-value+1)*4
+    if((cmp==='maximum'||cmp==='equals')&&count>=value) cost+=weight*(count-value+1)*4
     if(cmp==='minimum'&&count<value) cost+=weight
+  }
+  if(kind==='consecutive_limit'&&ruleNumericValue(rule)!==null&&orderBySession){
+    const run=consecutiveRunLength(entries,assignment,slot,rule.scope,orderBySession)
+    const value=ruleNumericValue(rule)!
+    if((cmp==='maximum'||cmp==='equals')&&run>value) cost+=weight*(run-value)*6
+    if(cmp==='minimum'&&run<value) cost+=weight
   }
   return cost
 }
