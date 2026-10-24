@@ -9,6 +9,12 @@ export function loadProject(): ViyeuticaProject {
     if (!raw) return structuredClone(EMPTY_PROJECT)
     const parsed = JSON.parse(raw) as Partial<ViyeuticaProject>
     if (parsed.schemaVersion !== 1) return structuredClone(EMPTY_PROJECT)
+    const generationRuns=Array.isArray(parsed.generationRuns) ? parsed.generationRuns : []
+    const selectedGenerationRunId=
+      parsed.selectedGenerationRunId &&
+      generationRuns.some(run=>run.id===parsed.selectedGenerationRunId)
+        ? parsed.selectedGenerationRunId
+        : null
     return {
       ...structuredClone(EMPTY_PROJECT),
       ...parsed,
@@ -21,7 +27,8 @@ export function loadProject(): ViyeuticaProject {
       teacherAvailability: Array.isArray(parsed.teacherAvailability) ? parsed.teacherAvailability : [],
       assignments: Array.isArray(parsed.assignments) ? parsed.assignments : [],
       rules: Array.isArray(parsed.rules) ? parsed.rules : [],
-      generationRuns: Array.isArray(parsed.generationRuns) ? parsed.generationRuns : [],
+      generationRuns,
+      selectedGenerationRunId,
       normativeSources: Array.isArray(parsed.normativeSources) ? parsed.normativeSources : [],
       normativeRules: Array.isArray(parsed.normativeRules) ? parsed.normativeRules : [],
       schedule: {
