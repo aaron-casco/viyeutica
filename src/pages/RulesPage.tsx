@@ -306,8 +306,7 @@ export function RulesPage({
   return <div className="wizard-page rules-page">
     <section className="wizard-intro">
       <div>
-        <span className="eyebrow dark"><ShieldCheck size={15}/> Paso 7 · Restricciones y preferencias</span>
-        <h1>Reglas</h1>
+        <h1 className="wizard-page-title"><ShieldCheck size={28}/> Reglas</h1>
         <p>Define qué condiciones son obligatorias (HARD) y qué preferencias debe optimizar el generador (SOFT). Cada regla se guarda de forma estructurada para el solver y la auditoría.</p>
       </div>
       <div className="wizard-progress-summary"><strong>7 <span>de 9</span></strong><small>Reglas</small></div>
