@@ -289,16 +289,16 @@ function valueGuideMessage(draft:Draft){
     'unidades'
 
   if(comparison==='maximum'){
-    return `El Valor es el límite máximo permitido. Por ejemplo, Valor 5 significa “como máximo 5 ${unit}” para la selección actual.`
+    return `Introduce el límite que no quieres superar. Por ejemplo, Valor 5 significa que la selección actual podrá tener como máximo 5 ${unit}. Usa este valor cuando quieras poner un techo.`
   }
   if(comparison==='minimum'){
-    return `El Valor es el mínimo que debe alcanzarse. Por ejemplo, Valor 5 significa “al menos 5 ${unit}” para la selección actual.`
+    return `Introduce la cantidad mínima que quieres alcanzar. Por ejemplo, Valor 5 significa que la selección actual debe tener al menos 5 ${unit}. Usa este valor cuando quieras fijar un suelo.`
   }
   if(comparison==='equals'){
-    return `El Valor es la cantidad exacta que debe cumplirse. Por ejemplo, Valor 5 significa “exactamente 5 ${unit}” para la selección actual.`
+    return `Introduce la cantidad exacta que quieres obtener. Por ejemplo, Valor 5 significa exactamente 5 ${unit}. Usa esta comparación cuando no quieras ni más ni menos.`
   }
   if(comparison==='not_equals'){
-    return `El Valor es la cantidad que no debe coincidir con el resultado de la regla.`
+    return 'Introduce la cantidad que no debe coincidir con el resultado de la regla.'
   }
   return `Introduce el número que se comparará usando “${comparisonLabel(comparison)}”.`
 }
@@ -1358,7 +1358,17 @@ function RuleConditionGuide({draft,project}:{draft:Draft;project:ViyeuticaProjec
       }else{
         const coveredNames=coveredTeachers.map(item=>item.name).join(', ')
         title=`Has cubierto ${singular(coveredTeacherCount)?'al profesor':'a los profesores'} ${coveredNames}`
-        message=`Queda${singular(pendingTeachers.length)?'':'n'} pendiente${singular(pendingTeachers.length)?'':'s'} ${pendingTeachers.map(item=>item.name).join(', ')}. ${singular(pendingTeachers.length)?'Su grupo disponible es':'Grupos disponibles'}: ${pendingTeacherDetails.join(' · ')}.`
+        if(singular(pendingTeachers.length)){
+          const pending=pendingTeachers[0]
+          const available=pending.groupIds.map(groupName)
+          message=available.length===0
+            ? `Queda pendiente ${pending.name}. No tiene grupos compatibles disponibles.`
+            : singular(available.length)
+              ? `Queda pendiente ${pending.name}. Su grupo disponible es ${available[0]}.`
+              : `Queda pendiente ${pending.name}. Sus grupos disponibles son: ${available.join(', ')}.`
+        }else{
+          message=`Quedan pendientes ${pendingTeachers.map(item=>item.name).join(', ')}. Grupos disponibles: ${pendingTeacherDetails.join(' · ')}.`
+        }
         tone='partial'
       }
     }else if(
@@ -1380,7 +1390,16 @@ function RuleConditionGuide({draft,project}:{draft:Draft;project:ViyeuticaProjec
       }else if(coveredCount<teachers.length){
         const coveredNames=coveredSubjectTeachers.map(item=>item.name).join(', ')
         title=`Has cubierto ${singular(coveredCount)?'al profesor':'a los profesores'} ${coveredNames}`
-        message=`Queda${singular(pendingSubjectTeachers.length)?'':'n'} pendiente${singular(pendingSubjectTeachers.length)?'':'s'} ${pendingSubjectTeachers.map(item=>item.name).join(', ')}. ${singular(pendingSubjectTeachers.length)?'Sus materias disponibles son':'Materias disponibles'}: ${pendingSubjectDetails.join(' · ')}.`
+        if(singular(pendingSubjectTeachers.length)){
+          const pending=pendingSubjectTeachers[0]
+          message=pending.subjectNames.length===0
+            ? `Queda pendiente ${pending.name}. No tiene materias compatibles disponibles.`
+            : singular(pending.subjectNames.length)
+              ? `Queda pendiente ${pending.name}. Su materia disponible es ${pending.subjectNames[0]}.`
+              : `Queda pendiente ${pending.name}. Sus materias disponibles son: ${pending.subjectNames.join(', ')}.`
+        }else{
+          message=`Quedan pendientes ${pendingSubjectTeachers.map(item=>item.name).join(', ')}. Materias disponibles: ${pendingSubjectDetails.join(' · ')}.`
+        }
         tone='partial'
       }else if(conditionUses(draft.conditionKind,'value')&&!draft.value){
         title=`Indica el valor para ${condition}`
@@ -1409,11 +1428,16 @@ function RuleConditionGuide({draft,project}:{draft:Draft;project:ViyeuticaProjec
       ((draft.scope==='teacher'&&groups.length>0)||(draft.scope==='group'&&groups.length>0))&&subjects.length===0){
       title=`Selecciona Materia para ${condition}`
       message='El listado ya está filtrado por los datos seleccionados anteriormente.'
-    }else if(conditionUses(draft.conditionKind,'day')&&days.length===0){
+    }else if(
+      ['availability','avoid_slot'].includes(draft.conditionKind)&&
+      days.length===0&&
+      sessions.length===0
+    ){
+      title=`Selecciona Día o Sesión para ${condition}`
+      message='Debes indicar al menos una referencia temporal. Puedes elegir uno o varios días, una o varias sesiones, o combinar ambas opciones.'
+    }else if(conditionUses(draft.conditionKind,'day')&&days.length===0&&draft.conditionKind==='fixed_slot'){
       title=`Selecciona Día para ${condition}`
-      message=draft.conditionKind==='fixed_slot'
-        ? 'Después podrás seleccionar la sesión concreta.'
-        : 'Puedes elegir uno o varios días cuando la condición lo admita.'
+      message='Después podrás seleccionar la sesión concreta.'
     }else if(conditionUses(draft.conditionKind,'sessionId')&&sessions.length===0&&draft.conditionKind==='fixed_slot'){
       title=`Selecciona Sesión para ${condition}`
       message='La sesión depende del día seleccionado.'
