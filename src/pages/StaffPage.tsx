@@ -61,6 +61,10 @@ export function StaffPage({
   const pending=activeTeachers.filter(teacher=>teacher.status==='to_determine').length
   const itinerant=activeTeachers.filter(teacher=>teacher.employmentType==='itinerant').length
   const validation=useMemo(()=>validateStaff(project),[project])
+  const teacherReady=Boolean(draft.name.trim()&&parseList(draft.specialties).length)
+  const teacherGuide=!draft.name.trim()?'Indica el nombre del docente o un identificador provisional.'
+    :!parseList(draft.specialties).length?'Indica al menos una especialidad.'
+    :'El docente tiene los datos mínimos necesarios. Ya puedes añadirlo.'
 
   const persist=(next:Teacher[])=>saveProject({...project,teachers:next})
 
@@ -200,12 +204,13 @@ export function StaffPage({
         </div>
 
         {error&&<div className="inline-error">{error}</div>}
+        <div className={'form-guide '+(teacherReady?'complete':'partial')}><strong>{teacherReady?'Docente listo':'Siguiente paso'}</strong><span>{teacherGuide}</span></div>
 
         <div className="form-actions">
           <button type="button" className="btn secondary-light" onClick={()=>navigate('/materias')}>Paso anterior</button>
           <div className="form-actions-right">
             {editingId&&<button type="button" className="btn ghost-inline" onClick={reset}>Cancelar</button>}
-            <button className="btn primary" type="submit"><Save size={16}/>{editingId?'Guardar cambios':'Añadir docente'}</button>
+            <button className="btn primary" type="submit" disabled={!teacherReady}><Save size={16}/>{editingId?'Guardar cambios':'Añadir docente'}</button>
           </div>
         </div>
       </form>
