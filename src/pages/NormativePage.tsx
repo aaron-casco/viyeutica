@@ -4,6 +4,7 @@ import {
 } from 'lucide-react'
 import type { NormativeRelevance, NormativeRule, NormativeSection, ViyeuticaProject } from '../domain/project'
 import { analyzeNormativeFile, findNormativeConflicts } from '../domain/normativeAnalyzer'
+import { convertNormativeToCenterRule, isNormativeRuleLinked } from '../domain/normativeRuleBridge'
 import { saveProject } from '../store/projectStorage'
 import { AppModal } from '../components/AppModal'
 import { deleteNormativeFile, getNormativeFile, saveNormativeFile } from '../store/normativeFileStorage'
@@ -120,6 +121,13 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
   const rejectAll=()=>persist({
     normativeRules:project.normativeRules.map(rule=>({...rule,approved:false})),
   })
+
+  const incorporateRule=(rule:NormativeRule)=>{
+    if(!rule.approved||conflictRuleIds.has(rule.id))return
+    if(isNormativeRuleLinked(project.rules,rule.id))return
+    const source=project.normativeSources.find(item=>item.id===rule.sourceId)
+    persist({rules:[...project.rules,convertNormativeToCenterRule(rule,source)]})
+  }
 
   const removeSource=async(sourceId:string)=>{
     await deleteNormativeFile(sourceId).catch(()=>undefined)
@@ -247,6 +255,8 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
                 relevance={rule.relevance??inferLegacyRelevance(rule)}
                 onMove={value=>setRuleRelevance(rule.id,value)}
                 conflict={conflictRuleIds.has(rule.id)}
+                linked={isNormativeRuleLinked(project.rules,rule.id)}
+                onIncorporate={()=>incorporateRule(rule)}
               />
             })}
           </div>}
@@ -274,7 +284,7 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
 }
 
 function RuleCard({
-  rule,sourceName,sourceMimeType,onToggle,onOpen,relevance,onMove,conflict,
+  rule,sourceName,sourceMimeType,onToggle,onOpen,relevance,onMove,conflict,linked,onIncorporate,
 }:{
   rule:NormativeRule
   sourceName:string
@@ -284,6 +294,8 @@ function RuleCard({
   relevance:NormativeRelevance
   onMove:(value:NormativeRelevance)=>void
   conflict:boolean
+  linked:boolean
+  onIncorporate:()=>void
 }) {
   return <article className={'normative-rule '+(rule.approved?'approved':'')}>
     <button className={'normative-approve '+(rule.approved?'approved':'')} onClick={onToggle}>
@@ -309,6 +321,11 @@ function RuleCard({
         <button className="normative-move-rule" onClick={()=>onMove(relevance==='timetable'?'reference':'timetable')}>
           {relevance==='timetable'?'Mover a referencia':'Usar para horario'}
         </button>
+        {linked
+          ? <span className="normative-linked-badge"><CheckCircle2 size={13}/> Incorporada a Reglas</span>
+          : rule.approved&&relevance==='timetable'&&!conflict
+            ? <button className="normative-incorporate-rule" onClick={onIncorporate}><ShieldCheck size={14}/> Incorporar a Reglas</button>
+            : null}
       </div>
     </div>
   </article>
