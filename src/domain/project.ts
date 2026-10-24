@@ -1,4 +1,4 @@
-import { isRuleAutomaticallyEvaluable } from './ruleEngine'
+import { isRuleAutomaticallyEvaluable, ruleConditionKind, ruleNumericValue } from './ruleEngine'
 
 export type Ownership = 'publico' | 'concertado' | 'privado' | ''
 export type CenterType = 'CEIP' | 'IES' | 'CEIPSO' | 'CRA' | 'COLEGIO' | 'OTRO' | ''
@@ -444,6 +444,19 @@ export function validateRules(project: ViyeuticaProject) {
     if (!rule.description.trim()) errors.push('Todas las reglas necesitan una descripción.')
     if (rule.ruleType === 'SOFT' && (rule.weight === null || rule.weight === undefined || rule.weight <= 0)) {
       errors.push(`La regla SOFT "${rule.code || 'sin código'}" necesita un peso mayor que cero.`)
+    }
+    const kind=ruleConditionKind(rule)
+    if (['daily_limit','consecutive_limit','weekly_load'].includes(kind)) {
+      const value=ruleNumericValue(rule)
+      if (value===null || value<=0) {
+        errors.push(`La regla "${rule.code || 'sin código'}" necesita un valor numérico mayor que cero.`)
+      }
+    }
+    if (kind==='fixed_slot' && (!rule.parameters?.day || !rule.parameters?.sessionId)) {
+      errors.push(`La regla "${rule.code || 'sin código'}" de franja fija necesita día y sesión.`)
+    }
+    if (kind==='avoid_slot' && !rule.parameters?.day && !rule.parameters?.sessionId) {
+      errors.push(`La regla "${rule.code || 'sin código'}" para evitar franja necesita al menos un día o una sesión.`)
     }
     if (rule.source === 'normative' && rule.normativeRuleId) {
       const normative = project.normativeRules.find(item => item.id === rule.normativeRuleId)
