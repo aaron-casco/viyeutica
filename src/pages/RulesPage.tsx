@@ -276,6 +276,33 @@ function conditionUsesTeachingCoverage(kind:string){
   return ['daily_limit','consecutive_limit','weekly_load'].includes(kind)
 }
 
+function singular(count:number){
+  return count===1
+}
+
+function valueGuideMessage(draft:Draft){
+  const comparison=draft.comparison
+  const unit=
+    draft.conditionKind==='weekly_load' ? 'sesiones semanales' :
+    draft.conditionKind==='daily_limit' ? 'sesiones al día' :
+    draft.conditionKind==='consecutive_limit' ? 'sesiones consecutivas' :
+    'unidades'
+
+  if(comparison==='maximum'){
+    return `El Valor es el límite máximo permitido. Por ejemplo, Valor 5 significa “como máximo 5 ${unit}” para la selección actual.`
+  }
+  if(comparison==='minimum'){
+    return `El Valor es el mínimo que debe alcanzarse. Por ejemplo, Valor 5 significa “al menos 5 ${unit}” para la selección actual.`
+  }
+  if(comparison==='equals'){
+    return `El Valor es la cantidad exacta que debe cumplirse. Por ejemplo, Valor 5 significa “exactamente 5 ${unit}” para la selección actual.`
+  }
+  if(comparison==='not_equals'){
+    return `El Valor es la cantidad que no debe coincidir con el resultado de la regla.`
+  }
+  return `Introduce el número que se comparará usando “${comparisonLabel(comparison)}”.`
+}
+
 function isRuleDraftReady(draft:Draft,project:ViyeuticaProject){
   if(!draft.conditionKind||!draft.scope)return false
   if(draft.ruleType==='SOFT'&&!draft.weight)return false
@@ -653,7 +680,7 @@ export function RulesPage({
           <div className="rule-condition-builder-heading">
             <span className="panel-kicker">Condición de la regla</span>
             <h3>Construir condición</h3>
-            <p>Selecciona únicamente los campos que necesites. Viyeutica guardará la estructura técnica automáticamente.</p>
+            <p>Selecciona únicamente los campos que necesites. ⩒Yeutika guardará la estructura técnica automáticamente.</p>
           </div>
 
           <div className="form-grid two">
@@ -1323,15 +1350,15 @@ function RuleConditionGuide({draft,project}:{draft:Draft;project:ViyeuticaProjec
       if(groups.length===0){
         title=`Selecciona Grupo para ${condition}`
         if(commonGroupNames.length){
-          message=`Debes seleccionar un grupo de al menos uno de los docentes. ${selectedNames(teachers,project.teachers)} tienen en común ${commonGroupNames.length===1?'el grupo':'los grupos'} ${commonGroupNames.join(', ')}.`
+          message=`Debes seleccionar un grupo de al menos uno de los docentes. ${selectedNames(teachers,project.teachers)} tienen en común ${singular(commonGroupNames.length)?'el grupo':'los grupos'} ${commonGroupNames.join(', ')}.`
         }else{
           message=`Debes seleccionar un grupo de al menos uno de los docentes. No tienen ningún grupo en común, por lo que tendrás que seleccionar grupos compatibles de uno o varios docentes.`
         }
         tone='partial'
       }else{
         const coveredNames=coveredTeachers.map(item=>item.name).join(', ')
-        title=`Has cubierto ${coveredTeacherCount===1?'al profesor':'a los profesores'} ${coveredNames}`
-        message=`Queda${pendingTeachers.length===1?'':'n'} pendiente${pendingTeachers.length===1?'':'s'} ${pendingTeachers.map(item=>item.name).join(', ')}. ${pendingTeachers.length===1?'Sus grupos son':'Grupos disponibles'}: ${pendingTeacherDetails.join(' · ')}.`
+        title=`Has cubierto ${singular(coveredTeacherCount)?'al profesor':'a los profesores'} ${coveredNames}`
+        message=`Queda${singular(pendingTeachers.length)?'':'n'} pendiente${singular(pendingTeachers.length)?'':'s'} ${pendingTeachers.map(item=>item.name).join(', ')}. ${singular(pendingTeachers.length)?'Su grupo disponible es':'Grupos disponibles'}: ${pendingTeacherDetails.join(' · ')}.`
         tone='partial'
       }
     }else if(
@@ -1345,23 +1372,23 @@ function RuleConditionGuide({draft,project}:{draft:Draft;project:ViyeuticaProjec
       if(subjects.length===0){
         title=`Selecciona Materia para ${condition}`
         if(commonSubjectNames.length){
-          message=`${selectedNames(teachers,project.teachers)} tienen en común ${commonSubjectNames.length===1?'la materia':'las materias'} ${commonSubjectNames.join(', ')}. Puedes seleccionar una materia común o elegir materias compatibles de cada docente.`
+          message=`${selectedNames(teachers,project.teachers)} tienen en común ${singular(commonSubjectNames.length)?'la materia':'las materias'} ${commonSubjectNames.join(', ')}. Puedes seleccionar una materia común o elegir materias compatibles de cada docente.`
         }else{
           message='Los profesores seleccionados no tienen ninguna materia en común dentro de los grupos elegidos. Selecciona una o varias materias compatibles.'
         }
         tone='partial'
       }else if(coveredCount<teachers.length){
         const coveredNames=coveredSubjectTeachers.map(item=>item.name).join(', ')
-        title=`Has cubierto ${coveredCount===1?'al profesor':'a los profesores'} ${coveredNames}`
-        message=`Queda${pendingSubjectTeachers.length===1?'':'n'} pendiente${pendingSubjectTeachers.length===1?'':'s'} ${pendingSubjectTeachers.map(item=>item.name).join(', ')}. ${pendingSubjectTeachers.length===1?'Sus materias son':'Materias disponibles'}: ${pendingSubjectDetails.join(' · ')}.`
+        title=`Has cubierto ${singular(coveredCount)?'al profesor':'a los profesores'} ${coveredNames}`
+        message=`Queda${singular(pendingSubjectTeachers.length)?'':'n'} pendiente${singular(pendingSubjectTeachers.length)?'':'s'} ${pendingSubjectTeachers.map(item=>item.name).join(', ')}. ${singular(pendingSubjectTeachers.length)?'Sus materias disponibles son':'Materias disponibles'}: ${pendingSubjectDetails.join(' · ')}.`
         tone='partial'
       }else if(conditionUses(draft.conditionKind,'value')&&!draft.value){
         title=`Indica el valor para ${condition}`
-        message='La selección de profesorado, grupos y materias ya está completa. Introduce ahora el número que debe cumplir esta regla.'
+        message=valueGuideMessage(draft)
         tone='empty'
       }else if(draft.ruleType==='SOFT'&&!draft.weight){
         title='Selecciona la prioridad de la preferencia'
-        message='La selección de profesorado, grupos y materias ya está completa. Indica ahora cuánto debe priorizar Viyeutica esta preferencia.'
+        message='La selección de profesorado, grupos y materias ya está completa. Indica ahora cuánto debe priorizar ⩒Yeutika esta preferencia.'
         tone='empty'
       }else{
         title='Regla lista para revisar'
@@ -1392,10 +1419,10 @@ function RuleConditionGuide({draft,project}:{draft:Draft;project:ViyeuticaProjec
       message='La sesión depende del día seleccionado.'
     }else if(conditionUses(draft.conditionKind,'value')&&!draft.value){
       title=`Indica el valor para ${condition}`
-      message='Introduce el número que debe cumplir esta regla.'
+      message=valueGuideMessage(draft)
     }else if(draft.ruleType==='SOFT'&&!draft.weight){
       title='Selecciona la prioridad de la preferencia'
-      message='La prioridad indica cuánto debe intentar Viyeutica respetar esta regla frente a otras preferencias.'
+      message='La prioridad indica cuánto debe intentar ⩒Yeutika respetar esta regla frente a otras preferencias.'
     }else{
       title='Regla lista para revisar'
       message=generateRuleDescription(draft,project)
@@ -1430,7 +1457,7 @@ function NormativeTraceabilityPanel({project}:{project:ViyeuticaProject}){
       <div>
         <span className="panel-kicker">Trazabilidad normativa</span>
         <h2>Qué normativa está influyendo en las reglas</h2>
-        <p>Viyeutica conserva el vínculo entre la regla operativa y el fragmento normativo que la originó para poder justificarla durante la prevalidación, generación y auditoría.</p>
+        <p>⩒Yeutika conserva el vínculo entre la regla operativa y el fragmento normativo que la originó para poder justificarla durante la prevalidación, generación y auditoría.</p>
       </div>
       <div className="normative-traceability-kpis">
         <span><strong>{approvedNormative.length}</strong><small>reglas normativas aprobadas</small></span>
@@ -1501,7 +1528,7 @@ function NormativeTraceabilityItem({project,rule}:{project:ViyeuticaProject;rule
         <p>{applies.length?applies.join(' · '):'Aplicación general o no determinada automáticamente.'}</p>
       </div>
       <div>
-        <span className="trace-label">Cómo se usa en Viyeutica</span>
+        <span className="trace-label">Cómo se usa en ⩒Yeutika</span>
         <strong>{explainNormativeUse(rule,normative)}</strong>
         <p>{explainNormativeImpact(rule,normative)}</p>
       </div>
