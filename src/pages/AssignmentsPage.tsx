@@ -78,6 +78,25 @@ export function AssignmentsPage({
   const activeTeachers=project.teachers.filter(teacher=>teacher.active)
   const activeAssignments=project.assignments.filter(assignment=>assignment.active)
   const validation=useMemo(()=>validateAssignments(project),[project])
+  const assignmentSessions=draft.weeklySessions===''?0:Number(draft.weeklySessions)
+  const assignmentMinutes=draft.weeklyMinutes===''?0:Number(draft.weeklyMinutes)
+  const assignmentReady=Boolean(
+    draft.groupId&&draft.subjectId&&draft.teacherId&&
+    ((Number.isFinite(assignmentSessions)&&assignmentSessions>0)||(Number.isFinite(assignmentMinutes)&&assignmentMinutes>0))
+  )
+  const assignmentGuide=!draft.groupId?'Selecciona primero el grupo.'
+    :!draft.subjectId?'Selecciona la materia.'
+    :!draft.teacherId?'Selecciona el docente.'
+    :!((Number.isFinite(assignmentSessions)&&assignmentSessions>0)||(Number.isFinite(assignmentMinutes)&&assignmentMinutes>0))
+      ?'Indica la carga semanal mediante sesiones o minutos.'
+      :'La asignación tiene los datos mínimos necesarios. Ya puedes añadirla.'
+  const availabilityReady=Boolean(
+    availabilityDraft.teacherIds.length&&availabilityDraft.days.length&&availabilityDraft.sessions.length
+  )
+  const availabilityGuide=!availabilityDraft.teacherIds.length?'Selecciona al menos un docente.'
+    :!availabilityDraft.days.length?'Selecciona al menos un día.'
+    :!availabilityDraft.sessions.length?'Selecciona al menos una sesión.'
+    :'La restricción tiene los datos mínimos necesarios. Ya puedes añadirla.'
   useEffect(()=>{
     const raw=window.location.hash.split('?')[1]
     if(!raw)return
@@ -106,7 +125,7 @@ export function AssignmentsPage({
       }))
     }
     if(auditCode){
-      setAuditFocus('Datos cargados desde Auditoría para revisar la incidencia '+auditCode+'.')
+      setAuditFocus('Datos cargados desde Auditoría para revisar una incidencia del horario.')
       window.setTimeout(()=>document.querySelector('.assignment-form')?.scrollIntoView({behavior:'smooth',block:'start'}),60)
     }
   },[])
@@ -401,7 +420,7 @@ export function AssignmentsPage({
             </select>
           </Field>
           <Field label="Docente" required>
-            <select value={draft.teacherId} onChange={e=>setDraft({...draft,teacherId:e.target.value})}>
+            <select value={draft.teacherId} disabled={!draft.subjectId} onChange={e=>setDraft({...draft,teacherId:e.target.value})}>
               <option value="">Selecciona...</option>
               {activeTeachers.map(teacher=><option key={teacher.id} value={teacher.id}>{teacher.name}</option>)}
             </select>
@@ -420,12 +439,13 @@ export function AssignmentsPage({
         </div>
 
         {error&&<div className="inline-error">{error}</div>}
+        <div className={'form-guide '+(assignmentReady?'complete':'partial')}><strong>{assignmentReady?'Asignación lista':'Siguiente paso'}</strong><span>{assignmentGuide}</span></div>
 
         <div className="form-actions">
           <button type="button" className="btn secondary-light" onClick={()=>navigate('/profesorado')}>Paso anterior</button>
           <div className="form-actions-right">
             {editingId&&<button type="button" className="btn ghost-inline" onClick={reset}>Cancelar</button>}
-            <button className="btn primary" type="submit"><Save size={16}/>{editingId?'Guardar cambios':'Añadir asignación'}</button>
+            <button className="btn primary" type="submit" disabled={!assignmentReady}><Save size={16}/>{editingId?'Guardar cambios':'Añadir asignación'}</button>
           </div>
         </div>
       </form>
@@ -531,8 +551,9 @@ export function AssignmentsPage({
           <input value={availabilityDraft.detail} onChange={e=>setAvailabilityDraft({...availabilityDraft,detail:e.target.value})} placeholder="Opcional"/>
         </label>
 
-        <button className="btn primary availability-submit" type="submit"><Plus size={15}/> Añadir restricciones</button>
+        <button className="btn primary availability-submit" type="submit" disabled={!availabilityReady}><Plus size={15}/> Añadir restricciones</button>
       </form>
+      <div className={'form-guide '+(availabilityReady?'complete':'partial')}><strong>{availabilityReady?'Restricción lista':'Siguiente paso'}</strong><span>{availabilityGuide}</span></div>
       {availabilityError&&<div className="inline-error">{availabilityError}</div>}
       {project.teacherAvailability.length>0&&<div className="availability-list">{project.teacherAvailability.map((item,index)=>{
         const teacher=project.teachers.find(value=>value.id===item.teacherId)
