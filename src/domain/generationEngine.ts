@@ -16,7 +16,9 @@ import {
   ruleSlotMatches,
   softRulePlacementCost,
   violatesAvoidRule,
+  violatesConsecutiveLimitRule,
   violatesDailyLimitRule,
+  violatesWeeklyLoadRule,
 } from './ruleEngine'
 
 type Slot={day:Weekday;sessionId:string;order:number;duration:number}
@@ -71,15 +73,18 @@ function unavailable(project:ViyeuticaProject,teacherId:string,slot:Slot){
   )
 }
 
-function hardAllows(project:ViyeuticaProject,assignment:TeachingAssignment,slot:Slot,entries:GeneratedScheduleEntry[],occupancy:Occupancy){
+function hardAllows(project:ViyeuticaProject,assignment:TeachingAssignment,slot:Slot,entries:GeneratedScheduleEntry[],occupancy:Occupancy,slots:Slot[]){
   const key=slot.day+'|'+slot.sessionId
   if(occupancy.group.has(assignment.groupId+'|'+key)) return false
   if(occupancy.teacher.has(assignment.teacherId+'|'+key)) return false
   if(unavailable(project,assignment.teacherId,slot)) return false
 
+  const orderBySession=new Map(slots.map(item=>[item.sessionId,item.order]))
   for(const rule of project.rules.filter(r=>r.active&&r.ruleType==='HARD')){
     if(violatesAvoidRule(rule,assignment,slot)) return false
     if(violatesDailyLimitRule(rule,assignment,slot,entries)) return false
+    if(violatesWeeklyLoadRule(rule,assignment,entries)) return false
+    if(violatesConsecutiveLimitRule(rule,assignment,slot,entries,orderBySession)) return false
   }
   return true
 }
@@ -187,7 +192,7 @@ function trySingleRepair(
     entries.splice(index,1)
     rebuildOccupancy(entries,occupancy)
 
-    if(!hardAllows(project,assignment,target,entries,occupancy)){
+    if(!hardAllows(project,assignment,target,entries,occupancy,slots)){
       entries.splice(0,entries.length,...snapshot)
       rebuildOccupancy(entries,occupancy)
       continue
@@ -197,7 +202,7 @@ function trySingleRepair(
 
     const alternatives=shuffle(slots,random)
       .filter(slot=>!(slot.day===target.day&&slot.sessionId===target.sessionId))
-      .filter(slot=>hardAllows(project,blockerAssignment,slot,entries,occupancy))
+      .filter(slot=>hardAllows(project,blockerAssignment,slot,entries,occupancy,slots))
       .sort((a,b)=>candidateScore(project,blockerAssignment,a,entries)-candidateScore(project,blockerAssignment,b,entries))
 
     const alternative=alternatives[0]
@@ -255,7 +260,7 @@ function tryBoundedBacktrack(
 
     const assignment=queue[index]
     const candidates=shuffle(slots,random)
-      .filter(slot=>hardAllows(project,assignment,slot,entries,occupancy))
+      .filter(slot=>hardAllows(project,assignment,slot,entries,occupancy,slots))
       .sort((a,b)=>candidateScore(project,assignment,a,entries)-candidateScore(project,assignment,b,entries))
 
     for(const slot of candidates.slice(0,10)){
@@ -301,7 +306,9 @@ function diagnosePlacementBlock(
     if(project.rules.some(rule=>
       rule.active&&rule.ruleType==='HARD'&&(
         violatesAvoidRule(rule,assignment,slot)||
-        violatesDailyLimitRule(rule,assignment,slot,entries)
+        violatesDailyLimitRule(rule,assignment,slot,entries)||
+        violatesWeeklyLoadRule(rule,assignment,entries)||
+        violatesConsecutiveLimitRule(rule,assignment,slot,entries,new Map(slots.map(item=>[item.sessionId,item.order])))
       )
     )) hardRuleCount++
   }
@@ -403,7 +410,7 @@ function generateAttempt(project:ViyeuticaProject,attempt:number){
       }
 
       candidates=candidates
-        .filter(slot=>hardAllows(project,assignment,slot,entries,occupancy))
+        .filter(slot=>hardAllows(project,assignment,slot,entries,occupancy,slots))
         .sort((a,b)=>candidateScore(project,assignment,a,entries)-candidateScore(project,assignment,b,entries))
 
       const slot=candidates[0]
