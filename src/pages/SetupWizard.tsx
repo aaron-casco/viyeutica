@@ -98,8 +98,7 @@ export function SetupWizard({
     <div className="wizard-page">
       <section className="wizard-intro">
         <div>
-          <span className="eyebrow dark"><Sparkles size={15}/> Configuración inicial</span>
-          <h1>Prepara el curso {project.academicYear.label}</h1>
+          <h1 className="wizard-page-title"><Sparkles size={28}/> Prepara el curso {project.academicYear.label}</h1>
           <p>Viyeutica usará estos datos como base para grupos, profesorado, reglas, generación y auditoría del horario.</p>
         </div>
         <div className="wizard-progress-summary">
