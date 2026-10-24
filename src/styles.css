@@ -12,10 +12,12 @@
 .wizard-progress-summary small{display:block;margin-top:6px;color:var(--muted);font-size:10px}
 .wizard-stepper{display:grid;grid-template-columns:repeat(9,max-content);gap:7px;overflow-x:auto;padding:2px 1px 8px;scrollbar-width:thin}
 .wizard-step{width:max-content;min-width:0;min-height:62px;padding:9px 10px;border:1px solid var(--border);border-radius:12px;background:#fff;display:flex;align-items:center;gap:8px}
-.wizard-step.active{border-color:#b7daa0;background:#f6fbf2;box-shadow:inset 0 0 0 1px rgba(89,180,17,.12)}
+.wizard-step.done{border-color:#b7daa0;background:#f6fbf2;box-shadow:inset 0 0 0 1px rgba(89,180,17,.12)}
+.wizard-step.active.in-progress{border-color:#efb46d;background:#fff8ef;box-shadow:inset 0 0 0 1px rgba(230,138,35,.14)}
 .wizard-step.locked{opacity:.63}
 .wizard-step-icon{width:29px;height:29px;border-radius:9px;display:grid;place-items:center;flex:0 0 auto;background:#eef2f6;color:#8290a3}
-.wizard-step.active .wizard-step-icon{background:var(--green);color:#14320b}
+.wizard-step.done .wizard-step-icon{background:var(--green);color:#14320b}
+.wizard-step.active.in-progress .wizard-step-icon{background:#e98b23;color:#fff}
 .wizard-step strong,.wizard-step small{display:block;white-space:nowrap}
 .wizard-step strong{font-size:10px}.wizard-step small{font-size:9px;color:var(--muted);margin-top:2px}
 .wizard-layout{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:16px;align-items:start}
@@ -128,7 +130,8 @@
 [data-theme="dark"] .sidebar{background:linear-gradient(180deg,#07101f,#0b1b31);box-shadow:6px 0 28px rgba(0,0,0,.28)}
 [data-theme="dark"] .course-selector,[data-theme="dark"] .notification-button{background:#111a27;border-color:var(--border);color:#dce6f3}
 [data-theme="dark"] .metric-card,[data-theme="dark"] .panel,[data-theme="dark"] .form-card,[data-theme="dark"] .aside-card,[data-theme="dark"] .wizard-step,[data-theme="dark"] .groups-table-card,[data-theme="dark"] .placeholder-page,[data-theme="dark"] .structure-summary-card,[data-theme="dark"] .empty-state-card{background:var(--surface);border-color:var(--border)}
-[data-theme="dark"] .wizard-step.active{background:#162319;border-color:#36562c}
+[data-theme="dark"] .wizard-step.done{background:#162319;border-color:#36562c}
+[data-theme="dark"] .wizard-step.active.in-progress{background:#2a2117;border-color:#7b5125}
 [data-theme="dark"] .wizard-step-icon{background:#1a2432;color:#8898ad}
 [data-theme="dark"] .wizard-step.done .wizard-step-icon{background:#1c3020;color:#83d84b}
 [data-theme="dark"] .eyebrow.dark{background:#172538;color:#9bc8f3}
@@ -200,17 +203,18 @@
 
 /* === Navigable setup stepper === */
 button.wizard-step{font:inherit;color:inherit;text-align:left;cursor:pointer;appearance:none}
-button.wizard-step.available{opacity:1;background:var(--surface)}
-button.wizard-step.available .wizard-step-icon{background:#eef4fb;color:var(--navy2)}
+button.wizard-step.available{opacity:1;background:#f6f9fe;border-color:#cbdcf0}
+button.wizard-step.available .wizard-step-icon{background:#eaf3ff;color:#174f8f}
 button.wizard-step.available:hover{transform:translateY(-1px);border-color:#9db9d5;box-shadow:0 5px 14px rgba(19,52,88,.08)}
-button.wizard-step.done{cursor:pointer}
+button.wizard-step.done{cursor:pointer;background:#f6fbf2;border-color:#b7daa0}
 button.wizard-step.done:hover{transform:translateY(-1px);border-color:#a7d38b}
 button.wizard-step.active{cursor:default}
+button.wizard-step.active.in-progress{background:#fff8ef;border-color:#efb46d}
 button.wizard-step.active:hover{transform:none}
 button.wizard-step.locked,button.wizard-step:disabled{cursor:not-allowed}
 button.wizard-step:focus-visible{outline:3px solid rgba(89,180,17,.22);outline-offset:2px}
-[data-theme="dark"] button.wizard-step.available{background:var(--surface);border-color:var(--border)}
-[data-theme="dark"] button.wizard-step.available .wizard-step-icon{background:#172538;color:#91bde8}
+[data-theme="dark"] button.wizard-step.available{background:#111c2b;border-color:#294a6f}
+[data-theme="dark"] button.wizard-step.available .wizard-step-icon{background:#172b43;color:#91bde8}
 [data-theme="dark"] button.wizard-step.available:hover{border-color:#436589;box-shadow:0 5px 14px rgba(0,0,0,.22)}
 
 
