@@ -903,12 +903,12 @@ main .generated-schedule th strong{
 
 
 /* === Importar Plantilla: cabecera e iconos === */
-.template-page-title{
+.wizard-page-title{
   display:flex;
   align-items:center;
   gap:10px;
 }
-.template-page-title svg{
+.wizard-page-title svg{
   flex:0 0 auto;
 }
 .template-card-heading{
