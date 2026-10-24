@@ -174,8 +174,7 @@ export function SchedulePage({project,navigate}:{project:ViyeuticaProject;naviga
     </AppModal>}
     <section className="wizard-intro">
       <div>
-        <span className="eyebrow dark"><CalendarClock size={15}/> Paso 3 · Tiempo escolar</span>
-        <h1>Jornada y sesiones</h1>
+        <h1 className="wizard-page-title"><CalendarClock size={28}/> Jornada y sesiones</h1>
         <p>Define cuándo puede existir actividad en el centro. Estos tramos serán la rejilla temporal sobre la que trabajará el generador.</p>
       </div>
       <div className="wizard-progress-summary"><strong>3 <span>de 9</span></strong><small>Jornada y sesiones</small></div>
