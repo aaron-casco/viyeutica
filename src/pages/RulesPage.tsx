@@ -418,16 +418,10 @@ export function RulesPage({
               <option value="SOFT">SOFT · preferencia</option>
             </select>
           </Field>
-          <Field label="Código" required>
-            <input value={draft.code} onChange={e=>setDraft({...draft,code:e.target.value.toUpperCase().replace(/\s+/g,'_')})} placeholder="Ej. SIN_SOLAPE_DOCENTE"/>
-          </Field>
           <Field label="Peso">
             <input type="number" min="1" disabled={draft.ruleType==='HARD'} value={draft.ruleType==='HARD'?'':draft.weight} onChange={e=>setDraft({...draft,weight:e.target.value})} placeholder={draft.ruleType==='SOFT'?'Ej. 5':'No aplica'}/>
           </Field>
         </div>
-        <Field label="Descripción" required>
-          <textarea value={draft.description} onChange={e=>setDraft({...draft,description:e.target.value})} placeholder="Describe de forma inequívoca la condición..."/>
-        </Field>
         <section className="rule-condition-builder">
           <div className="rule-condition-builder-heading">
             <span className="panel-kicker">Condición de la regla</span>
@@ -454,13 +448,13 @@ export function RulesPage({
                   .map(([value,label])=><option key={value} value={value}>{label}</option>)}
               </select>
             </Field>
+            <RuleTargetFields draft={draft} project={project} onChange={setDraft}/>
+
             {conditionUses(draft.conditionKind,'comparison')&&<Field label="Comparación">
               <select value={draft.comparison} onChange={e=>setDraft({...draft,comparison:e.target.value})}>
                 {(CONDITION_COMPARISONS[draft.conditionKind]??CONDITION_COMPARISONS.generic).map(value=><option key={value} value={value}>{comparisonLabel(value)}</option>)}
               </select>
             </Field>}
-
-            <RuleTargetFields draft={draft} project={project} onChange={setDraft}/>
 
             {conditionUses(draft.conditionKind,'value')&&<Field label="Valor">
               <input type="number" min="1" value={draft.value} onChange={e=>setDraft({...draft,value:e.target.value})} placeholder="Ej. 2"/>
@@ -469,6 +463,15 @@ export function RulesPage({
 
           <RuleConditionPreview draft={draft} project={project}/>
         </section>
+
+        <div className="form-grid two rule-definition-fields">
+          <Field label="Código" required>
+            <input value={draft.code} onChange={e=>setDraft({...draft,code:e.target.value.toUpperCase().replace(/\s+/g,'_')})} placeholder="Ej. MAX_CONSECUTIVAS_DOCENTE"/>
+          </Field>
+        </div>
+        <Field label="Descripción" required>
+          <textarea value={draft.description} onChange={e=>setDraft({...draft,description:e.target.value})} placeholder="Describe de forma inequívoca qué debe cumplir esta regla..."/>
+        </Field>
 
         {error&&<div className="inline-error">{error}</div>}
 
