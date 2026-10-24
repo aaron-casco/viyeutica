@@ -470,9 +470,7 @@ export function RulesPage({
       return
     }
     const previous=editingId?project.rules.find(rule=>rule.id===editingId):undefined
-    const code=previous&&previous.source!=='manual'
-      ? previous.code
-      : generatedRuleCode(draft,project,editingId)
+    const code=previous?.code??generatedRuleCode(draft,project,editingId)
     const description=(displayedDescription.trim()||automaticDescription).trim()
     const rule:CenterRule={
       id:editingId??uid(),
