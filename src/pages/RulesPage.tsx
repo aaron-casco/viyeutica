@@ -604,12 +604,22 @@ export function RulesPage({
   }
 
   if(!isAssignmentsComplete(project)){
-    return <section className="empty-state-card">
-      <ShieldCheck size={34}/>
-      <h1>Completa primero Asignaciones</h1>
-      <p>Las reglas necesitan una estructura docente y curricular coherente para poder validarse.</p>
-      <button className="btn primary" onClick={()=>navigate('/asignaciones')}>Ir a Asignaciones</button>
-    </section>
+    return <div className="wizard-page rules-page">
+      <section className="wizard-intro">
+        <div>
+          <h1 className="wizard-page-title"><ShieldCheck size={28}/> Reglas</h1>
+          <p>Define qué condiciones son obligatorias (HARD) y qué preferencias debe optimizar el generador (SOFT). Cada regla se guarda de forma estructurada para el solver y la auditoría.</p>
+        </div>
+        <div className="wizard-progress-summary"><strong>7 <span>de 9</span></strong><small>Reglas</small></div>
+      </section>
+      <WizardStepper currentStep={7} project={project} navigate={navigate}/>
+      <section className="empty-state-card">
+        <ShieldCheck size={34}/>
+        <h1>Completa primero Asignaciones</h1>
+        <p>Las reglas necesitan una estructura docente y curricular coherente para poder validarse.</p>
+        <button className="btn primary" onClick={()=>navigate('/asignaciones')}>Ir a Asignaciones</button>
+      </section>
+    </div>
   }
 
   const visible=project.rules.filter(rule=>filter==='all'||rule.ruleType===filter)
