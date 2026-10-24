@@ -83,8 +83,7 @@ export function ExportPage({project,navigate}:{project:ViyeuticaProject;navigate
   return <div className="export-page">
     <section className="wizard-intro">
       <div>
-        <span className="eyebrow dark"><FileOutput size={15}/> Salida y documentación</span>
-        <h1>Exportaciones</h1>
+        <h1 className="wizard-page-title"><FileOutput size={28}/> Exportaciones</h1>
         <p>Descarga la propuesta seleccionada en formatos utilizables por el centro y conserva un respaldo completo del proyecto.</p>
       </div>
       <div className={'export-audit-status '+(official?'passed':'failed')}>
