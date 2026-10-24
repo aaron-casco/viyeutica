@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   Bell, BookOpen, CalendarClock, CalendarDays, ChevronDown, ClipboardCheck,
-  Braces, FileOutput, FileSearch, Gauge, GraduationCap, LayoutGrid, Menu, PanelLeftClose,
+  FileInput, FileOutput, FileSearch, Gauge, GraduationCap, LayoutGrid, Menu, PanelLeftClose,
   ShieldCheck, SlidersHorizontal, Sparkles, Users, X,
 } from 'lucide-react'
 import { Logo } from './components/Logo'
