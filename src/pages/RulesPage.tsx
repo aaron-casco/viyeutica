@@ -63,16 +63,54 @@ const scopes=[
 
 const uid=()=> 'rule_'+crypto.randomUUID()
 
+type ConditionField='comparison'|'teacherId'|'groupId'|'subjectId'|'stage'|'day'|'sessionId'|'value'
+
+const CONDITION_FIELDS:Record<string,ConditionField[]>={
+  generic:['comparison','teacherId','groupId','subjectId','stage','day','sessionId','value'],
+  availability:['comparison','teacherId','groupId','subjectId','day','sessionId'],
+  daily_limit:['comparison','teacherId','groupId','subjectId','value'],
+  consecutive_limit:['comparison','teacherId','groupId','subjectId','value'],
+  fixed_slot:['teacherId','groupId','subjectId','day','sessionId'],
+  avoid_slot:['comparison','teacherId','groupId','subjectId','day','sessionId'],
+  weekly_load:['comparison','teacherId','groupId','subjectId','value'],
+}
+
+const CONDITION_COMPARISONS:Record<string,string[]>={
+  generic:['equals','not_equals','minimum','maximum','avoid','prefer'],
+  availability:['equals','not_equals','prefer'],
+  daily_limit:['maximum','minimum','equals'],
+  consecutive_limit:['maximum','minimum','equals'],
+  fixed_slot:['equals'],
+  avoid_slot:['avoid','prefer'],
+  weekly_load:['maximum','minimum','equals'],
+}
+
+function conditionUses(kind:string,field:ConditionField){
+  return (CONDITION_FIELDS[kind]??CONDITION_FIELDS.generic).includes(field)
+}
+
+function normalizeDraftForCondition(draft:Draft,kind:string):Draft{
+  const next={...draft,conditionKind:kind}
+  const fields=CONDITION_FIELDS[kind]??CONDITION_FIELDS.generic
+  for(const field of ['teacherId','groupId','subjectId','stage','day','sessionId','value'] as ConditionField[]){
+    if(!fields.includes(field)) (next as any)[field]=''
+  }
+  const allowed=CONDITION_COMPARISONS[kind]??CONDITION_COMPARISONS.generic
+  next.comparison=allowed.includes(next.comparison)?next.comparison:allowed[0]
+  return next
+}
+
 function buildParameters(draft:Draft){
   const parameters:Record<string,unknown>={conditionKind:draft.conditionKind}
-  if(draft.teacherId) parameters.teacherId=draft.teacherId
-  if(draft.groupId) parameters.groupId=draft.groupId
-  if(draft.subjectId) parameters.subjectId=draft.subjectId
-  if(draft.stage) parameters.stage=draft.stage
-  if(draft.day) parameters.day=draft.day
-  if(draft.sessionId) parameters.sessionId=draft.sessionId
-  if(draft.value!=='') parameters.value=Number.isNaN(Number(draft.value))?draft.value:Number(draft.value)
-  if(draft.comparison) parameters.comparison=draft.comparison
+  if(conditionUses(draft.conditionKind,'teacherId')&&draft.teacherId) parameters.teacherId=draft.teacherId
+  if(conditionUses(draft.conditionKind,'groupId')&&draft.groupId) parameters.groupId=draft.groupId
+  if(conditionUses(draft.conditionKind,'subjectId')&&draft.subjectId) parameters.subjectId=draft.subjectId
+  if(conditionUses(draft.conditionKind,'stage')&&draft.stage) parameters.stage=draft.stage
+  if(conditionUses(draft.conditionKind,'day')&&draft.day) parameters.day=draft.day
+  if(conditionUses(draft.conditionKind,'sessionId')&&draft.sessionId) parameters.sessionId=draft.sessionId
+  if(conditionUses(draft.conditionKind,'value')&&draft.value!=='') parameters.value=Number.isNaN(Number(draft.value))?draft.value:Number(draft.value)
+  if(conditionUses(draft.conditionKind,'comparison')&&draft.comparison) parameters.comparison=draft.comparison
+  if(draft.conditionKind==='fixed_slot') parameters.comparison='equals'
   return parameters
 }
 
@@ -367,7 +405,7 @@ export function RulesPage({
 
           <div className="form-grid two">
             <Field label="Tipo de condición">
-              <select value={draft.conditionKind} onChange={e=>setDraft({...draft,conditionKind:e.target.value})}>
+              <select value={draft.conditionKind} onChange={e=>setDraft(normalizeDraftForCondition(draft,e.target.value))}>
                 <option value="generic">Condición general</option>
                 <option value="availability">Disponibilidad / indisponibilidad</option>
                 <option value="daily_limit">Límite diario</option>
@@ -377,59 +415,54 @@ export function RulesPage({
                 <option value="weekly_load">Carga semanal</option>
               </select>
             </Field>
-            <Field label="Comparación">
+            {conditionUses(draft.conditionKind,'comparison')&&<Field label="Comparación">
               <select value={draft.comparison} onChange={e=>setDraft({...draft,comparison:e.target.value})}>
-                <option value="equals">Debe ser igual a</option>
-                <option value="not_equals">Debe ser distinto de</option>
-                <option value="minimum">Como mínimo</option>
-                <option value="maximum">Como máximo</option>
-                <option value="avoid">Evitar</option>
-                <option value="prefer">Preferir</option>
+                {(CONDITION_COMPARISONS[draft.conditionKind]??CONDITION_COMPARISONS.generic).map(value=><option key={value} value={value}>{comparisonLabel(value)}</option>)}
               </select>
-            </Field>
+            </Field>}
 
-            <Field label="Profesor/a">
+            {conditionUses(draft.conditionKind,'teacherId')&&<Field label="Profesor/a">
               <select value={draft.teacherId} onChange={e=>setDraft({...draft,teacherId:e.target.value})}>
                 <option value="">Cualquiera / no aplica</option>
                 {project.teachers.filter(t=>t.active).map(t=><option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
-            </Field>
-            <Field label="Grupo">
+            </Field>}
+            {conditionUses(draft.conditionKind,'groupId')&&<Field label="Grupo">
               <select value={draft.groupId} onChange={e=>setDraft({...draft,groupId:e.target.value})}>
                 <option value="">Cualquiera / no aplica</option>
                 {project.groups.filter(g=>g.active).map(g=><option key={g.id} value={g.id}>{g.name}</option>)}
               </select>
-            </Field>
+            </Field>}
 
-            <Field label="Materia">
+            {conditionUses(draft.conditionKind,'subjectId')&&<Field label="Materia">
               <select value={draft.subjectId} onChange={e=>setDraft({...draft,subjectId:e.target.value})}>
                 <option value="">Cualquiera / no aplica</option>
                 {project.subjects.filter(s=>s.active).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
-            </Field>
-            <Field label="Etapa">
+            </Field>}
+            {conditionUses(draft.conditionKind,'stage')&&<Field label="Etapa">
               <select value={draft.stage} onChange={e=>setDraft({...draft,stage:e.target.value})}>
                 <option value="">Cualquiera / no aplica</option>
                 {project.center.stages.map(stage=><option key={stage} value={stage}>{stage}</option>)}
               </select>
-            </Field>
+            </Field>}
 
-            <Field label="Día">
+            {conditionUses(draft.conditionKind,'day')&&<Field label="Día">
               <select value={draft.day} onChange={e=>setDraft({...draft,day:e.target.value})}>
                 <option value="">Cualquiera / no aplica</option>
                 {project.schedule.activeDays.map(day=><option key={day} value={day}>{day==='L'?'Lunes':day==='M'?'Martes':day==='X'?'Miércoles':day==='J'?'Jueves':day==='V'?'Viernes':'Sábado'}</option>)}
               </select>
-            </Field>
-            <Field label="Sesión">
+            </Field>}
+            {conditionUses(draft.conditionKind,'sessionId')&&<Field label="Sesión">
               <select value={draft.sessionId} onChange={e=>setDraft({...draft,sessionId:e.target.value})}>
                 <option value="">Cualquiera / no aplica</option>
                 {project.schedule.blocks.filter(b=>b.active).map(block=><option key={block.id} value={block.id}>{block.label} · {block.start}-{block.end}</option>)}
               </select>
-            </Field>
+            </Field>}
 
-            <Field label="Valor">
-              <input value={draft.value} onChange={e=>setDraft({...draft,value:e.target.value})} placeholder="Ej. 2"/>
-            </Field>
+            {conditionUses(draft.conditionKind,'value')&&<Field label="Valor">
+              <input type="number" min="1" value={draft.value} onChange={e=>setDraft({...draft,value:e.target.value})} placeholder="Ej. 2"/>
+            </Field>}
           </div>
 
           <RuleConditionPreview draft={draft} project={project}/>
