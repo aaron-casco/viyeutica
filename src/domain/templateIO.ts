@@ -19,7 +19,7 @@ export function buildEmptyJsonTemplate(){
     format:'viyeutica-school-project',
     formatVersion:1,
     template:true,
-    instructions:'Completa los datos del proyecto respetando la estructura y vuelve a importarlo en Viyeutica.',
+    instructions:'Completa los datos del proyecto respetando la estructura y vuelve a importarlo en ⩒Yeutika.',
     project:emptyTemplateProject(),
   },null,2)
 }
@@ -88,7 +88,7 @@ function list(value:string){return value.split('|').map(v=>v.trim()).filter(Bool
 
 function workbookRows(text:string){
   const doc=new DOMParser().parseFromString(text,'application/xml')
-  if(doc.querySelector('parsererror'))throw new Error('La hoja de cálculo no tiene un formato de plantilla Viyeutica reconocido.')
+  if(doc.querySelector('parsererror'))throw new Error('La hoja de cálculo no tiene un formato de plantilla ⩒Yeutika reconocido.')
   const result=new Map<string,Record<string,string>[]>()
   for(const sheet of Array.from(doc.getElementsByTagName('Worksheet'))){
     const name=sheet.getAttribute('ss:Name')??sheet.getAttribute('Name')??''
