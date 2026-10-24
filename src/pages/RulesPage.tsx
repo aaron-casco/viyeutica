@@ -40,12 +40,12 @@ interface Draft {
 }
 
 const emptyDraft:Draft={
-  scope:'center',
+  scope:'',
   ruleType:'HARD',
   code:'',
   description:'',
   weight:'',
-  conditionKind:'generic',
+  conditionKind:'',
   teacherId:'',
   teacherIds:[],
   groupId:'',
@@ -58,7 +58,7 @@ const emptyDraft:Draft={
   sessionId:'',
   sessionIds:[],
   value:'',
-  comparison:'equals',
+  comparison:'',
 }
 
 const scopes=[
@@ -82,6 +82,7 @@ const CONDITION_SCOPES:Record<string,string[]>={
 }
 
 function allowedScopes(kind:string){
+  if(!kind)return []
   return CONDITION_SCOPES[kind]??CONDITION_SCOPES.generic
 }
 
@@ -110,13 +111,38 @@ const CONDITION_COMPARISONS:Record<string,string[]>={
 }
 
 function conditionUses(kind:string,field:ConditionField){
+  if(!kind)return false
   return (CONDITION_FIELDS[kind]??CONDITION_FIELDS.generic).includes(field)
 }
 
 function normalizeDraftForCondition(draft:Draft,kind:string):Draft{
-  const allowedScopeValues=allowedScopes(kind)
-  const next={...draft,conditionKind:kind,scope:allowedScopeValues.includes(draft.scope)?draft.scope:allowedScopeValues[0]}
+  if(!kind){
+    return {
+      ...emptyDraft,
+      ruleType:draft.ruleType,
+      weight:draft.ruleType==='SOFT'?draft.weight:'',
+    }
+  }
   const fields=CONDITION_FIELDS[kind]??CONDITION_FIELDS.generic
+  const allowed=CONDITION_COMPARISONS[kind]??CONDITION_COMPARISONS.generic
+  const next:Draft={
+    ...draft,
+    conditionKind:kind,
+    scope:'',
+    comparison:allowed[0]??'',
+    teacherId:'',
+    teacherIds:[],
+    groupId:'',
+    groupIds:[],
+    subjectId:'',
+    subjectIds:[],
+    stage:'',
+    day:'',
+    days:[],
+    sessionId:'',
+    sessionIds:[],
+    value:'',
+  }
   for(const field of ['teacherId','groupId','subjectId','stage','day','sessionId','value'] as ConditionField[]){
     if(!fields.includes(field)){
       (next as any)[field]=''
@@ -124,8 +150,6 @@ function normalizeDraftForCondition(draft:Draft,kind:string):Draft{
       if(plural) (next as any)[plural]=[]
     }
   }
-  const allowed=CONDITION_COMPARISONS[kind]??CONDITION_COMPARISONS.generic
-  next.comparison=allowed.includes(next.comparison)?next.comparison:allowed[0]
   return next
 }
 
@@ -233,6 +257,38 @@ function generatedRuleCode(draft:Draft,project:ViyeuticaProject,editingId:string
   let index=2
   while(used.has(base+'_'+index)) index++
   return base+'_'+index
+}
+
+const PRIORITY_OPTIONS=[
+  {value:'1',label:'Baja'},
+  {value:'3',label:'Normal'},
+  {value:'5',label:'Alta'},
+  {value:'8',label:'Muy alta'},
+  {value:'10',label:'Crítica'},
+] as const
+
+function selectedDraftValues(single:string,multiple:string[]){
+  return multiple.length?multiple:single?[single]:[]
+}
+
+function isRuleDraftReady(draft:Draft){
+  if(!draft.conditionKind||!draft.scope)return false
+  if(draft.ruleType==='SOFT'&&!draft.weight)return false
+
+  const teachers=selectedDraftValues(draft.teacherId,draft.teacherIds)
+  const groups=selectedDraftValues(draft.groupId,draft.groupIds)
+  const subjects=selectedDraftValues(draft.subjectId,draft.subjectIds)
+  const days=selectedDraftValues(draft.day,draft.days)
+  const sessions=selectedDraftValues(draft.sessionId,draft.sessionIds)
+
+  if(draft.scope==='teacher'&&conditionUses(draft.conditionKind,'teacherId')&&!teachers.length)return false
+  if(draft.scope==='group'&&conditionUses(draft.conditionKind,'groupId')&&!groups.length)return false
+  if(draft.scope==='subject'&&conditionUses(draft.conditionKind,'subjectId')&&!subjects.length)return false
+  if(draft.scope==='assignment'&&(!groups.length||!subjects.length||!teachers.length))return false
+  if(conditionUses(draft.conditionKind,'value')&&!draft.value)return false
+  if(draft.conditionKind==='fixed_slot'&&(!days.length||!sessions.length))return false
+  if(draft.conditionKind==='avoid_slot'&&!days.length&&!sessions.length)return false
+  return true
 }
 
 function buildParameters(draft:Draft){
@@ -348,6 +404,10 @@ export function RulesPage({
 
   const submit=(event:FormEvent)=>{
     event.preventDefault()
+    if(!isRuleDraftReady(draft)){
+      setError('Completa los campos indicados por la guía antes de añadir la regla.')
+      return
+    }
     const parameters=buildParameters(draft)
     const weight=draft.ruleType==='SOFT'
       ? Number(draft.weight)
