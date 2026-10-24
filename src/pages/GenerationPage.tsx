@@ -604,7 +604,7 @@ function generationIssueSummary(run:GenerationRun,project:ViyeuticaProject){
   if(!issues.length) return 'La propuesta contiene incidencias técnicas que deben revisarse.'
   const groups=new Set(issues.map(issue=>issue.group))
   const teachers=new Set(issues.map(issue=>issue.teacher))
-  return `${issues.length} incidencias · ${groups.size} grupos afectados · ${teachers.size} docentes implicados`
+  return `${issues.length} ${issues.length===1?'incidencia':'incidencias'} · ${groups.size} ${groups.size===1?'grupo afectado':'grupos afectados'} · ${teachers.size} ${teachers.size===1?'docente implicado':'docentes implicados'}`
 }
 
 function humanGenerationIssues(run:GenerationRun,project:ViyeuticaProject){
