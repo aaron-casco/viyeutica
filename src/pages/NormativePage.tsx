@@ -86,7 +86,7 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
     try{
       const blob=await getNormativeFile(sourceId)
       if(!blob){
-        setViewerError('El documento se cargó antes de que Viyeutica almacenase los archivos originales. Selecciónalo de nuevo y se asociará a esta ficha sin duplicarlo.')
+        setViewerError('El documento se cargó antes de que ⩒Yeutika almacenase los archivos originales. Selecciónalo de nuevo y se asociará a esta ficha sin duplicarlo.')
         return
       }
       const baseUrl=URL.createObjectURL(blob)
@@ -141,7 +141,7 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
     <section className="wizard-intro">
       <div>
         <h1 className="wizard-page-title"><FileSearch size={28}/> Normativa</h1>
-        <p>Carga documentos normativos para que Viyeutica extraiga reglas candidatas. Ninguna regla se utiliza en plantillas hasta que sea revisada y aprobada.</p>
+        <p>Carga documentos normativos para que ⩒Yeutika extraiga reglas candidatas. Ninguna regla se utiliza en plantillas hasta que sea revisada y aprobada.</p>
       </div>
       <div className="normative-kpis">
         <span><strong>{project.normativeSources.length}</strong><small>documentos</small></span>
@@ -156,7 +156,7 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
       <div>
         <span className="panel-kicker">Importar fuente</span>
         <h2>Subir normativa</h2>
-        <p>Compatible actualmente con PDF con texto, TXT y Markdown. El análisis se realiza en el navegador; el archivo no se envía a un servidor de Viyeutica.</p>
+        <p>Compatible actualmente con PDF con texto, TXT y Markdown. El análisis se realiza en el navegador; el archivo no se envía a un servidor de ⩒Yeutika.</p>
       </div>
       <input
         ref={inputRef}
@@ -198,7 +198,7 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
         <AlertTriangle size={20}/>
         <div>
           <strong>Posibles contradicciones normativas</strong>
-          <p>Viyeutica ha detectado reglas equivalentes con valores distintos. Revísalas antes de aprobarlas o convertirlas en reglas del horario.</p>
+          <p>⩒Yeutika ha detectado reglas equivalentes con valores distintos. Revísalas antes de aprobarlas o convertirlas en reglas del horario.</p>
         </div>
       </div>
       <div className="normative-conflict-list">
