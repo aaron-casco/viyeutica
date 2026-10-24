@@ -787,16 +787,20 @@ function MultiCheckSelect({
   searchable?:boolean
 }){
   const [query,setQuery]=useState('')
-  const detailsRef=useRef<HTMLDetailsElement>(null)
+  const [open,setOpen]=useState(false)
+  const rootRef=useRef<HTMLDivElement>(null)
 
   useEffect(()=>{
     const closeOutside=(event:PointerEvent)=>{
-      const details=detailsRef.current
-      if(details?.open&&!details.contains(event.target as Node)) details.open=false
+      if(open&&rootRef.current&&!rootRef.current.contains(event.target as Node)) setOpen(false)
     }
     document.addEventListener('pointerdown',closeOutside)
     return ()=>document.removeEventListener('pointerdown',closeOutside)
-  },[])
+  },[open])
+
+  useEffect(()=>{
+    if(disabled&&open)setOpen(false)
+  },[disabled,open])
 
   const normalized=query.trim().toLowerCase()
   const visibleOptions=normalized
@@ -810,41 +814,63 @@ function MultiCheckSelect({
       : selectedLabels.length+' seleccionados'
 
   const toggle=(value:string)=>{
-    onChange(values.includes(value)?values.filter(item=>item!==value):[...values,value])
+    const next=values.includes(value)
+      ? values.filter(item=>item!==value)
+      : [...values,value]
+    onChange(next)
   }
 
-  return <div className={'availability-compact-field'+(disabled?' disabled':'')}>
+  return <div
+    ref={rootRef}
+    className={'availability-compact-field multicheck-field'+(disabled?' disabled':'')}
+    onBlur={event=>{
+      const next=event.relatedTarget as Node|null
+      if(!next||!event.currentTarget.contains(next))setOpen(false)
+    }}
+  >
     <span>{label}</span>
-    <details
-      ref={detailsRef}
-      className="multicheck-select"
-      onBlur={event=>{
-        const next=event.relatedTarget as Node|null
-        if(!next||!event.currentTarget.contains(next)) event.currentTarget.open=false
-      }}
-    >
-      <summary
+    <div className={'multicheck-select'+(open?' open':'')}>
+      <button
+        type="button"
+        className="multicheck-trigger"
+        aria-expanded={open}
         aria-disabled={disabled}
-        onClick={event=>{if(disabled)event.preventDefault()}}
+        disabled={disabled}
+        onClick={()=>setOpen(current=>!current)}
       >
         <span className={values.length?'has-value':'placeholder'}>{summary}</span>
         <ChevronDown size={16}/>
-      </summary>
-      {!disabled&&<div className="multicheck-menu">
+      </button>
+
+      {open&&!disabled&&<div className="multicheck-menu">
         {searchable&&<div className="multicheck-search">
           <Search size={14}/>
-          <input value={query} onChange={event=>setQuery(event.target.value)} onClick={event=>event.stopPropagation()} placeholder="Buscar..."/>
+          <input
+            value={query}
+            onChange={event=>setQuery(event.target.value)}
+            placeholder="Buscar..."
+          />
         </div>}
+
         <div className="multicheck-options">
           {visibleOptions.map(option=><label key={option.value} className="multicheck-option">
-            <input type="checkbox" checked={values.includes(option.value)} onChange={()=>toggle(option.value)}/>
+            <input
+              type="checkbox"
+              checked={values.includes(option.value)}
+              onChange={()=>toggle(option.value)}
+            />
             <span>{option.label}</span>
           </label>)}
           {!visibleOptions.length&&<div className="multicheck-empty">Sin resultados</div>}
         </div>
-        {values.length>0&&<button type="button" className="multicheck-clear" onClick={()=>onChange([])}>Limpiar selección</button>}
+
+        {values.length>0&&<button
+          type="button"
+          className="multicheck-clear"
+          onClick={()=>onChange([])}
+        >Limpiar selección</button>}
       </div>}
-    </details>
+    </div>
   </div>
 }
 
