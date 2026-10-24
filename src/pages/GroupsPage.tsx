@@ -183,7 +183,7 @@ export function GroupsPage({
     <section className="structure-summary">
       <Summary label="Etapas activas" value={String(allowedStages.length)} detail={allowedStages.join(' · ')}/>
       <Summary label="Niveles creados" value={String(levelTotal)} detail="con al menos un grupo activo"/>
-      <Summary label="Grupos" value={String(activeGroups.length)} detail={groups.length !== activeGroups.length ? `${groups.length-activeGroups.length} inactivos` : 'unidades activas'}/>
+      <Summary label="Grupos" value={String(activeGroups.length)} detail={groups.length !== activeGroups.length ? `${groups.length-activeGroups.length} ${groups.length-activeGroups.length===1?'inactivo':'inactivos'}` : 'unidades activas'}/>
       <Summary label="Alumnado" value={studentTotal ? String(studentTotal) : '—'} detail="total agregado informado"/>
     </section>
 
