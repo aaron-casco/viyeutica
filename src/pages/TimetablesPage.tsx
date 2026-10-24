@@ -364,7 +364,7 @@ function EmptySlotModalContent({
         </div>}
     <div className="empty-slot-footnote">
       <CheckCircle2 size={16}/>
-      <span>Al elegir una opción, Viyeutica registra la franja fija en Asignaciones y la marca como asignada en la disponibilidad docente. Después debe regenerarse el horario.</span>
+      <span>Al elegir una opción, ⩒Yeutika registra la franja fija en Asignaciones y la marca como asignada en la disponibilidad docente. Después debe regenerarse el horario.</span>
     </div>
   </div>
 }
