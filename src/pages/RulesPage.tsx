@@ -771,7 +771,7 @@ export function RulesPage({
 }
 
 function Summary({label,value,detail}:{label:string;value:string;detail:string}){return <article className="structure-summary-card"><span>{label}</span><strong>{value}</strong><small>{detail}</small></article>}
-function Field({label,required,children}:{label:string;required?:boolean;children:React.ReactNode}){return <label className="form-field"><span>{label}{required&&<em>*</em>}</span>{children}</label>}
+function Field({label,required,children}:{label:string;required?:boolean;children:React.ReactNode}){return <div className="form-field"><span>{label}{required&&<em>*</em>}</span>{children}</div>}
 
 interface MultiCheckOption{value:string;label:string}
 
