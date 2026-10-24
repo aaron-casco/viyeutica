@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import {
   CalendarClock, CheckCircle2, ChevronDown, Copy, Pencil, Plus, Save, Search, SlidersHorizontal,
   Trash2, UsersRound,
@@ -587,6 +587,17 @@ function MultiCheckSelect({
   allValue?:string
 }){
   const [query,setQuery]=useState('')
+  const [open,setOpen]=useState(false)
+  const rootRef=useRef<HTMLDivElement>(null)
+
+  useEffect(()=>{
+    const closeOutside=(event:PointerEvent)=>{
+      if(open&&rootRef.current&&!rootRef.current.contains(event.target as Node))setOpen(false)
+    }
+    document.addEventListener('pointerdown',closeOutside)
+    return ()=>document.removeEventListener('pointerdown',closeOutside)
+  },[open])
+
   const normalized=query.trim().toLowerCase()
   const visibleOptions=normalized
     ? options.filter(option=>option.label.toLowerCase().includes(normalized))
@@ -615,20 +626,32 @@ function MultiCheckSelect({
         ? selectedLabels.join(', ')
         : selectedLabels.length+' seleccionados'
 
-  return <div className="availability-compact-field">
+  return <div
+    ref={rootRef}
+    className="availability-compact-field multicheck-field"
+    onBlur={event=>{
+      const next=event.relatedTarget as Node|null
+      if(!next||!event.currentTarget.contains(next))setOpen(false)
+    }}
+  >
     <span>{label}</span>
-    <details className="multicheck-select">
-      <summary>
+    <div className={'multicheck-select'+(open?' open':'')}>
+      <button
+        type="button"
+        className="multicheck-trigger"
+        aria-expanded={open}
+        onClick={()=>setOpen(current=>!current)}
+      >
         <span className={values.length?'has-value':'placeholder'}>{summary}</span>
         <ChevronDown size={16}/>
-      </summary>
-      <div className="multicheck-menu">
+      </button>
+
+      {open&&<div className="multicheck-menu">
         {searchable&&<div className="multicheck-search">
           <Search size={14}/>
           <input
             value={query}
             onChange={event=>setQuery(event.target.value)}
-            onClick={event=>event.stopPropagation()}
             placeholder="Buscar..."
           />
         </div>}
@@ -644,8 +667,8 @@ function MultiCheckSelect({
           {!visibleOptions.length&&<div className="multicheck-empty">Sin resultados</div>}
         </div>
         {values.length>0&&<button type="button" className="multicheck-clear" onClick={()=>onChange([])}>Limpiar selección</button>}
-      </div>
-    </details>
+      </div>}
+    </div>
   </div>
 }
 
