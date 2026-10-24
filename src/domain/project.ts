@@ -455,7 +455,9 @@ export function validateRules(project: ViyeuticaProject) {
     if (kind==='fixed_slot' && (!rule.parameters?.day || !rule.parameters?.sessionId)) {
       errors.push(`La regla "${rule.code || 'sin código'}" de franja fija necesita día y sesión.`)
     }
-    if (kind==='avoid_slot' && !rule.parameters?.day && !rule.parameters?.sessionId) {
+    if (kind==='avoid_slot' && !rule.parameters?.day && !rule.parameters?.sessionId &&
+      !(Array.isArray(rule.parameters?.days) && rule.parameters.days.length) &&
+      !(Array.isArray(rule.parameters?.sessionIds) && rule.parameters.sessionIds.length)) {
       errors.push(`La regla "${rule.code || 'sin código'}" para evitar franja necesita al menos un día o una sesión.`)
     }
     if (rule.source === 'normative' && rule.normativeRuleId) {
