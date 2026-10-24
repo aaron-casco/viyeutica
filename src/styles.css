@@ -925,3 +925,84 @@ main .generated-schedule th strong{
 .template-card-heading p{
   margin:0;
 }
+
+
+/* === Curso académico === */
+.courses-page{display:grid;gap:18px}
+.course-active-card{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:14px;
+  padding:17px;
+  border:1px solid #b9d9aa;
+  border-radius:14px;
+  background:#f5fbf1;
+}
+.course-active-icon{
+  width:44px;height:44px;border-radius:12px;display:grid;place-items:center;
+  background:#e4f2dc;color:#4f773c;
+}
+.course-active-main h2{margin:3px 0 4px;font-size:20px}
+.course-active-main p{margin:0;color:var(--muted)}
+.course-active-stats{display:flex;gap:8px}
+.course-active-stats div{
+  min-width:78px;padding:9px 11px;border:1px solid #d3e6c9;border-radius:10px;background:rgba(255,255,255,.66)
+}
+.course-active-stats span,.course-active-stats strong{display:block}
+.course-active-stats span{font-size:10px;color:var(--muted)}
+.course-active-stats strong{margin-top:2px;font-size:17px}
+.course-actions-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.course-action-card{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  align-items:start;
+  gap:12px;
+  padding:16px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:var(--surface)
+}
+.course-action-icon,.course-history-icon{
+  width:40px;height:40px;border-radius:10px;display:grid;place-items:center;
+  background:#eef3f7;color:var(--navy2)
+}
+.course-action-card h2{margin:0 0 5px;font-size:15px}
+.course-action-card p{margin:0;color:var(--muted);line-height:1.5}
+.course-action-card .btn{grid-column:2;justify-self:start}
+.course-history-card{
+  padding:16px;border:1px solid var(--border);border-radius:14px;background:var(--surface)
+}
+.course-history-empty{
+  display:flex;align-items:center;gap:9px;padding:16px;border:1px dashed var(--border);
+  border-radius:11px;color:var(--muted)
+}
+.course-history-list{display:grid;gap:8px}
+.course-history-list article{
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:11px;
+  padding:11px 12px;border:1px solid var(--border);border-radius:11px
+}
+.course-history-main strong,.course-history-main small,.course-history-main span{display:block}
+.course-history-main small{margin-top:3px;color:var(--muted)}
+.course-history-main span{margin-top:3px;font-size:10px;color:var(--muted)}
+.course-year-field{display:grid;gap:6px;margin-top:15px}
+.course-year-field span{font-weight:800}
+.course-year-field input{
+  width:180px;padding:9px 10px;border:1px solid var(--border);border-radius:9px;
+  background:var(--surface);color:var(--text)
+}
+.course-year-field small{color:var(--muted)}
+[data-theme="dark"] .course-active-card{background:#182718;border-color:#304c2c}
+[data-theme="dark"] .course-active-icon{background:#243820;color:#a8cf98}
+[data-theme="dark"] .course-active-stats div{background:#1d2d1b;border-color:#304c2c}
+[data-theme="dark"] .course-action-icon,[data-theme="dark"] .course-history-icon{background:#202b39}
+@media(max-width:900px){
+  .course-active-card{grid-template-columns:auto 1fr}
+  .course-active-stats{grid-column:1/-1}
+}
+@media(max-width:700px){
+  .course-actions-grid{grid-template-columns:1fr}
+  .course-history-list article{grid-template-columns:auto 1fr}
+  .course-history-list article .btn{grid-column:1/-1;justify-self:end}
+  .course-active-stats{display:grid;grid-template-columns:repeat(3,1fr)}
+}
