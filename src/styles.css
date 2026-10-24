@@ -1456,3 +1456,20 @@ main .generated-schedule th strong{
   background:#2d2417;
   border-color:#5f4b2e;
 }
+
+
+/* === Reglas: ayuda de prioridad y estados progresivos === */
+.field-help{
+  display:block;
+  margin-top:5px;
+  color:var(--muted);
+  font-size:10px;
+  line-height:1.35;
+}
+.form-field select:disabled,
+.form-field input:disabled,
+.form-field textarea:disabled{
+  cursor:not-allowed;
+  opacity:.68;
+  background:var(--surface-subtle,#f5f7fa);
+}
