@@ -8,6 +8,7 @@ import { Logo } from './components/Logo'
 import { PlaceholderPage } from './components/PlaceholderPage'
 import { ThemeToggle } from './components/ThemeToggle'
 import { Dashboard } from './pages/Dashboard'
+import { CoursesPage } from './pages/CoursesPage'
 import { SetupWizard } from './pages/SetupWizard'
 import { GroupsPage } from './pages/GroupsPage'
 import { SchedulePage } from './pages/SchedulePage'
@@ -88,6 +89,7 @@ export default function App() {
 
   const renderContent = () => {
     if (route === '/') return <Dashboard navigate={go} project={project}/>
+    if (route === '/cursos') return <CoursesPage project={project} navigate={go}/>
     if (route === '/centro') return <SetupWizard project={project} navigate={go}/>
     if (route === '/grupos') return <GroupsPage project={project} navigate={go}/>
     if (route === '/jornada') return <SchedulePage project={project} navigate={go}/>
