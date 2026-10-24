@@ -942,16 +942,21 @@ function ruleDisplayName(rule:CenterRule){
 function describeParameters(rule:CenterRule, project:ViyeuticaProject){
   const p=rule.parameters??{}
   const parts:string[]=[]
-  const teacher=project.teachers.find(item=>item.id===p.teacherId)
-  const group=project.groups.find(item=>item.id===p.groupId)
-  const subject=project.subjects.find(item=>item.id===p.subjectId)
-  const block=project.schedule.blocks.find(item=>item.id===p.sessionId)
-  if(teacher) parts.push('Profesor: '+teacher.name)
-  if(group) parts.push('Grupo: '+group.name)
-  if(subject) parts.push('Materia: '+subject.name)
+  const teacherIds=Array.isArray(p.teacherIds)?p.teacherIds.map(String):p.teacherId?[String(p.teacherId)]:[]
+  const groupIds=Array.isArray(p.groupIds)?p.groupIds.map(String):p.groupId?[String(p.groupId)]:[]
+  const subjectIds=Array.isArray(p.subjectIds)?p.subjectIds.map(String):p.subjectId?[String(p.subjectId)]:[]
+  const days=Array.isArray(p.days)?p.days.map(String):p.day?[String(p.day)]:[]
+  const sessionIds=Array.isArray(p.sessionIds)?p.sessionIds.map(String):p.sessionId?[String(p.sessionId)]:[]
+  const teacherNames=teacherIds.map(id=>project.teachers.find(item=>item.id===id)?.name).filter(Boolean)
+  const groupNames=groupIds.map(id=>project.groups.find(item=>item.id===id)?.name).filter(Boolean)
+  const subjectNames=subjectIds.map(id=>project.subjects.find(item=>item.id===id)?.name).filter(Boolean)
+  const blockNames=sessionIds.map(id=>project.schedule.blocks.find(item=>item.id===id)?.label).filter(Boolean)
+  if(teacherNames.length) parts.push('Profesorado: '+teacherNames.join(', '))
+  if(groupNames.length) parts.push('Grupos: '+groupNames.join(', '))
+  if(subjectNames.length) parts.push('Materias: '+subjectNames.join(', '))
   if(p.stage) parts.push('Etapa: '+String(p.stage))
-  if(p.day) parts.push('Día: '+dayName(String(p.day)))
-  if(block) parts.push('Sesión: '+block.label)
+  if(days.length) parts.push('Días: '+days.map(dayName).join(', '))
+  if(blockNames.length) parts.push('Sesiones: '+blockNames.join(', '))
   if(p.value!==undefined) parts.push(comparisonLabel(String(p.comparison??'equals'))+' '+String(p.value))
   return parts.length?parts.join(' · '):'Sin condiciones específicas'
 }
