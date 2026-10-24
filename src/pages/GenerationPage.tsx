@@ -17,6 +17,12 @@ import {
 } from '../domain/project'
 import { generateSchedule } from '../domain/generationEngine'
 import { saveProject } from '../store/projectStorage'
+import {
+  clearGenerationUndo,
+  loadGenerationUndo,
+  saveGenerationUndo,
+  type GenerationUndoSnapshot,
+} from '../store/generationUndoStorage'
 import { WizardStepper } from '../components/WizardStepper'
 import { AppModal } from '../components/AppModal'
 
@@ -55,6 +61,16 @@ export function GenerationPage({
   const [generationAlternatives,setGenerationAlternatives]=useState<GenerationAlternative[]>([])
   const [visibleAlternatives,setVisibleAlternatives]=useState(3)
   const [appliedAlternative,setAppliedAlternative]=useState('')
+  const [undoSnapshot,setUndoSnapshot]=useState<GenerationUndoSnapshot|null>(()=>loadGenerationUndo())
+  const [simulatingAlternativeId,setSimulatingAlternativeId]=useState('')
+  const [alternativeSimulation,setAlternativeSimulation]=useState<Record<string,{
+    valid:boolean
+    emptySlots:number
+    hardViolations:number
+    softPenalty:number
+    placedSessions:number
+    requestedSessions:number
+  }>>({})
 
   const runs=uniqueGenerationRuns(project.generationRuns)
   const selectedRun=runs.find(run=>run.id===selectedRunId)??runs[runs.length-1]??latestGeneration(project)
@@ -158,50 +174,87 @@ export function GenerationPage({
   const runGeneration=()=>generateProposals(runs.length===0?'initial':'add')
   const regenerateThree=()=>generateProposals('replace')
 
-  const applyGenerationAlternative=(alternative:GenerationAlternative)=>{
+  const projectWithAlternative=(base:ViyeuticaProject,alternative:GenerationAlternative)=>{
     const action=alternative.action
-    let nextProject:ViyeuticaProject=project
 
     if(action.kind==='increase_load'){
-      const studyPlan=project.studyPlan.map(entry=>
+      const studyPlan=base.studyPlan.map(entry=>
         entry.active&&entry.groupId===action.groupId&&entry.subjectId===action.subjectId
           ? {...entry,weeklySessions:(entry.weeklySessions??0)+1}
           : entry
       )
-      const assignments=project.assignments.map(assignment=>
+      const assignments=base.assignments.map(assignment=>
         assignment.id===action.assignmentId
           ? {...assignment,weeklySessions:(assignment.weeklySessions??0)+1}
           : assignment
       )
-      nextProject={...project,studyPlan,assignments,generationRuns:[],selectedGenerationRunId:null}
+      return {...base,studyPlan,assignments,generationRuns:[],selectedGenerationRunId:null}
     }
 
     if(action.kind==='free_availability'){
-      const teacherAvailability=project.teacherAvailability.map(item=>
+      const teacherAvailability=base.teacherAvailability.map(item=>
         item.teacherId===action.teacherId&&item.day===action.day&&item.session===action.sessionId
           ? {...item,status:'available' as const,detail:'Disponibilidad ajustada desde una alternativa de Generación.'}
           : item
       )
-      nextProject={...project,teacherAvailability,generationRuns:[],selectedGenerationRunId:null}
+      return {...base,teacherAvailability,generationRuns:[],selectedGenerationRunId:null}
     }
 
-    if(action.kind==='fix_slot'){
-      const assignments=project.assignments.map(assignment=>{
-        if(assignment.id!==action.assignmentId)return assignment
-        const fixedSlots=[...(assignment.fixedSlots??[])]
-        if(!fixedSlots.some(item=>item.day===action.day&&item.session===action.sessionId)){
-          fixedSlots.push({day:action.day,session:action.sessionId})
-        }
-        return {...assignment,fixedSlots}
-      })
-      nextProject={...project,assignments,generationRuns:[],selectedGenerationRunId:null}
-    }
+    const assignments=base.assignments.map(assignment=>{
+      if(assignment.id!==action.assignmentId)return assignment
+      const fixedSlots=[...(assignment.fixedSlots??[])]
+      if(!fixedSlots.some(item=>item.day===action.day&&item.session===action.sessionId)){
+        fixedSlots.push({day:action.day,session:action.sessionId})
+      }
+      return {...assignment,fixedSlots}
+    })
+    return {...base,assignments,generationRuns:[],selectedGenerationRunId:null}
+  }
 
+  const simulateGenerationAlternative=(alternative:GenerationAlternative)=>{
+    if(simulatingAlternativeId)return
+    setSimulatingAlternativeId(alternative.id)
+    window.setTimeout(()=>{
+      const simulatedProject=projectWithAlternative(project,alternative)
+      const result=generateSchedule(simulatedProject,70,9000+generationAlternatives.findIndex(item=>item.id===alternative.id))
+      setAlternativeSimulation(current=>({
+        ...current,
+        [alternative.id]:{
+          valid:isGenerationProposalValid(simulatedProject,result),
+          emptySlots:emptyGroupTeachingSlots(simulatedProject,result).length,
+          hardViolations:result.hardViolations,
+          softPenalty:result.softPenalty,
+          placedSessions:result.placedSessions,
+          requestedSessions:result.requestedSessions,
+        },
+      }))
+      setSimulatingAlternativeId('')
+    },20)
+  }
+
+  const applyGenerationAlternative=(alternative:GenerationAlternative)=>{
+    const snapshot=saveGenerationUndo(project,alternative.title)
+    setUndoSnapshot(snapshot)
+    const nextProject=projectWithAlternative(project,alternative)
     saveProject(nextProject)
     setSelectedRunId('')
     setAppliedAlternative(alternative.title+' aplicada. Los horarios anteriores se han eliminado porque la configuración ha cambiado.')
     setGenerationAlternatives([])
+    setAlternativeSimulation({})
     setGenerationNotice('Configuración actualizada. Vuelve a generar para comprobar si ya existe una solución válida sin huecos.')
+  }
+
+  const undoLastGenerationChange=()=>{
+    const snapshot=loadGenerationUndo()
+    if(!snapshot)return
+    saveProject(structuredClone(snapshot.project))
+    clearGenerationUndo()
+    setUndoSnapshot(null)
+    setAppliedAlternative('Se ha restaurado la configuración anterior al último cambio.')
+    setGenerationNotice('Se ha deshecho la última alternativa aplicada.')
+    setGenerationAlternatives([])
+    setAlternativeSimulation({})
+    setSelectedRunId(snapshot.project.selectedGenerationRunId??'')
   }
 
   const clearRuns=()=>{
@@ -255,7 +308,14 @@ export function GenerationPage({
     </section>
 
     {generationNotice&&<section className="generation-uniqueness-notice"><Info size={18}/><span>{generationNotice}</span></section>}
-    {appliedAlternative&&<section className="template-result generation-applied-alternative"><CheckCircle2 size={18}/><span>{appliedAlternative}</span><button className="btn primary" disabled={running} onClick={runGeneration}>{running?'Generando...':'Generar de nuevo'}</button></section>}
+    {appliedAlternative&&<section className="template-result generation-applied-alternative">
+      <CheckCircle2 size={18}/>
+      <span>{appliedAlternative}</span>
+      <div className="generation-applied-actions">
+        {undoSnapshot&&<button className="btn secondary-light" onClick={undoLastGenerationChange}>Deshacer último cambio</button>}
+        <button className="btn primary" disabled={running} onClick={runGeneration}>{running?'Generando...':'Generar de nuevo'}</button>
+      </div>
+    </section>}
 
     {generationAlternatives.length>0&&<section className="generation-alternatives">
       <div className="groups-table-heading">
@@ -268,8 +328,17 @@ export function GenerationPage({
           <div className="generation-alternative-copy"><strong>{item.title}</strong><p>{item.detail}</p></div>
           <div className="generation-alternative-actions">
             <button className="btn ghost-inline" onClick={()=>navigate(item.route)}>Ver datos</button>
+            <button className="btn secondary-light" disabled={Boolean(simulatingAlternativeId)} onClick={()=>simulateGenerationAlternative(item)}>
+              {simulatingAlternativeId===item.id?'Simulando...':'Simular'}
+            </button>
             <button className="btn primary" onClick={()=>applyGenerationAlternative(item)}>Aplicar</button>
           </div>
+          {alternativeSimulation[item.id]&&<div className={'generation-alternative-impact '+(alternativeSimulation[item.id].valid?'valid':'invalid')}>
+            <strong>{alternativeSimulation[item.id].valid?'La simulación encuentra una propuesta válida':'La simulación todavía detecta bloqueos'}</strong>
+            <span>
+              {alternativeSimulation[item.id].emptySlots} huecos · {alternativeSimulation[item.id].hardViolations} HARD · SOFT {alternativeSimulation[item.id].softPenalty} · {alternativeSimulation[item.id].placedSessions}/{alternativeSimulation[item.id].requestedSessions} sesiones
+            </span>
+          </div>}
         </article>)}
       </div>
     </section>}
