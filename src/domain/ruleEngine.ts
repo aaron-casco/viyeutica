@@ -8,6 +8,7 @@ import type {
 export interface RuleSlot {
   day: Weekday
   sessionId: string
+  order?: number
 }
 
 export function ruleConditionKind(rule:CenterRule){
@@ -48,16 +49,28 @@ export function ruleSlotMatches(rule:CenterRule,slot:RuleSlot){
   return true
 }
 
+function entryMatchesScope(entry:GeneratedScheduleEntry,assignment:TeachingAssignment,scope:string){
+  if(scope==='teacher') return entry.teacherId===assignment.teacherId
+  if(scope==='group') return entry.groupId===assignment.groupId
+  if(scope==='subject') return entry.subjectId===assignment.subjectId&&entry.groupId===assignment.groupId
+  return true
+}
+
 export function countRuleScopeOnDay(
   entries:GeneratedScheduleEntry[],
   assignment:TeachingAssignment,
   day:Weekday,
   scope:string,
 ){
-  if(scope==='teacher') return entries.filter(e=>e.day===day&&e.teacherId===assignment.teacherId).length
-  if(scope==='group') return entries.filter(e=>e.day===day&&e.groupId===assignment.groupId).length
-  if(scope==='subject') return entries.filter(e=>e.day===day&&e.subjectId===assignment.subjectId&&e.groupId===assignment.groupId).length
-  return entries.filter(e=>e.day===day).length
+  return entries.filter(entry=>entry.day===day&&entryMatchesScope(entry,assignment,scope)).length
+}
+
+export function countRuleScopeWeekly(
+  entries:GeneratedScheduleEntry[],
+  assignment:TeachingAssignment,
+  scope:string,
+){
+  return entries.filter(entry=>entryMatchesScope(entry,assignment,scope)).length
 }
 
 export function violatesAvoidRule(rule:CenterRule,assignment:TeachingAssignment,slot:RuleSlot){
@@ -78,6 +91,53 @@ export function violatesDailyLimitRule(
   if(value===null) return false
   const count=countRuleScopeOnDay(entries,assignment,slot.day,rule.scope)
   return ruleComparison(rule)==='maximum'&&count>=value
+}
+
+export function violatesWeeklyLoadRule(
+  rule:CenterRule,
+  assignment:TeachingAssignment,
+  entries:GeneratedScheduleEntry[],
+){
+  if(ruleConditionKind(rule)!=='weekly_load'||!ruleMatchesAssignment(rule,assignment)) return false
+  const value=ruleNumericValue(rule)
+  if(value===null) return false
+  const count=countRuleScopeWeekly(entries,assignment,rule.scope)
+  return ruleComparison(rule)==='maximum'&&count>=value
+}
+
+export function consecutiveRunLength(
+  entries:GeneratedScheduleEntry[],
+  assignment:TeachingAssignment,
+  slot:RuleSlot,
+  scope:string,
+  orderBySession:Map<string,number>,
+){
+  const currentOrder=slot.order??orderBySession.get(slot.sessionId)
+  if(currentOrder===undefined) return 1
+  const occupied=new Set<number>([currentOrder])
+  for(const entry of entries){
+    if(entry.day!==slot.day||!entryMatchesScope(entry,assignment,scope)) continue
+    const order=orderBySession.get(entry.sessionId)
+    if(order!==undefined) occupied.add(order)
+  }
+  let length=1
+  for(let order=currentOrder-1;occupied.has(order);order--) length++
+  for(let order=currentOrder+1;occupied.has(order);order++) length++
+  return length
+}
+
+export function violatesConsecutiveLimitRule(
+  rule:CenterRule,
+  assignment:TeachingAssignment,
+  slot:RuleSlot,
+  entries:GeneratedScheduleEntry[],
+  orderBySession:Map<string,number>,
+){
+  if(ruleConditionKind(rule)!=='consecutive_limit'||!ruleMatchesAssignment(rule,assignment)) return false
+  const value=ruleNumericValue(rule)
+  if(value===null) return false
+  const run=consecutiveRunLength(entries,assignment,slot,rule.scope,orderBySession)
+  return ruleComparison(rule)==='maximum'&&run>value
 }
 
 export function fixedSlotFromRule(rule:CenterRule,assignment:TeachingAssignment){
@@ -107,6 +167,12 @@ export function softRulePlacementCost(
     if(cmp==='maximum'&&count>=value) cost+=weight*(count-value+1)*4
     if(cmp==='minimum'&&count<value) cost+=weight
   }
+  if(kind==='weekly_load'&&ruleNumericValue(rule)!==null){
+    const count=countRuleScopeWeekly(entries,assignment,rule.scope)
+    const value=ruleNumericValue(rule)!
+    if(cmp==='maximum'&&count>=value) cost+=weight*(count-value+1)*4
+    if(cmp==='minimum'&&count<value) cost+=weight
+  }
   return cost
 }
 
@@ -122,7 +188,9 @@ const STRUCTURED_EVALUABLE_KINDS=new Set([
   'avoid_slot',
   'availability',
   'daily_limit',
+  'consecutive_limit',
   'fixed_slot',
+  'weekly_load',
 ])
 
 export function isRuleAutomaticallyEvaluable(rule:CenterRule){
