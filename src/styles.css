@@ -1245,3 +1245,79 @@ main .generated-schedule th strong{
   .availability-detail-field{grid-column:auto}
   .availability-submit{width:100%}
 }
+
+
+/* === Normativa: referencias y contradicciones === */
+.normative-kpis .warning{
+  border-color:#e8c58f;
+  background:#fff9ef;
+}
+.normative-conflicts-card{
+  display:grid;
+  gap:12px;
+  padding:15px;
+  border:1px solid #e8c58f;
+  border-radius:14px;
+  background:#fff9ef;
+}
+.normative-conflicts-heading{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  color:#8b5b16;
+}
+.normative-conflicts-heading strong{display:block}
+.normative-conflicts-heading p{margin:3px 0 0;color:var(--muted)}
+.normative-conflict-list{
+  display:grid;
+  gap:7px;
+}
+.normative-conflict-list article{
+  display:flex;
+  align-items:flex-start;
+  gap:9px;
+  padding:8px 10px;
+  border-radius:9px;
+  background:rgba(255,255,255,.6);
+}
+.normative-conflict-list article>span{
+  flex:0 0 auto;
+  width:22px;
+  height:22px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  background:#f0d4a7;
+  color:#6f4812;
+  font-size:10px;
+  font-weight:800;
+}
+.normative-conflict-list p{margin:1px 0 0}
+.normative-reference{
+  font-weight:800;
+  background:#eef3f7;
+  color:var(--navy2);
+}
+.normative-conflict-badge{
+  display:inline-flex!important;
+  align-items:center;
+  gap:4px;
+  background:#fff1d6!important;
+  color:#8b5b16!important;
+  border:1px solid #e8c58f!important;
+}
+[data-theme="dark"] .normative-kpis .warning,
+[data-theme="dark"] .normative-conflicts-card{
+  background:#2d2417;
+  border-color:#5f4b2e;
+}
+[data-theme="dark"] .normative-conflicts-heading,
+[data-theme="dark"] .normative-conflict-badge{
+  color:#e8c17b!important;
+}
+[data-theme="dark"] .normative-conflict-list article{
+  background:rgba(255,255,255,.03);
+}
+[data-theme="dark"] .normative-reference{
+  background:#202b39;
+}
