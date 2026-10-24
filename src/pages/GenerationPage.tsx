@@ -542,7 +542,9 @@ function humanGenerationIssues(run:GenerationRun,project:ViyeuticaProject){
       const teacher=project.teachers.find(item=>item.id===issue.teacherId)?.name??'Docente no identificado'
       const assignment=project.assignments.find(item=>item.id===issue.assignmentId)
       const type=assignment?.assignmentType==='support'?'apoyo':assignment?.assignmentType==='co_teaching'?'codocencia':'docencia'
-      const reason=explainGenerationCause(project,issue.teacherId,issue.groupId,issue.subjectId)
+      const reason=issue.diagnostics
+        ? explainGenerationDiagnostics(project,issue.teacherId,issue.diagnostics)
+        : explainGenerationCause(project,issue.teacherId,issue.groupId,issue.subjectId)
       return {
         id:issue.id,
         group,
@@ -569,6 +571,30 @@ function humanGenerationIssues(run:GenerationRun,project:ViyeuticaProject){
   }))
 }
 
+function explainGenerationDiagnostics(
+  project:ViyeuticaProject,
+  teacherId:string,
+  diagnostics:{
+    candidateSlots:number
+    unavailableCount:number
+    groupBusyCount:number
+    teacherBusyCount:number
+    hardRuleCount:number
+    fixedTarget:boolean
+  },
+){
+  const teacher=project.teachers.find(item=>item.id===teacherId)?.name??'El docente'
+  const parts:string[]=[]
+
+  if(diagnostics.fixedTarget) parts.push('la sesión estaba condicionada por una franja fija')
+  if(diagnostics.unavailableCount) parts.push(teacher+' no estaba disponible en '+diagnostics.unavailableCount+' de '+diagnostics.candidateSlots+' franjas candidatas')
+  if(diagnostics.groupBusyCount) parts.push('el grupo ya estaba ocupado en '+diagnostics.groupBusyCount+' franjas')
+  if(diagnostics.teacherBusyCount) parts.push(teacher+' ya tenía otra sesión en '+diagnostics.teacherBusyCount+' franjas')
+  if(diagnostics.hardRuleCount) parts.push(diagnostics.hardRuleCount+' franjas quedaban descartadas por reglas HARD')
+  if(!parts.length) parts.push('las combinaciones candidatas restantes no permitían una colocación compatible')
+
+  return parts.join('; ')+'.'
+}
 function explainGenerationCause(project:ViyeuticaProject,teacherId:string,groupId:string,subjectId:string){
   const teacher=project.teachers.find(item=>item.id===teacherId)
   const blocked=project.teacherAvailability.filter(item=>item.teacherId===teacherId&&(item.status==='unavailable'||item.status==='travel')).length
@@ -614,7 +640,7 @@ function GenerationIssuesModal({
             <span>{issue.group}</span><span>{issue.subject}</span><span>{issue.teacher}</span>
           </div>
           <p><b>Por qué puede ocurrir:</b> {issue.reason}</p>
-          <p><b>Qué revisar:</b> disponibilidad del docente, franjas fijas, número de sesiones exigidas y reglas HARD que afecten a este grupo o materia.</p>
+          <p><b>Qué revisar:</b> disponibilidad del docente, ocupación del grupo, franjas fijas, número de sesiones exigidas y reglas HARD que afecten a este grupo o materia.</p>
         </div>
       </article>)}
     </div>
