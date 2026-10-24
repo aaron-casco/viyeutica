@@ -272,7 +272,7 @@ function selectedDraftValues(single:string,multiple:string[]){
   return multiple.length?multiple:single?[single]:[]
 }
 
-function isRuleDraftReady(draft:Draft){
+function isRuleDraftReady(draft:Draft,project:ViyeuticaProject){
   if(!draft.conditionKind||!draft.scope)return false
   if(draft.ruleType==='SOFT'&&!draft.weight)return false
 
@@ -281,14 +281,39 @@ function isRuleDraftReady(draft:Draft){
   const subjects=selectedDraftValues(draft.subjectId,draft.subjectIds)
   const days=selectedDraftValues(draft.day,draft.days)
   const sessions=selectedDraftValues(draft.sessionId,draft.sessionIds)
+  const activeAssignments=project.assignments.filter(item=>item.active)
 
   if(draft.scope==='teacher'&&conditionUses(draft.conditionKind,'teacherId')&&!teachers.length)return false
   if(draft.scope==='group'&&conditionUses(draft.conditionKind,'groupId')&&!groups.length)return false
   if(draft.scope==='subject'&&conditionUses(draft.conditionKind,'subjectId')&&!subjects.length)return false
   if(draft.scope==='assignment'&&(!groups.length||!subjects.length||!teachers.length))return false
+
+  if(draft.scope==='teacher'&&conditionUses(draft.conditionKind,'groupId')&&teachers.length){
+    if(!groups.length)return false
+    const allTeachersCovered=teachers.every(teacherId=>
+      activeAssignments.some(item=>item.teacherId===teacherId&&groups.includes(item.groupId))
+    )
+    if(!allTeachersCovered)return false
+  }
+
+  if(draft.scope==='teacher'&&conditionUses(draft.conditionKind,'subjectId')&&teachers.length&&groups.length){
+    if(!subjects.length)return false
+    const allTeachersCoveredBySubject=teachers.every(teacherId=>
+      activeAssignments.some(item=>
+        item.teacherId===teacherId&&
+        groups.includes(item.groupId)&&
+        subjects.includes(item.subjectId)
+      )
+    )
+    if(!allTeachersCoveredBySubject)return false
+  }
+
+  if(draft.scope==='group'&&conditionUses(draft.conditionKind,'subjectId')&&groups.length&&!subjects.length)return false
+  if(draft.scope==='subject'&&conditionUses(draft.conditionKind,'groupId')&&subjects.length&&!groups.length)return false
+
   if(conditionUses(draft.conditionKind,'value')&&!draft.value)return false
   if(draft.conditionKind==='fixed_slot'&&(!days.length||!sessions.length))return false
-  if(draft.conditionKind==='avoid_slot'&&!days.length&&!sessions.length)return false
+  if(['avoid_slot','availability'].includes(draft.conditionKind)&&!days.length&&!sessions.length)return false
   return true
 }
 
@@ -401,7 +426,7 @@ export function RulesPage({
 
   const submit=(event:FormEvent)=>{
     event.preventDefault()
-    if(!isRuleDraftReady(draft)){
+    if(!isRuleDraftReady(draft,project)){
       setError('Completa los campos indicados por la guía antes de añadir la regla.')
       return
     }
@@ -690,7 +715,7 @@ export function RulesPage({
           <button type="button" className="btn secondary-light" onClick={()=>navigate('/asignaciones')}>Paso anterior</button>
           <div className="form-actions-right">
             {editingId&&<button type="button" className="btn ghost-inline" onClick={reset}>Cancelar</button>}
-            <button className="btn primary" type="submit" disabled={!isRuleDraftReady(draft)}><Save size={16}/>{editingId?'Guardar cambios':'Añadir regla'}</button>
+            <button className="btn primary" type="submit" disabled={!isRuleDraftReady(draft,project)}><Save size={16}/>{editingId?'Guardar cambios':'Añadir regla'}</button>
           </div>
         </div>
       </form>
