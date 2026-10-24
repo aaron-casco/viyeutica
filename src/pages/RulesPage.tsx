@@ -272,6 +272,10 @@ function selectedDraftValues(single:string,multiple:string[]){
   return multiple.length?multiple:single?[single]:[]
 }
 
+function conditionUsesTeachingCoverage(kind:string){
+  return ['daily_limit','consecutive_limit','weekly_load'].includes(kind)
+}
+
 function isRuleDraftReady(draft:Draft,project:ViyeuticaProject){
   if(!draft.conditionKind||!draft.scope)return false
   if(draft.ruleType==='SOFT'&&!draft.weight)return false
@@ -288,7 +292,7 @@ function isRuleDraftReady(draft:Draft,project:ViyeuticaProject){
   if(draft.scope==='subject'&&conditionUses(draft.conditionKind,'subjectId')&&!subjects.length)return false
   if(draft.scope==='assignment'&&(!groups.length||!subjects.length||!teachers.length))return false
 
-  if(draft.scope==='teacher'&&conditionUses(draft.conditionKind,'groupId')&&teachers.length){
+  if(conditionUsesTeachingCoverage(draft.conditionKind)&&draft.scope==='teacher'&&conditionUses(draft.conditionKind,'groupId')&&teachers.length){
     if(!groups.length)return false
     const allTeachersCovered=teachers.every(teacherId=>
       activeAssignments.some(item=>item.teacherId===teacherId&&groups.includes(item.groupId))
@@ -296,7 +300,7 @@ function isRuleDraftReady(draft:Draft,project:ViyeuticaProject){
     if(!allTeachersCovered)return false
   }
 
-  if(draft.scope==='teacher'&&conditionUses(draft.conditionKind,'subjectId')&&teachers.length&&groups.length){
+  if(conditionUsesTeachingCoverage(draft.conditionKind)&&draft.scope==='teacher'&&conditionUses(draft.conditionKind,'subjectId')&&teachers.length&&groups.length){
     if(!subjects.length)return false
     const allTeachersCoveredBySubject=teachers.every(teacherId=>
       activeAssignments.some(item=>
@@ -308,8 +312,8 @@ function isRuleDraftReady(draft:Draft,project:ViyeuticaProject){
     if(!allTeachersCoveredBySubject)return false
   }
 
-  if(draft.scope==='group'&&conditionUses(draft.conditionKind,'subjectId')&&groups.length&&!subjects.length)return false
-  if(draft.scope==='subject'&&conditionUses(draft.conditionKind,'groupId')&&subjects.length&&!groups.length)return false
+  if(conditionUsesTeachingCoverage(draft.conditionKind)&&draft.scope==='group'&&conditionUses(draft.conditionKind,'subjectId')&&groups.length&&!subjects.length)return false
+  if(conditionUsesTeachingCoverage(draft.conditionKind)&&draft.scope==='subject'&&conditionUses(draft.conditionKind,'groupId')&&subjects.length&&!groups.length)return false
 
   if(conditionUses(draft.conditionKind,'value')&&!draft.value)return false
   if(draft.conditionKind==='fixed_slot'&&(!days.length||!sessions.length))return false
@@ -1297,6 +1301,20 @@ function RuleConditionGuide({draft,project}:{draft:Draft;project:ViyeuticaProjec
       title=`Selecciona Profesor/a para ${condition}`
       message='Completa la asignación seleccionando el docente correspondiente.'
     }else if(
+      conditionUsesTeachingCoverage(draft.conditionKind)&&
+      draft.scope==='teacher'&&
+      teachers.length===1&&
+      conditionUses(draft.conditionKind,'groupId')&&
+      groups.length===0
+    ){
+      const availableGroups=teacherCoverage[0]?.groupIds.map(groupName)??[]
+      title=`Selecciona Grupo para ${condition}`
+      message=availableGroups.length
+        ? `${selectedNames(teachers,project.teachers)} tiene asignados los grupos: ${availableGroups.join(', ')}. Selecciona el grupo o grupos a los que quieres aplicar la regla.`
+        : `${selectedNames(teachers,project.teachers)} no tiene grupos activos asociados en Asignaciones.`
+      tone='partial'
+    }else if(
+      conditionUsesTeachingCoverage(draft.conditionKind)&&
       draft.scope==='teacher'&&
       teachers.length>1&&
       conditionUses(draft.conditionKind,'groupId')&&
@@ -1317,6 +1335,7 @@ function RuleConditionGuide({draft,project}:{draft:Draft;project:ViyeuticaProjec
         tone='partial'
       }
     }else if(
+      conditionUsesTeachingCoverage(draft.conditionKind)&&
       draft.scope==='teacher'&&
       teachers.length>1&&
       conditionUses(draft.conditionKind,'subjectId')&&
@@ -1349,6 +1368,16 @@ function RuleConditionGuide({draft,project}:{draft:Draft;project:ViyeuticaProjec
         message=generateRuleDescription(draft,project)
         tone='complete'
       }
+    }else if(
+      conditionUsesTeachingCoverage(draft.conditionKind)&&
+      draft.scope==='subject'&&
+      subjects.length>0&&
+      conditionUses(draft.conditionKind,'groupId')&&
+      groups.length===0
+    ){
+      title=`Selecciona Grupo para ${condition}`
+      message='Selecciona el grupo o grupos en los que quieres aplicar esta condición a la materia elegida.'
+      tone='partial'
     }else if(conditionUses(draft.conditionKind,'subjectId')&&
       ((draft.scope==='teacher'&&groups.length>0)||(draft.scope==='group'&&groups.length>0))&&subjects.length===0){
       title=`Selecciona Materia para ${condition}`
