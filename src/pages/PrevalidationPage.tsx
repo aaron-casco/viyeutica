@@ -27,12 +27,22 @@ export function PrevalidationPage({
   const ready=errors.length===0 && isRulesComplete(project)
 
   if(!isAssignmentsComplete(project)){
-    return <section className="empty-state-card">
-      <ClipboardCheck size={34}/>
-      <h1>Completa primero Asignaciones</h1>
-      <p>La prevalidación necesita la configuración de los pasos 1–6. Las incidencias de Reglas se mostrarán aquí para que puedas corregirlas antes de generar.</p>
-      <button className="btn primary" onClick={()=>navigate('/asignaciones')}>Ir a Asignaciones</button>
-    </section>
+    return <div className="wizard-page prevalidation-page">
+      <section className="wizard-intro">
+        <div>
+          <h1 className="wizard-page-title"><ClipboardCheck size={28}/> Prevalidación</h1>
+          <p>Comprueba la coherencia completa del proyecto antes de generar horarios. Los errores bloquean la generación; las advertencias requieren revisión; la información no bloquea.</p>
+        </div>
+        <div className="wizard-progress-summary"><strong>8 <span>de 9</span></strong><small>Prevalidación</small></div>
+      </section>
+      <WizardStepper currentStep={8} project={project} navigate={navigate}/>
+      <section className="empty-state-card">
+        <ClipboardCheck size={34}/>
+        <h1>Completa primero Asignaciones</h1>
+        <p>La prevalidación necesita la configuración de los pasos 1–6. Las incidencias de Reglas se mostrarán aquí para que puedas corregirlas antes de generar.</p>
+        <button className="btn primary" onClick={()=>navigate('/asignaciones')}>Ir a Asignaciones</button>
+      </section>
+    </div>
   }
 
   return <div className="wizard-page prevalidation-page">
