@@ -323,8 +323,25 @@ function RuleCard({
         </button>
         {linked
           ? <span className="normative-linked-badge"><CheckCircle2 size={13}/> Incorporada a Reglas</span>
-          : rule.approved&&relevance==='timetable'&&!conflict
-            ? <button className="normative-incorporate-rule" onClick={onIncorporate}><ShieldCheck size={14}/> Incorporar a Reglas</button>
+          : rule.approved
+            ? <span className="normative-incorporate-wrap">
+                <button
+                  className="normative-incorporate-rule"
+                  onClick={onIncorporate}
+                  disabled={relevance!=='timetable'||conflict}
+                  title={
+                    conflict
+                      ? 'Resuelve la posible contradicción antes de incorporar esta regla.'
+                      : relevance!=='timetable'
+                        ? 'Mueve primero esta regla a Aplicable al horario.'
+                        : 'Incorporar esta regla normativa al módulo Reglas.'
+                  }
+                >
+                  <ShieldCheck size={14}/> Incorporar a Reglas
+                </button>
+                {conflict&&<small>Requiere resolver la contradicción.</small>}
+                {!conflict&&relevance!=='timetable'&&<small>Muévela antes a Aplicable al horario.</small>}
+              </span>
             : null}
       </div>
     </div>
