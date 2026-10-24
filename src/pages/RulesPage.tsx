@@ -686,6 +686,63 @@ export function RulesPage({
 function Summary({label,value,detail}:{label:string;value:string;detail:string}){return <article className="structure-summary-card"><span>{label}</span><strong>{value}</strong><small>{detail}</small></article>}
 function Field({label,required,children}:{label:string;required?:boolean;children:React.ReactNode}){return <label className="form-field"><span>{label}{required&&<em>*</em>}</span>{children}</label>}
 
+interface MultiCheckOption{value:string;label:string}
+
+function MultiCheckSelect({
+  label,placeholder,options,values,onChange,disabled=false,searchable=false,
+}:{
+  label:string
+  placeholder:string
+  options:MultiCheckOption[]
+  values:string[]
+  onChange:(values:string[])=>void
+  disabled?:boolean
+  searchable?:boolean
+}){
+  const [query,setQuery]=useState('')
+  const normalized=query.trim().toLowerCase()
+  const visibleOptions=normalized
+    ? options.filter(option=>option.label.toLowerCase().includes(normalized))
+    : options
+  const selectedLabels=values.map(value=>options.find(option=>option.value===value)?.label).filter(Boolean) as string[]
+  const summary=!values.length
+    ? placeholder
+    : selectedLabels.length<=2
+      ? selectedLabels.join(', ')
+      : selectedLabels.length+' seleccionados'
+
+  const toggle=(value:string)=>{
+    onChange(values.includes(value)?values.filter(item=>item!==value):[...values,value])
+  }
+
+  return <label className={'availability-compact-field'+(disabled?' disabled':'')}>
+    <span>{label}</span>
+    <details className="multicheck-select">
+      <summary
+        aria-disabled={disabled}
+        onClick={event=>{if(disabled)event.preventDefault()}}
+      >
+        <span className={values.length?'has-value':'placeholder'}>{summary}</span>
+        <ChevronDown size={16}/>
+      </summary>
+      {!disabled&&<div className="multicheck-menu">
+        {searchable&&<div className="multicheck-search">
+          <Search size={14}/>
+          <input value={query} onChange={event=>setQuery(event.target.value)} onClick={event=>event.stopPropagation()} placeholder="Buscar..."/>
+        </div>}
+        <div className="multicheck-options">
+          {visibleOptions.map(option=><label key={option.value} className="multicheck-option">
+            <input type="checkbox" checked={values.includes(option.value)} onChange={()=>toggle(option.value)}/>
+            <span>{option.label}</span>
+          </label>)}
+          {!visibleOptions.length&&<div className="multicheck-empty">Sin resultados</div>}
+        </div>
+        {values.length>0&&<button type="button" className="multicheck-clear" onClick={()=>onChange([])}>Limpiar selección</button>}
+      </div>}
+    </details>
+  </label>
+}
+
 function RuleTargetFields({
   draft,project,onChange,
 }:{
@@ -694,26 +751,29 @@ function RuleTargetFields({
   onChange:(draft:Draft)=>void
 }){
   const activeAssignments=project.assignments.filter(item=>item.active)
+  const selectedTeachers=draft.teacherIds.length?draft.teacherIds:draft.teacherId?[draft.teacherId]:[]
+  const selectedGroups=draft.groupIds.length?draft.groupIds:draft.groupId?[draft.groupId]:[]
+  const selectedSubjects=draft.subjectIds.length?draft.subjectIds:draft.subjectId?[draft.subjectId]:[]
 
   const groupOptions=project.groups.filter(group=>{
     if(!group.active)return false
-    if(draft.scope==='teacher'&&draft.teacherId){
-      return activeAssignments.some(item=>item.teacherId===draft.teacherId&&item.groupId===group.id)
+    if(draft.scope==='teacher'&&selectedTeachers.length){
+      return activeAssignments.some(item=>selectedTeachers.includes(item.teacherId)&&item.groupId===group.id)
     }
-    if(draft.scope==='subject'&&draft.subjectId){
-      return activeAssignments.some(item=>item.subjectId===draft.subjectId&&item.groupId===group.id)
+    if(draft.scope==='subject'&&selectedSubjects.length){
+      return activeAssignments.some(item=>selectedSubjects.includes(item.subjectId)&&item.groupId===group.id)
     }
     return true
   })
 
   const subjectOptions=project.subjects.filter(subject=>{
     if(!subject.active)return false
-    if(draft.groupId){
-      return activeAssignments.some(item=>item.groupId===draft.groupId&&item.subjectId===subject.id) ||
-        project.studyPlan.some(item=>item.active&&item.groupId===draft.groupId&&item.subjectId===subject.id)
+    if(selectedGroups.length){
+      return activeAssignments.some(item=>selectedGroups.includes(item.groupId)&&item.subjectId===subject.id) ||
+        project.studyPlan.some(item=>item.active&&selectedGroups.includes(item.groupId)&&item.subjectId===subject.id)
     }
-    if(draft.scope==='teacher'&&draft.teacherId){
-      return activeAssignments.some(item=>item.teacherId===draft.teacherId&&item.subjectId===subject.id)
+    if(draft.scope==='teacher'&&selectedTeachers.length){
+      return activeAssignments.some(item=>selectedTeachers.includes(item.teacherId)&&item.subjectId===subject.id)
     }
     return true
   })
@@ -721,104 +781,131 @@ function RuleTargetFields({
   const teacherOptions=project.teachers.filter(teacher=>{
     if(!teacher.active)return false
     if(draft.scope==='teacher')return true
-    if(draft.groupId||draft.subjectId){
+    if(selectedGroups.length||selectedSubjects.length){
       return activeAssignments.some(item=>
         item.teacherId===teacher.id &&
-        (!draft.groupId||item.groupId===draft.groupId) &&
-        (!draft.subjectId||item.subjectId===draft.subjectId)
+        (!selectedGroups.length||selectedGroups.includes(item.groupId)) &&
+        (!selectedSubjects.length||selectedSubjects.includes(item.subjectId))
       )
     }
     return true
   })
 
-  const update=(field:ConditionField,value:string)=>{
+  const updateSingle=(field:ConditionField,value:string)=>{
     const next={...draft,[field]:value} as Draft
-    if(field==='teacherId'&&draft.scope==='teacher'){
-      next.groupId=''
-      next.subjectId=''
-    }
-    if(field==='subjectId'&&draft.scope==='subject'){
-      next.groupId=''
-      next.teacherId=''
+    if(field==='teacherId'){
+      next.teacherIds=[]
+      if(draft.scope==='teacher'){next.groupId='';next.groupIds=[];next.subjectId='';next.subjectIds=[]}
     }
     if(field==='groupId'){
-      if(draft.scope==='group'||draft.scope==='assignment'){
-        next.subjectId=''
-        next.teacherId=''
-      }else{
-        next.subjectId=''
-      }
+      next.groupIds=[]
+      next.subjectId='';next.subjectIds=[]
+      if(draft.scope==='group'||draft.scope==='assignment'){next.teacherId='';next.teacherIds=[]}
     }
-    if(field==='subjectId'&&(draft.scope==='group'||draft.scope==='assignment')){
-      next.teacherId=''
+    if(field==='subjectId'){
+      next.subjectIds=[]
+      if(draft.scope==='subject'){next.groupId='';next.groupIds=[];next.teacherId='';next.teacherIds=[]}
+      if(draft.scope==='group'||draft.scope==='assignment'){next.teacherId='';next.teacherIds=[]}
     }
+    if(field==='day'){next.days=[];if(draft.conditionKind==='fixed_slot'){next.sessionId='';next.sessionIds=[]}}
+    if(field==='sessionId')next.sessionIds=[]
+    onChange(next)
+  }
+
+  const updateMulti=(field:ConditionField,values:string[])=>{
+    const next={...draft} as Draft
+    if(field==='teacherId'){
+      next.teacherId='';next.teacherIds=values
+      if(draft.scope==='teacher'){next.groupId='';next.groupIds=[];next.subjectId='';next.subjectIds=[]}
+    }
+    if(field==='groupId'){
+      next.groupId='';next.groupIds=values
+      next.subjectId='';next.subjectIds=[]
+      if(draft.scope==='group'){next.teacherId='';next.teacherIds=[]}
+    }
+    if(field==='subjectId'){
+      next.subjectId='';next.subjectIds=values
+      if(draft.scope==='subject'){next.groupId='';next.groupIds=[];next.teacherId='';next.teacherIds=[]}
+    }
+    if(field==='day'){next.day='';next.days=values}
+    if(field==='sessionId'){next.sessionId='';next.sessionIds=values}
     onChange(next)
   }
 
   const disabled=(field:ConditionField)=>{
     if(field==='groupId'){
-      if(draft.scope==='teacher') return !draft.teacherId
-      if(draft.scope==='subject') return !draft.subjectId
+      if(draft.scope==='teacher') return selectedTeachers.length===0
+      if(draft.scope==='subject') return selectedSubjects.length===0
     }
     if(field==='subjectId'){
-      if(draft.scope==='group'||draft.scope==='assignment'||draft.scope==='teacher') return !draft.groupId
+      if(draft.scope==='group'||draft.scope==='assignment'||draft.scope==='teacher') return selectedGroups.length===0
     }
     if(field==='teacherId'){
-      if(draft.scope==='group'||draft.scope==='assignment') return !draft.subjectId
-      if(draft.scope==='subject') return !draft.groupId
+      if(draft.scope==='group'||draft.scope==='assignment') return selectedSubjects.length===0
+      if(draft.scope==='subject') return selectedGroups.length===0
     }
     if(field==='sessionId'&&draft.conditionKind==='fixed_slot') return !draft.day
     return false
   }
 
   const placeholder=(field:ConditionField)=>{
-    if(field==='groupId'&&draft.scope==='teacher'&&!draft.teacherId)return 'Selecciona primero Profesor/a'
-    if(field==='groupId'&&draft.scope==='subject'&&!draft.subjectId)return 'Selecciona primero Materia'
-    if(field==='subjectId'&&!draft.groupId&&['group','assignment','teacher'].includes(draft.scope))return 'Selecciona primero Grupo'
-    if(field==='teacherId'&&!draft.subjectId&&['group','assignment'].includes(draft.scope))return 'Selecciona primero Materia'
-    if(field==='teacherId'&&!draft.groupId&&draft.scope==='subject')return 'Selecciona primero Grupo'
+    if(field==='groupId'&&draft.scope==='teacher'&&selectedTeachers.length===0)return 'Selecciona primero Profesor/a'
+    if(field==='groupId'&&draft.scope==='subject'&&selectedSubjects.length===0)return 'Selecciona primero Materia'
+    if(field==='subjectId'&&selectedGroups.length===0&&['group','assignment','teacher'].includes(draft.scope))return 'Selecciona primero Grupo'
+    if(field==='teacherId'&&selectedSubjects.length===0&&['group','assignment'].includes(draft.scope))return 'Selecciona primero Materia'
+    if(field==='teacherId'&&selectedGroups.length===0&&draft.scope==='subject')return 'Selecciona primero Grupo'
     if(field==='sessionId'&&draft.conditionKind==='fixed_slot'&&!draft.day)return 'Selecciona primero Día'
     return 'Cualquiera / no aplica'
   }
 
   const render=(field:ConditionField)=>{
     if(!conditionUses(draft.conditionKind,field))return null
-    if(field==='teacherId')return <Field key={field} label="Profesor/a">
-      <select disabled={disabled(field)} value={draft.teacherId} onChange={e=>update(field,e.target.value)}>
-        <option value="">{placeholder(field)}</option>
-        {teacherOptions.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
-      </select>
-    </Field>
-    if(field==='groupId')return <Field key={field} label="Grupo">
-      <select disabled={disabled(field)} value={draft.groupId} onChange={e=>update(field,e.target.value)}>
-        <option value="">{placeholder(field)}</option>
-        {groupOptions.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
-      </select>
-    </Field>
-    if(field==='subjectId')return <Field key={field} label="Materia">
-      <select disabled={disabled(field)} value={draft.subjectId} onChange={e=>update(field,e.target.value)}>
-        <option value="">{placeholder(field)}</option>
-        {subjectOptions.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
-      </select>
-    </Field>
-    if(field==='stage')return <Field key={field} label="Etapa">
-      <select value={draft.stage} onChange={e=>update(field,e.target.value)}>
-        <option value="">Cualquiera / no aplica</option>
-        {project.center.stages.map(stage=><option key={stage} value={stage}>{stage}</option>)}
-      </select>
-    </Field>
-    if(field==='day')return <Field key={field} label="Día">
-      <select value={draft.day} onChange={e=>update(field,e.target.value)}>
-        <option value="">Cualquiera / no aplica</option>
-        {project.schedule.activeDays.map(day=><option key={day} value={day}>{dayName(day)}</option>)}
-      </select>
-    </Field>
-    if(field==='sessionId')return <Field key={field} label="Sesión">
-      <select disabled={disabled(field)} value={draft.sessionId} onChange={e=>update(field,e.target.value)}>
-        <option value="">{placeholder(field)}</option>
-        {project.schedule.blocks.filter(block=>block.active).map(block=><option key={block.id} value={block.id}>{block.label} · {block.start}-{block.end}</option>)}
-      </select>
-    </Field>
+    const multi=isMultiField(draft,field)
+
+    if(field==='teacherId'){
+      if(multi)return <MultiCheckSelect key={field} label="Profesor/a" placeholder={placeholder(field)} disabled={disabled(field)}
+        searchable options={teacherOptions.map(item=>({value:item.id,label:item.name}))} values={draft.teacherIds} onChange={values=>updateMulti(field,values)}/>
+      return <Field key={field} label="Profesor/a"><select disabled={disabled(field)} value={draft.teacherId} onChange={e=>updateSingle(field,e.target.value)}>
+        <option value="">{placeholder(field)}</option>{teacherOptions.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
+      </select></Field>
+    }
+
+    if(field==='groupId'){
+      if(multi)return <MultiCheckSelect key={field} label="Grupo" placeholder={placeholder(field)} disabled={disabled(field)}
+        searchable options={groupOptions.map(item=>({value:item.id,label:item.name}))} values={draft.groupIds} onChange={values=>updateMulti(field,values)}/>
+      return <Field key={field} label="Grupo"><select disabled={disabled(field)} value={draft.groupId} onChange={e=>updateSingle(field,e.target.value)}>
+        <option value="">{placeholder(field)}</option>{groupOptions.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
+      </select></Field>
+    }
+
+    if(field==='subjectId'){
+      if(multi)return <MultiCheckSelect key={field} label="Materia" placeholder={placeholder(field)} disabled={disabled(field)}
+        searchable options={subjectOptions.map(item=>({value:item.id,label:item.name}))} values={draft.subjectIds} onChange={values=>updateMulti(field,values)}/>
+      return <Field key={field} label="Materia"><select disabled={disabled(field)} value={draft.subjectId} onChange={e=>updateSingle(field,e.target.value)}>
+        <option value="">{placeholder(field)}</option>{subjectOptions.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
+      </select></Field>
+    }
+
+    if(field==='stage')return <Field key={field} label="Etapa"><select value={draft.stage} onChange={e=>updateSingle(field,e.target.value)}>
+      <option value="">Cualquiera / no aplica</option>{project.center.stages.map(stage=><option key={stage} value={stage}>{stage}</option>)}
+    </select></Field>
+
+    if(field==='day'){
+      const options=project.schedule.activeDays.map(day=>({value:day,label:dayName(day)}))
+      if(multi)return <MultiCheckSelect key={field} label="Día" placeholder="Cualquiera / no aplica" options={options} values={draft.days} onChange={values=>updateMulti(field,values)}/>
+      return <Field key={field} label="Día"><select value={draft.day} onChange={e=>updateSingle(field,e.target.value)}>
+        <option value="">Cualquiera / no aplica</option>{options.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}
+      </select></Field>
+    }
+
+    if(field==='sessionId'){
+      const options=project.schedule.blocks.filter(block=>block.active).map(block=>({value:block.id,label:`${block.label} · ${block.start}-${block.end}`}))
+      if(multi)return <MultiCheckSelect key={field} label="Sesión" placeholder={placeholder(field)} disabled={disabled(field)} options={options} values={draft.sessionIds} onChange={values=>updateMulti(field,values)}/>
+      return <Field key={field} label="Sesión"><select disabled={disabled(field)} value={draft.sessionId} onChange={e=>updateSingle(field,e.target.value)}>
+        <option value="">{placeholder(field)}</option>{options.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}
+      </select></Field>
+    }
+
     return null
   }
 
