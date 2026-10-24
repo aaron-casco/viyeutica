@@ -206,6 +206,7 @@ export interface NormativeRule {
   confidence: number
   approved: boolean
   relevance?: NormativeRelevance
+  reference?: string | null
 }
 
 export interface ViyeuticaProject {
