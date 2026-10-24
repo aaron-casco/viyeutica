@@ -92,6 +92,22 @@ export function StudyPlanPage({
   const coveredGroups=new Set(activeEntries.map(entry=>entry.groupId)).size
   const weeklySessionTotal=activeEntries.reduce((sum,entry)=>sum+(entry.weeklySessions||0),0)
   const weeklyMinuteTotal=activeEntries.reduce((sum,entry)=>sum+(entry.weeklyMinutes??0),0)
+  const subjectReady=Boolean(subjectDraft.name.trim()&&subjectDraft.stage)
+  const subjectGuide=!subjectDraft.name.trim()?'Indica el nombre de la materia.'
+    :!subjectDraft.stage?'Selecciona la etapa de la materia.'
+    :'La materia tiene los datos mínimos necesarios. Ya puedes añadirla.'
+  const weeklySessionsValue=entryDraft.weeklySessions===''?0:Number(entryDraft.weeklySessions)
+  const weeklyMinutesValue=entryDraft.weeklyMinutes===''?0:Number(entryDraft.weeklyMinutes)
+  const entryReady=Boolean(
+    entryDraft.groupId&&
+    entryDraft.subjectId&&
+    ((Number.isFinite(weeklySessionsValue)&&weeklySessionsValue>0)||(Number.isFinite(weeklyMinutesValue)&&weeklyMinutesValue>0))
+  )
+  const entryGuide=!entryDraft.groupId?'Selecciona primero el grupo.'
+    :!entryDraft.subjectId?'Selecciona la materia.'
+    :!((Number.isFinite(weeklySessionsValue)&&weeklySessionsValue>0)||(Number.isFinite(weeklyMinutesValue)&&weeklyMinutesValue>0))
+      ?'Indica la carga semanal mediante sesiones o minutos.'
+      :'La carga tiene los datos mínimos necesarios. Ya puedes añadirla.'
 
   const persist=(patch:Partial<ViyeuticaProject>)=>saveProject({...project,...patch})
 
@@ -337,11 +353,12 @@ export function StudyPlanPage({
           <Field label="Duración habitual de sesión (min)"><input type="number" min="1" max="240" value={subjectDraft.defaultSessionMinutes} onChange={e=>setSubjectDraft({...subjectDraft,defaultSessionMinutes:e.target.value})} placeholder="Opcional"/></Field>
         </div>
         {subjectError&&<div className="inline-error">{subjectError}</div>}
+        <div className={'form-guide '+(subjectReady?'complete':'partial')}><strong>{subjectReady?'Materia lista':'Siguiente paso'}</strong><span>{subjectGuide}</span></div>
         <div className="form-actions">
           <span/>
           <div className="form-actions-right">
             {editingSubject&&<button type="button" className="btn ghost-inline" onClick={resetSubject}>Cancelar</button>}
-            <button className="btn primary" type="submit"><Save size={16}/>{editingSubject?'Guardar':'Añadir materia'}</button>
+            <button className="btn primary" type="submit" disabled={!subjectReady}><Save size={16}/>{editingSubject?'Guardar':'Añadir materia'}</button>
           </div>
         </div>
       </form>
@@ -363,11 +380,12 @@ export function StudyPlanPage({
         <label className="checkbox-field plan-checkbox"><input type="checkbox" checked={entryDraft.mandatory} onChange={e=>setEntryDraft({...entryDraft,mandatory:e.target.checked})}/><span><strong>Materia obligatoria para este grupo</strong><small>Desmárcalo solo cuando sea optativa/alternativa.</small></span></label>
         <label className="form-field notes-field"><span>Observaciones</span><textarea value={entryDraft.notes} onChange={e=>setEntryDraft({...entryDraft,notes:e.target.value})} placeholder="Restricciones o detalles del plan..."/></label>
         {entryError&&<div className="inline-error">{entryError}</div>}
+        <div className={'form-guide '+(entryReady?'complete':'partial')}><strong>{entryReady?'Carga lista':'Siguiente paso'}</strong><span>{entryGuide}</span></div>
         <div className="form-actions">
           <span/>
           <div className="form-actions-right">
             {editingEntry&&<button type="button" className="btn ghost-inline" onClick={resetEntry}>Cancelar</button>}
-            <button className="btn primary" type="submit"><Save size={16}/>{editingEntry?'Guardar':'Añadir carga'}</button>
+            <button className="btn primary" type="submit" disabled={!entryReady}><Save size={16}/>{editingEntry?'Guardar':'Añadir carga'}</button>
           </div>
         </div>
       </form>
