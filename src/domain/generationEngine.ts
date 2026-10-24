@@ -198,7 +198,6 @@ function candidateScore(
   assignment:TeachingAssignment,
   slot:Slot,
   entries:GeneratedScheduleEntry[],
-  random:()=>number,
 ){
   let score=softCost(project,assignment,slot,entries)
   const sameSubjectDay=entries.filter(entry=>
@@ -207,7 +206,6 @@ function candidateScore(
     entry.day===slot.day
   ).length
   score+=sameSubjectDay*1.5
-  score+=random()*0.35
   return score
 }
 
@@ -221,7 +219,7 @@ function trySingleRepair(
 ){
   const targetSlots=shuffle(slots,random)
     .filter(slot=>!unavailable(project,assignment.teacherId,slot))
-    .sort((a,b)=>candidateScore(project,assignment,a,entries,random)-candidateScore(project,assignment,b,entries,random))
+    .sort((a,b)=>candidateScore(project,assignment,a,entries)-candidateScore(project,assignment,b,entries))
 
   for(const target of targetSlots){
     const blockers=entries.filter(entry=>
@@ -252,7 +250,7 @@ function trySingleRepair(
     const alternatives=shuffle(slots,random)
       .filter(slot=>!(slot.day===target.day&&slot.sessionId===target.sessionId))
       .filter(slot=>hardAllows(project,blockerAssignment,slot,entries,occupancy))
-      .sort((a,b)=>candidateScore(project,blockerAssignment,a,entries,random)-candidateScore(project,blockerAssignment,b,entries,random))
+      .sort((a,b)=>candidateScore(project,blockerAssignment,a,entries)-candidateScore(project,blockerAssignment,b,entries))
 
     const alternative=alternatives[0]
     if(alternative){
@@ -354,7 +352,7 @@ function generateAttempt(project:ViyeuticaProject,attempt:number){
 
       candidates=candidates
         .filter(slot=>hardAllows(project,assignment,slot,entries,occupancy))
-        .sort((a,b)=>candidateScore(project,assignment,a,entries,random)-candidateScore(project,assignment,b,entries,random))
+        .sort((a,b)=>candidateScore(project,assignment,a,entries)-candidateScore(project,assignment,b,entries))
 
       const slot=candidates[0]
       if(!slot){
