@@ -89,10 +89,11 @@ function hardAllows(project:ViyeuticaProject,assignment:TeachingAssignment,slot:
   return true
 }
 
-function softCost(project:ViyeuticaProject,assignment:TeachingAssignment,slot:Slot,entries:GeneratedScheduleEntry[]){
+function softCost(project:ViyeuticaProject,assignment:TeachingAssignment,slot:Slot,entries:GeneratedScheduleEntry[],slots:Slot[]){
+  const orderBySession=new Map(slots.map(item=>[item.sessionId,item.order]))
   return project.rules
     .filter(rule=>rule.active&&rule.ruleType==='SOFT')
-    .reduce((total,rule)=>total+softRulePlacementCost(rule,assignment,slot,entries),0)
+    .reduce((total,rule)=>total+softRulePlacementCost(rule,assignment,slot,entries,orderBySession),0)
 }
 
 function fixedSlotsFor(project:ViyeuticaProject,assignment:TeachingAssignment){
@@ -152,7 +153,7 @@ function candidateScore(
   slot:Slot,
   entries:GeneratedScheduleEntry[],
 ){
-  let score=softCost(project,assignment,slot,entries)
+  let score=softCost(project,assignment,slot,entries,slots)
   const sameSubjectDay=entries.filter(entry=>
     entry.groupId===assignment.groupId&&
     entry.subjectId===assignment.subjectId&&
