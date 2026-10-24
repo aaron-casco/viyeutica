@@ -5,6 +5,14 @@ import type {
   TeachingAssignment,
   ViyeuticaProject,
 } from './project'
+import {
+  fixedSlotFromRule,
+  isRuleAutomaticallyEvaluable,
+  ruleComparison,
+  ruleConditionKind,
+  ruleMatchesEntry,
+  ruleNumericValue,
+} from './ruleEngine'
 
 function uid(prefix:string){return prefix+'_'+crypto.randomUUID()}
 
@@ -126,25 +134,62 @@ export function auditGeneration(project:ViyeuticaProject,run:GenerationRun):Audi
     }
   }
 
-  // Reglas HARD evaluables.
+  // Reglas HARD evaluables mediante el mismo motor semántico usado por prevalidación y generación.
   for(const rule of project.rules.filter(rule=>rule.active&&rule.ruleType==='HARD')){
-    const p=rule.parameters??{}
     if(rule.code==='SIN_SOLAPE_DOCENTE'||rule.code==='SIN_SOLAPE_GRUPO'||rule.code==='RESPETAR_DISPONIBILIDAD_DOCENTE'||rule.code==='RESPETAR_FRANJAS_FIJAS') continue
-    const kind=String(p.conditionKind??'')
-    if(kind==='avoid_slot'){
-      const affected=run.entries.filter(entry=>{
-        if(p.teacherId&&p.teacherId!==entry.teacherId)return false
-        if(p.groupId&&p.groupId!==entry.groupId)return false
-        if(p.subjectId&&p.subjectId!==entry.subjectId)return false
-        if(p.day&&p.day!==entry.day)return false
-        if(p.sessionId&&p.sessionId!==entry.sessionId)return false
-        return true
-      })
+
+    const kind=ruleConditionKind(rule)
+
+    if(kind==='avoid_slot'||(kind==='availability'&&ruleComparison(rule)==='not_equals')){
+      const affected=run.entries.filter(entry=>ruleMatchesEntry(rule,entry))
       if(affected.length){
         push({severity:'error',category:'Reglas',code:rule.code,message:`Se incumple la regla obligatoria: ${rule.description}`,detail:`${affected.length} sesiones afectadas`})
       }
-    }else{
-      push({severity:'warning',category:'Reglas',code:'REGLA_NO_AUDITABLE',message:`La regla HARD "${rule.description}" todavía no tiene una condición auditable automáticamente.`})
+      continue
+    }
+
+    if(kind==='fixed_slot'){
+      const assignments=project.assignments.filter(assignment=>assignment.active)
+      for(const assignment of assignments){
+        const fixed=fixedSlotFromRule(rule,assignment)
+        if(!fixed) continue
+        const exists=run.entries.some(entry=>
+          entry.assignmentId===assignment.id&&
+          entry.day===fixed.day&&
+          entry.sessionId===fixed.session
+        )
+        if(!exists){
+          push({severity:'error',category:'Reglas',code:rule.code,message:`Se incumple la regla obligatoria: ${rule.description}`,teacherId:assignment.teacherId,groupId:assignment.groupId,subjectId:assignment.subjectId,day:fixed.day as any,sessionId:fixed.session})
+        }
+      }
+      continue
+    }
+
+    if(kind==='daily_limit'){
+      const value=ruleNumericValue(rule)
+      if(value!==null&&ruleComparison(rule)==='maximum'){
+        const matching=run.entries.filter(entry=>ruleMatchesEntry({...rule,parameters:{...rule.parameters,day:undefined,sessionId:undefined}},entry))
+        const byDay=new Map<string,number>()
+        for(const entry of matching){
+          const key=rule.scope==='teacher'
+            ? entry.teacherId+'|'+entry.day
+            : rule.scope==='group'
+              ? entry.groupId+'|'+entry.day
+              : rule.scope==='subject'
+                ? entry.groupId+'|'+entry.subjectId+'|'+entry.day
+                : entry.day
+          byDay.set(key,(byDay.get(key)??0)+1)
+        }
+        const exceeded=[...byDay.values()].filter(count=>count>value)
+        if(exceeded.length){
+          push({severity:'error',category:'Reglas',code:rule.code,message:`Se incumple la regla obligatoria: ${rule.description}`,detail:`${exceeded.length} límites diarios superados`})
+        }
+      }
+      continue
+    }
+
+    if(!isRuleAutomaticallyEvaluable(rule)){
+      push({severity:'warning',category:'Reglas',code:'REGLA_NO_AUDITABLE',message:`La regla HARD "${rule.description}" todavía no está soportada por el motor común de evaluación.`})
     }
   }
 
