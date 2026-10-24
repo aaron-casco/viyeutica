@@ -28,9 +28,9 @@ interface AssignmentDraft {
 }
 
 interface AvailabilityDraft {
-  teacherId:string
-  day:Weekday|''
-  session:string
+  teacherIds:string[]
+  days:Weekday[]
+  sessions:string[]
   status:AvailabilityStatus
   detail:string
 }
@@ -39,7 +39,7 @@ const emptyAssignment:AssignmentDraft={
   groupId:'',subjectId:'',teacherId:'',assignmentType:'main',weeklySessions:'',weeklyMinutes:'',
 }
 const emptyAvailability:AvailabilityDraft={
-  teacherId:'',day:'',session:'',status:'unavailable',detail:'',
+  teacherIds:[],days:[],sessions:[],status:'unavailable',detail:'',
 }
 
 const assignmentTypeLabels:Record<AssignmentType,string>={
@@ -100,9 +100,9 @@ export function AssignmentsPage({
     if(teacherId||day||session){
       setAvailabilityDraft(current=>({
         ...current,
-        teacherId:teacherId||current.teacherId,
-        day:day||current.day,
-        session:session||current.session,
+        teacherIds:teacherId?[teacherId]:current.teacherIds,
+        days:day?[day]:current.days,
+        sessions:session?[session]:current.sessions,
       }))
     }
     if(auditCode){
@@ -204,21 +204,47 @@ export function AssignmentsPage({
 
   const submitAvailability=(event:FormEvent)=>{
     event.preventDefault()
-    if(!availabilityDraft.teacherId||!availabilityDraft.day||!availabilityDraft.session){
-      setAvailabilityError('Selecciona docente, día y sesión.')
+    if(!availabilityDraft.teacherIds.length||!availabilityDraft.days.length||!availabilityDraft.sessions.length){
+      setAvailabilityError('Selecciona al menos un docente, un día y una sesión.')
       return
     }
-    const next:TeacherAvailability={
-      teacherId:availabilityDraft.teacherId,
-      day:availabilityDraft.day,
-      session:availabilityDraft.session,
-      status:availabilityDraft.status,
-      detail:availabilityDraft.detail.trim(),
+
+    const teachingSessionIds=project.schedule.blocks
+      .filter(block=>block.active&&block.type==='teaching')
+      .map(block=>block.id)
+    const sessions=availabilityDraft.sessions.includes('__all__')
+      ? teachingSessionIds
+      : availabilityDraft.sessions.filter(session=>session!=='__all__')
+
+    if(!sessions.length){
+      setAvailabilityError('No hay sesiones lectivas disponibles para aplicar la restricción.')
+      return
     }
+
+    const teacherIds=new Set(availabilityDraft.teacherIds)
+    const days=new Set(availabilityDraft.days)
+    const sessionIds=new Set(sessions)
+
     const filtered=project.teacherAvailability.filter(item=>!(
-      item.teacherId===next.teacherId&&item.day===next.day&&item.session===next.session
+      teacherIds.has(item.teacherId)&&days.has(item.day as Weekday)&&sessionIds.has(item.session)
     ))
-    persistAvailability([...filtered,next])
+
+    const additions:TeacherAvailability[]=[]
+    for(const teacherId of availabilityDraft.teacherIds){
+      for(const day of availabilityDraft.days){
+        for(const session of sessions){
+          additions.push({
+            teacherId,
+            day,
+            session,
+            status:availabilityDraft.status,
+            detail:availabilityDraft.detail.trim(),
+          })
+        }
+      }
+    }
+
+    persistAvailability([...filtered,...additions])
     setAvailabilityDraft(emptyAvailability)
     setAvailabilityError('')
   }
@@ -461,21 +487,72 @@ export function AssignmentsPage({
 
     <section className="availability-card">
       <div className="groups-table-heading"><div><span className="panel-kicker">Disponibilidad</span><h2>Restricciones por día y sesión</h2></div><CalendarClock size={22}/></div>
-      <form className="availability-form" onSubmit={submitAvailability}>
-        <select value={availabilityDraft.teacherId} onChange={e=>setAvailabilityDraft({...availabilityDraft,teacherId:e.target.value})}>
-          <option value="">Docente...</option>{activeTeachers.map(teacher=><option value={teacher.id} key={teacher.id}>{teacher.name}</option>)}
-        </select>
-        <select value={availabilityDraft.day} onChange={e=>setAvailabilityDraft({...availabilityDraft,day:e.target.value as Weekday})}>
-          <option value="">Día...</option>{project.schedule.activeDays.map(day=><option value={day} key={day}>{dayLabels[day]}</option>)}
-        </select>
-        <select value={availabilityDraft.session} onChange={e=>setAvailabilityDraft({...availabilityDraft,session:e.target.value})}>
-          <option value="">Sesión...</option>{project.schedule.blocks.filter(block=>block.active&&block.type==='teaching').map(block=><option value={block.id} key={block.id}>{block.label} · {block.start}-{block.end}</option>)}
-        </select>
-        <select value={availabilityDraft.status} onChange={e=>setAvailabilityDraft({...availabilityDraft,status:e.target.value as AvailabilityStatus})}>
-          {(Object.entries(availabilityLabels) as [AvailabilityStatus,string][]).map(([value,label])=><option value={value} key={value}>{label}</option>)}
-        </select>
-        <input value={availabilityDraft.detail} onChange={e=>setAvailabilityDraft({...availabilityDraft,detail:e.target.value})} placeholder="Motivo / detalle"/>
-        <button className="btn primary" type="submit"><Plus size={15}/> Añadir</button>
+      <form className="availability-form availability-form-multiple" onSubmit={submitAvailability}>
+        <label className="availability-multi-field">
+          <span>Docentes</span>
+          <select
+            multiple
+            size={Math.min(5,Math.max(3,activeTeachers.length))}
+            value={availabilityDraft.teacherIds}
+            onChange={e=>setAvailabilityDraft({
+              ...availabilityDraft,
+              teacherIds:Array.from(e.currentTarget.selectedOptions).map(option=>option.value),
+            })}
+          >
+            {activeTeachers.map(teacher=><option value={teacher.id} key={teacher.id}>{teacher.name}</option>)}
+          </select>
+          <small>{availabilityDraft.teacherIds.length?availabilityDraft.teacherIds.length+' seleccionados':'Selecciona uno o varios'}</small>
+        </label>
+
+        <label className="availability-multi-field">
+          <span>Días</span>
+          <select
+            multiple
+            size={Math.min(5,Math.max(3,project.schedule.activeDays.length))}
+            value={availabilityDraft.days}
+            onChange={e=>setAvailabilityDraft({
+              ...availabilityDraft,
+              days:Array.from(e.currentTarget.selectedOptions).map(option=>option.value as Weekday),
+            })}
+          >
+            {project.schedule.activeDays.map(day=><option value={day} key={day}>{dayLabels[day]}</option>)}
+          </select>
+          <small>{availabilityDraft.days.length?availabilityDraft.days.map(day=>dayLabels[day]).join(' · '):'Selecciona uno o varios'}</small>
+        </label>
+
+        <label className="availability-multi-field">
+          <span>Sesiones</span>
+          <select
+            multiple
+            size={Math.min(6,Math.max(4,project.schedule.blocks.filter(block=>block.active&&block.type==='teaching').length+1))}
+            value={availabilityDraft.sessions}
+            onChange={e=>{
+              const values=Array.from(e.currentTarget.selectedOptions).map(option=>option.value)
+              setAvailabilityDraft({
+                ...availabilityDraft,
+                sessions:values.includes('__all__')?['__all__']:values,
+              })
+            }}
+          >
+            <option value="__all__">Todas las sesiones</option>
+            {project.schedule.blocks.filter(block=>block.active&&block.type==='teaching').map(block=><option value={block.id} key={block.id}>{block.label} · {block.start}-{block.end}</option>)}
+          </select>
+          <small>{availabilityDraft.sessions.includes('__all__')?'Todas las sesiones':availabilityDraft.sessions.length?availabilityDraft.sessions.length+' seleccionadas':'Selecciona una o varias'}</small>
+        </label>
+
+        <label className="availability-single-field">
+          <span>Estado</span>
+          <select value={availabilityDraft.status} onChange={e=>setAvailabilityDraft({...availabilityDraft,status:e.target.value as AvailabilityStatus})}>
+            {(Object.entries(availabilityLabels) as [AvailabilityStatus,string][]).map(([value,label])=><option value={value} key={value}>{label}</option>)}
+          </select>
+        </label>
+
+        <label className="availability-single-field availability-detail-field">
+          <span>Motivo / detalle</span>
+          <input value={availabilityDraft.detail} onChange={e=>setAvailabilityDraft({...availabilityDraft,detail:e.target.value})} placeholder="Opcional"/>
+        </label>
+
+        <button className="btn primary availability-submit" type="submit"><Plus size={15}/> Añadir restricciones</button>
       </form>
       {availabilityError&&<div className="inline-error">{availabilityError}</div>}
       {project.teacherAvailability.length>0&&<div className="availability-list">{project.teacherAvailability.map((item,index)=>{
