@@ -104,7 +104,7 @@
 .status-toggle{border:0;border-radius:99px;padding:5px 8px;background:#edf0f4;color:#657287;font-size:9px;font-weight:800;cursor:pointer}.status-toggle.active{background:#eef9e9;color:#3d8313}
 .row-actions{display:flex;justify-content:flex-end;gap:5px}.row-actions button{width:30px;height:30px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--muted);display:grid;place-items:center;cursor:pointer}.row-actions button.danger:hover{color:#c23f3f;border-color:#e9bebe}
 .groups-empty{min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:30px}.groups-empty strong{color:inherit;margin-top:8px}.groups-empty p{font-size:10px;margin:5px 0}
-.empty-state-card{min-height:calc(100vh - 150px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:20px;box-shadow:var(--shadow);padding:35px}.empty-state-card>svg{color:var(--navy2)}.empty-state-card h1{margin:14px 0 6px}.empty-state-card p{max-width:530px;color:var(--muted);font-size:12px;line-height:1.6}.empty-state-card .btn{margin-top:14px}
+.empty-state-card{min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:20px;box-shadow:var(--shadow);padding:35px}.empty-state-card>svg{color:var(--navy2)}.empty-state-card h1{margin:14px 0 6px}.empty-state-card p{max-width:530px;color:var(--muted);font-size:12px;line-height:1.6}.empty-state-card .btn{margin-top:14px}
 .wizard-step.done .wizard-step-icon{background:#eef9e9;color:var(--green2)}.wizard-step.done{opacity:.9}
 
 /* Dark theme */
@@ -1555,4 +1555,17 @@ button.btn:disabled{
 .btn:disabled:hover,
 button.btn:disabled:hover{
   transform:none;
+}
+
+
+/* === Estados bloqueados: ocupar solo el alto disponible en desktop === */
+@media(min-width:781px){
+  .wizard-page{
+    min-height:calc(100vh - 128px);
+  }
+
+  .wizard-page>.empty-state-card{
+    flex:1 1 auto;
+    min-height:0;
+  }
 }
