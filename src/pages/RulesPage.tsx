@@ -615,6 +615,8 @@ export function RulesPage({
               onChange={e=>setDraft({...draft,weight:e.target.value})}
             >
               <option value="">{draft.ruleType==='HARD'?'No aplica · las reglas HARD son obligatorias':'Selecciona prioridad'}</option>
+              {draft.weight&&!PRIORITY_OPTIONS.some(option=>option.value===draft.weight)&&
+                <option value={draft.weight}>Personalizada · {draft.weight}</option>}
               {PRIORITY_OPTIONS.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
             <small className="field-help">{draft.ruleType==='HARD'
@@ -657,13 +659,13 @@ export function RulesPage({
             <RuleTargetFields draft={draft} project={project} onChange={setDraft}/>
 
             {conditionUses(draft.conditionKind,'comparison')&&<Field label="Comparación">
-              <select value={draft.comparison} onChange={e=>setDraft({...draft,comparison:e.target.value})}>
+              <select disabled={!draft.scope} value={draft.comparison} onChange={e=>setDraft({...draft,comparison:e.target.value})}>
                 {(CONDITION_COMPARISONS[draft.conditionKind]??CONDITION_COMPARISONS.generic).map(value=><option key={value} value={value}>{comparisonLabel(value)}</option>)}
               </select>
             </Field>}
 
             {conditionUses(draft.conditionKind,'value')&&<Field label="Valor">
-              <input type="number" min="1" value={draft.value} onChange={e=>setDraft({...draft,value:e.target.value})} placeholder="Ej. 2"/>
+              <input disabled={!draft.scope} type="number" min="1" value={draft.value} onChange={e=>setDraft({...draft,value:e.target.value})} placeholder="Ej. 2"/>
             </Field>}
           </div>
 
@@ -983,6 +985,7 @@ function RuleTargetFields({
   }
 
   const disabled=(field:ConditionField)=>{
+    if(!draft.scope)return true
     if(field==='groupId'){
       if(draft.scope==='teacher') return selectedTeachers.length===0
       if(draft.scope==='subject') return selectedSubjects.length===0
@@ -1187,6 +1190,9 @@ function RuleConditionGuide({draft,project}:{draft:Draft;project:ViyeuticaProjec
     }else if(conditionUses(draft.conditionKind,'value')&&!draft.value){
       title=`Indica el valor para ${condition}`
       message='Introduce el número que debe cumplir esta regla.'
+    }else if(draft.ruleType==='SOFT'&&!draft.weight){
+      title='Selecciona la prioridad de la preferencia'
+      message='La prioridad indica cuánto debe intentar Viyeutica respetar esta regla frente a otras preferencias.'
     }else{
       title='Regla lista para revisar'
       message=generateRuleDescription(draft,project)
