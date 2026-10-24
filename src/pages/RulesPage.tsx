@@ -908,39 +908,76 @@ function RuleTargetFields({
 
 
   useEffect(()=>{
-    if(!conditionUses(draft.conditionKind,'groupId')||!isMultiField(draft,'groupId')) return
-    if(disabled('groupId')) return
+    if(!draft.scope||!conditionUses(draft.conditionKind,'groupId')||!isMultiField(draft,'groupId')) return
+
+    const upstreamReady=
+      draft.scope==='teacher' ? selectedTeachers.length>0 :
+      draft.scope==='subject' ? selectedSubjects.length>0 :
+      true
+    if(!upstreamReady) return
+
     if(groupOptionIds.length===1){
       const only=groupOptionIds[0]
-      if(draft.groupIds.length!==1||draft.groupIds[0]!==only){
-        const next={...draft,groupId:'',groupIds:[only],subjectId:'',subjectIds:[]}
-        if(draft.scope==='group'||draft.scope==='subject'){
-          next.teacherId=''
-          next.teacherIds=[]
-        }
-        onChange(next)
-      }
+      if(draft.groupIds.length===1&&draft.groupIds[0]===only) return
+      onChange({
+        ...draft,
+        groupId:'',
+        groupIds:[only],
+        subjectId:'',
+        subjectIds:[],
+      })
       return
     }
+
     const valid=draft.groupIds.filter(id=>groupOptionIds.includes(id))
-    if(valid.length!==draft.groupIds.length) onChange({...draft,groupIds:valid,subjectId:'',subjectIds:[],teacherId:'',teacherIds:[]})
-  },[draft.conditionKind,draft.scope,draft.teacherId,draft.teacherIds.join('|'),draft.subjectId,draft.subjectIds.join('|'),groupOptionIds.join('|')])
+    if(valid.length===draft.groupIds.length) return
+    onChange({
+      ...draft,
+      groupId:'',
+      groupIds:valid,
+      subjectId:'',
+      subjectIds:[],
+    })
+  },[
+    draft.conditionKind,
+    draft.scope,
+    draft.teacherId,
+    draft.teacherIds.join('|'),
+    draft.subjectId,
+    draft.subjectIds.join('|'),
+    draft.groupIds.join('|'),
+    groupOptionIds.join('|'),
+  ])
 
   useEffect(()=>{
-    if(!conditionUses(draft.conditionKind,'subjectId')||!isMultiField(draft,'subjectId')) return
-    if(disabled('subjectId')) return
+    if(!draft.scope||!conditionUses(draft.conditionKind,'subjectId')||!isMultiField(draft,'subjectId')) return
+
+    const upstreamReady=
+      ['group','assignment','teacher'].includes(draft.scope) ? selectedGroups.length>0 :
+      draft.scope==='subject' ? true :
+      true
+    if(!upstreamReady) return
+
     if(subjectOptionIds.length===1){
       const only=subjectOptionIds[0]
-      if(draft.subjectIds.length!==1||draft.subjectIds[0]!==only){
-        const next={...draft,subjectId:'',subjectIds:[only]}
-        if(draft.scope==='group') {next.teacherId='';next.teacherIds=[]}
-        onChange(next)
-      }
+      if(draft.subjectIds.length===1&&draft.subjectIds[0]===only) return
+      onChange({...draft,subjectId:'',subjectIds:[only]})
       return
     }
+
     const valid=draft.subjectIds.filter(id=>subjectOptionIds.includes(id))
-    if(valid.length!==draft.subjectIds.length) onChange({...draft,subjectIds:valid})
-  },[draft.conditionKind,draft.scope,draft.groupId,draft.groupIds.join('|'),draft.teacherId,draft.teacherIds.join('|'),subjectOptionIds.join('|')])
+    if(valid.length===draft.subjectIds.length) return
+    onChange({...draft,subjectId:'',subjectIds:valid})
+  },[
+    draft.conditionKind,
+    draft.scope,
+    draft.groupId,
+    draft.groupIds.join('|'),
+    draft.teacherId,
+    draft.teacherIds.join('|'),
+    draft.subjectIds.join('|'),
+    subjectOptionIds.join('|'),
+  ])
 
   const updateSingle=(field:ConditionField,value:string)=>{
     const next={...draft,[field]:value} as Draft
@@ -966,8 +1003,14 @@ function RuleTargetFields({
   const updateMulti=(field:ConditionField,values:string[])=>{
     const next={...draft} as Draft
     if(field==='teacherId'){
-      next.teacherId='';next.teacherIds=values
-      if(draft.scope==='teacher'){next.groupId='';next.groupIds=[];next.subjectId='';next.subjectIds=[]}
+      next.teacherId=''
+      next.teacherIds=values
+      if(draft.scope==='teacher'){
+        next.groupId=''
+        next.groupIds=[]
+        next.subjectId=''
+        next.subjectIds=[]
+      }
     }
     if(field==='groupId'){
       next.groupId='';next.groupIds=values
