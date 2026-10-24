@@ -815,6 +815,40 @@ function RuleTargetFields({
     return true
   })
 
+  const groupOptionIds=groupOptions.map(item=>item.id)
+  const subjectOptionIds=subjectOptions.map(item=>item.id)
+
+  useEffect(()=>{
+    if(!conditionUses(draft.conditionKind,'groupId')||!isMultiField(draft,'groupId')) return
+    if(disabled('groupId')) return
+    if(groupOptionIds.length===1){
+      const only=groupOptionIds[0]
+      if(draft.groupIds.length!==1||draft.groupIds[0]!==only){
+        const next={...draft,groupId:'',groupIds:[only],subjectId:'',subjectIds:[],teacherId:'',teacherIds:[]}
+        onChange(next)
+      }
+      return
+    }
+    const valid=draft.groupIds.filter(id=>groupOptionIds.includes(id))
+    if(valid.length!==draft.groupIds.length) onChange({...draft,groupIds:valid,subjectId:'',subjectIds:[],teacherId:'',teacherIds:[]})
+  },[draft.conditionKind,draft.scope,draft.teacherId,draft.teacherIds.join('|'),draft.subjectId,draft.subjectIds.join('|'),groupOptionIds.join('|')])
+
+  useEffect(()=>{
+    if(!conditionUses(draft.conditionKind,'subjectId')||!isMultiField(draft,'subjectId')) return
+    if(disabled('subjectId')) return
+    if(subjectOptionIds.length===1){
+      const only=subjectOptionIds[0]
+      if(draft.subjectIds.length!==1||draft.subjectIds[0]!==only){
+        const next={...draft,subjectId:'',subjectIds:[only]}
+        if(draft.scope==='group') {next.teacherId='';next.teacherIds=[]}
+        onChange(next)
+      }
+      return
+    }
+    const valid=draft.subjectIds.filter(id=>subjectOptionIds.includes(id))
+    if(valid.length!==draft.subjectIds.length) onChange({...draft,subjectIds:valid})
+  },[draft.conditionKind,draft.scope,draft.groupId,draft.groupIds.join('|'),draft.teacherId,draft.teacherIds.join('|'),subjectOptionIds.join('|')])
+
   const updateSingle=(field:ConditionField,value:string)=>{
     const next={...draft,[field]:value} as Draft
     if(field==='teacherId'){
@@ -896,7 +930,7 @@ function RuleTargetFields({
     }
 
     if(field==='groupId'){
-      if(multi)return <MultiCheckSelect key={field} label="Grupo" placeholder={placeholder(field)} disabled={disabled(field)}
+      if(multi)return <MultiCheckSelect key={field} label="Grupo" placeholder={placeholder(field)} disabled={disabled(field)||groupOptions.length===1}
         searchable options={groupOptions.map(item=>({value:item.id,label:item.name}))} values={draft.groupIds} onChange={values=>updateMulti(field,values)}/>
       return <Field key={field} label="Grupo"><select disabled={disabled(field)} value={draft.groupId} onChange={e=>updateSingle(field,e.target.value)}>
         <option value="">{placeholder(field)}</option>{groupOptions.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
@@ -904,7 +938,7 @@ function RuleTargetFields({
     }
 
     if(field==='subjectId'){
-      if(multi)return <MultiCheckSelect key={field} label="Materia" placeholder={placeholder(field)} disabled={disabled(field)}
+      if(multi)return <MultiCheckSelect key={field} label="Materia" placeholder={placeholder(field)} disabled={disabled(field)||subjectOptions.length===1}
         searchable options={subjectOptions.map(item=>({value:item.id,label:item.name}))} values={draft.subjectIds} onChange={values=>updateMulti(field,values)}/>
       return <Field key={field} label="Materia"><select disabled={disabled(field)} value={draft.subjectId} onChange={e=>updateSingle(field,e.target.value)}>
         <option value="">{placeholder(field)}</option>{subjectOptions.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
