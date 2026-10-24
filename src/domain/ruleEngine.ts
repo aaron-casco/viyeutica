@@ -24,28 +24,40 @@ export function ruleNumericValue(rule:CenterRule){
   return Number.isFinite(value)?value:null
 }
 
+function parameterValues(parameters:Record<string,unknown>,singleKey:string,multiKey:string){
+  const multi=parameters[multiKey]
+  if(Array.isArray(multi)) return multi.map(String).filter(Boolean)
+  const single=parameters[singleKey]
+  return single?[String(single)]:[]
+}
+
+function parameterMatches(parameters:Record<string,unknown>,singleKey:string,multiKey:string,value:string){
+  const values=parameterValues(parameters,singleKey,multiKey)
+  return values.length===0||values.includes(value)
+}
+
 export function ruleMatchesAssignment(rule:CenterRule,assignment:TeachingAssignment){
   const p=rule.parameters??{}
-  if(p.teacherId&&p.teacherId!==assignment.teacherId) return false
-  if(p.groupId&&p.groupId!==assignment.groupId) return false
-  if(p.subjectId&&p.subjectId!==assignment.subjectId) return false
+  if(!parameterMatches(p,'teacherId','teacherIds',assignment.teacherId)) return false
+  if(!parameterMatches(p,'groupId','groupIds',assignment.groupId)) return false
+  if(!parameterMatches(p,'subjectId','subjectIds',assignment.subjectId)) return false
   return true
 }
 
 export function ruleMatchesEntry(rule:CenterRule,entry:GeneratedScheduleEntry){
   const p=rule.parameters??{}
-  if(p.teacherId&&p.teacherId!==entry.teacherId) return false
-  if(p.groupId&&p.groupId!==entry.groupId) return false
-  if(p.subjectId&&p.subjectId!==entry.subjectId) return false
-  if(p.day&&p.day!==entry.day) return false
-  if(p.sessionId&&p.sessionId!==entry.sessionId) return false
+  if(!parameterMatches(p,'teacherId','teacherIds',entry.teacherId)) return false
+  if(!parameterMatches(p,'groupId','groupIds',entry.groupId)) return false
+  if(!parameterMatches(p,'subjectId','subjectIds',entry.subjectId)) return false
+  if(!parameterMatches(p,'day','days',entry.day)) return false
+  if(!parameterMatches(p,'sessionId','sessionIds',entry.sessionId)) return false
   return true
 }
 
 export function ruleSlotMatches(rule:CenterRule,slot:RuleSlot){
   const p=rule.parameters??{}
-  if(p.day&&p.day!==slot.day) return false
-  if(p.sessionId&&p.sessionId!==slot.sessionId) return false
+  if(!parameterMatches(p,'day','days',slot.day)) return false
+  if(!parameterMatches(p,'sessionId','sessionIds',slot.sessionId)) return false
   return true
 }
 
