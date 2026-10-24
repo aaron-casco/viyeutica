@@ -167,6 +167,105 @@ function addEntry(entries:GeneratedScheduleEntry[],occupancy:Occupancy,assignmen
   occupancy.teacher.add(assignment.teacherId+'|'+key)
 }
 
+
+function rebuildOccupancy(entries:GeneratedScheduleEntry[],occupancy:Occupancy){
+  occupancy.group.clear()
+  occupancy.teacher.clear()
+  for(const entry of entries){
+    const key=entry.day+'|'+entry.sessionId
+    const assignmentKey=entry.groupId+'|'+key
+    // Apoyos/codocencias pueden compartir grupo con la sesión principal.
+    const assignmentType=(entry.assignmentId&&entry.assignmentId)||''
+    if(assignmentType) occupancy.group.add(assignmentKey)
+    occupancy.teacher.add(entry.teacherId+'|'+key)
+  }
+}
+
+function isFixedAt(project:ViyeuticaProject,assignment:TeachingAssignment,slot:Slot){
+  return fixedSlotsFor(project,assignment).some(item=>item.day===slot.day&&item.session===slot.sessionId)
+}
+
+function staticFeasibleSlots(project:ViyeuticaProject,assignment:TeachingAssignment,slots:Slot[]){
+  const hardRules=project.rules.filter(rule=>rule.active&&rule.ruleType==='HARD')
+  return slots.filter(slot=>{
+    if(unavailable(project,assignment.teacherId,slot))return false
+    return !hardRules.some(rule=>violatesAvoid(rule,assignment,slot))
+  }).length
+}
+
+function candidateScore(
+  project:ViyeuticaProject,
+  assignment:TeachingAssignment,
+  slot:Slot,
+  entries:GeneratedScheduleEntry[],
+  random:()=>number,
+){
+  let score=softCost(project,assignment,slot,entries)
+  const sameSubjectDay=entries.filter(entry=>
+    entry.groupId===assignment.groupId&&
+    entry.subjectId===assignment.subjectId&&
+    entry.day===slot.day
+  ).length
+  score+=sameSubjectDay*1.5
+  score+=random()*0.35
+  return score
+}
+
+function trySingleRepair(
+  project:ViyeuticaProject,
+  assignment:TeachingAssignment,
+  slots:Slot[],
+  entries:GeneratedScheduleEntry[],
+  occupancy:Occupancy,
+  random:()=>number,
+){
+  const targetSlots=shuffle(slots,random)
+    .filter(slot=>!unavailable(project,assignment.teacherId,slot))
+    .sort((a,b)=>candidateScore(project,assignment,a,entries,random)-candidateScore(project,assignment,b,entries,random))
+
+  for(const target of targetSlots){
+    const blockers=entries.filter(entry=>
+      entry.day===target.day&&entry.sessionId===target.sessionId&&
+      (entry.groupId===assignment.groupId||entry.teacherId===assignment.teacherId)
+    )
+    if(blockers.length!==1)continue
+
+    const blocker=blockers[0]
+    const blockerAssignment=project.assignments.find(item=>item.id===blocker.assignmentId)
+    if(!blockerAssignment||blockerAssignment.assignmentType!=='main')continue
+    if(isFixedAt(project,blockerAssignment,target))continue
+
+    const snapshot=[...entries]
+    const index=entries.findIndex(item=>item.id===blocker.id)
+    if(index<0)continue
+    entries.splice(index,1)
+    rebuildOccupancy(entries,occupancy)
+
+    if(!hardAllows(project,assignment,target,entries,occupancy)){
+      entries.splice(0,entries.length,...snapshot)
+      rebuildOccupancy(entries,occupancy)
+      continue
+    }
+
+    addEntry(entries,occupancy,assignment,target)
+
+    const alternatives=shuffle(slots,random)
+      .filter(slot=>!(slot.day===target.day&&slot.sessionId===target.sessionId))
+      .filter(slot=>hardAllows(project,blockerAssignment,slot,entries,occupancy))
+      .sort((a,b)=>candidateScore(project,blockerAssignment,a,entries,random)-candidateScore(project,blockerAssignment,b,entries,random))
+
+    const alternative=alternatives[0]
+    if(alternative){
+      addEntry(entries,occupancy,blockerAssignment,alternative)
+      return true
+    }
+
+    entries.splice(0,entries.length,...snapshot)
+    rebuildOccupancy(entries,occupancy)
+  }
+  return false
+}
+
 function teacherGapPenalty(entries:GeneratedScheduleEntry[],slots:Slot[]){
   let gaps=0
   const byTeacherDay=new Map<string,number[]>()
@@ -227,9 +326,17 @@ function generateAttempt(project:ViyeuticaProject,attempt:number){
   const orderedMain=shuffle(main,random).sort((a,b)=>{
     const af=fixedSlotsFor(project,a).length
     const bf=fixedSlotsFor(project,b).length
-    const au=project.teacherAvailability.filter(x=>x.teacherId===a.teacherId&&(x.status==='unavailable'||x.status==='travel')).length
-    const bu=project.teacherAvailability.filter(x=>x.teacherId===b.teacherId&&(x.status==='unavailable'||x.status==='travel')).length
-    return (bf+bu)-(af+au)
+    if(af!==bf)return bf-af
+
+    const aFeasible=staticFeasibleSlots(project,a,slots)
+    const bFeasible=staticFeasibleSlots(project,b,slots)
+    const aNeeded=sessionsRequired(project,a,teachingBlocks)
+    const bNeeded=sessionsRequired(project,b,teachingBlocks)
+    const aSlack=aFeasible-aNeeded
+    const bSlack=bFeasible-bNeeded
+    if(aSlack!==bSlack)return aSlack-bSlack
+    if(aNeeded!==bNeeded)return bNeeded-aNeeded
+    return random()<0.5?-1:1
   })
 
   for(const assignment of orderedMain){
@@ -247,10 +354,15 @@ function generateAttempt(project:ViyeuticaProject,attempt:number){
 
       candidates=candidates
         .filter(slot=>hardAllows(project,assignment,slot,entries,occupancy))
-        .sort((a,b)=>softCost(project,assignment,a,entries)-softCost(project,assignment,b,entries))
+        .sort((a,b)=>candidateScore(project,assignment,a,entries,random)-candidateScore(project,assignment,b,entries,random))
 
       const slot=candidates[0]
       if(!slot){
+        const repaired=index>=fixed.length&&trySingleRepair(project,assignment,slots,entries,occupancy,random)
+        if(repaired){
+          notes.push('Se ha recolocado una sesión previa para evitar un bloqueo durante la generación.')
+          continue
+        }
         hardViolations++
         issues.push({
           id:uid('issue'),
