@@ -525,7 +525,7 @@ function NormativeTrace({project,id}:{project:ViyeuticaProject;id:string}){
   const rule=project.normativeRules.find(item=>item.id===id)
   const source=rule?project.normativeSources.find(item=>item.id===rule.sourceId):undefined
   if(!rule)return null
-  return <div className="rule-trace"><FileCheck2 size={13}/><span>{source?.name??'Fuente normativa'} · pág. {rule.page} · confianza {Math.round(rule.confidence*100)}%</span></div>
+  return <div className="rule-trace"><FileCheck2 size={13}/><span>{source?.name??'Fuente normativa'} · {rule.reference?rule.reference+' · ':''}pág. {rule.page} · confianza {Math.round(rule.confidence*100)}%</span></div>
 }
 
 
