@@ -109,6 +109,27 @@ export function StudyPlanPage({
       ?'Indica la carga semanal mediante sesiones o minutos.'
       :'La carga tiene los datos mínimos necesarios. Ya puedes añadirla.'
 
+  const assignedSubjectIdsForGroup=(groupId:string)=>new Set(
+    activeEntries
+      .filter(entry=>entry.groupId===groupId&&entry.id!==editingEntry)
+      .map(entry=>entry.subjectId)
+  )
+
+  const compatibleSubjectsForGroup=(groupId:string)=>{
+    const group=activeGroups.find(item=>item.id===groupId)
+    return group?activeSubjects.filter(subject=>subject.stage===group.stage):[]
+  }
+
+  const groupPlanComplete=(groupId:string)=>{
+    const compatible=compatibleSubjectsForGroup(groupId)
+    if(!compatible.length)return false
+    const assigned=assignedSubjectIdsForGroup(groupId)
+    return compatible.every(subject=>assigned.has(subject.id))
+  }
+
+  const subjectAlreadyAssigned=(groupId:string,subjectId:string)=>
+    assignedSubjectIdsForGroup(groupId).has(subjectId)
+
   const persist=(patch:Partial<ViyeuticaProject>)=>saveProject({...project,...patch})
 
   const resetSubject=()=>{
@@ -379,8 +400,14 @@ export function StudyPlanPage({
           <div><span className="panel-kicker">Carga semanal</span><h2>{editingEntry?'Editar carga':'Asignar materia a grupo'}</h2><p>El profesorado concreto se asignará en el siguiente paso.</p></div>
         </div>
         <div className="form-grid two">
-          <Field label="Grupo" required><select value={entryDraft.groupId} onChange={e=>setEntryDraft({...entryDraft,groupId:e.target.value,subjectId:''})}><option value="">Selecciona...</option>{activeGroups.map(group=><option key={group.id} value={group.id}>{group.name}</option>)}</select></Field>
-          <Field label="Materia" required><select value={entryDraft.subjectId} disabled={!entryDraft.groupId} onChange={e=>setEntryDraft({...entryDraft,subjectId:e.target.value})}><option value="">Selecciona...</option>{groupSubjects(entryDraft.groupId).map(subject=><option key={subject.id} value={subject.id}>{subject.name}</option>)}</select></Field>
+          <Field label="Grupo" required><select value={entryDraft.groupId} onChange={e=>setEntryDraft({...entryDraft,groupId:e.target.value,subjectId:''})}><option value="">Selecciona...</option>{activeGroups.map(group=>{
+            const complete=groupPlanComplete(group.id)
+            return <option key={group.id} value={group.id} disabled={complete}>{group.name}{complete?' · completo':''}</option>
+          })}</select></Field>
+          <Field label="Materia" required><select value={entryDraft.subjectId} disabled={!entryDraft.groupId} onChange={e=>setEntryDraft({...entryDraft,subjectId:e.target.value})}><option value="">Selecciona...</option>{groupSubjects(entryDraft.groupId).map(subject=>{
+            const assigned=subjectAlreadyAssigned(entryDraft.groupId,subject.id)
+            return <option key={subject.id} value={subject.id} disabled={assigned}>{subject.name}{assigned?' · ya asignada':''}</option>
+          })}</select></Field>
           <Field label="Sesiones semanales"><input type="number" min="0" step="0.25" value={entryDraft.weeklySessions} onChange={e=>setEntryDraft({...entryDraft,weeklySessions:e.target.value})} placeholder="Opcional"/></Field>
           <Field label="Carga semanal (min)"><input type="number" min="1" step="5" value={entryDraft.weeklyMinutes} onChange={e=>setEntryDraft({...entryDraft,weeklyMinutes:e.target.value})} placeholder="Opcional / normativa"/></Field>
           <Field label="Organización"><select value={entryDraft.mode} onChange={e=>setEntryDraft({...entryDraft,mode:e.target.value as StudyPlanMode})}>{planModes.map(x=><option key={x.value} value={x.value}>{x.label}</option>)}</select></Field>
