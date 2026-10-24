@@ -501,7 +501,9 @@ export function AssignmentsPage({
           >
             {activeTeachers.map(teacher=><option value={teacher.id} key={teacher.id}>{teacher.name}</option>)}
           </select>
-          <small>{availabilityDraft.teacherIds.length?availabilityDraft.teacherIds.length+' seleccionados':'Selecciona uno o varios'}</small>
+          <small>{availabilityDraft.teacherIds.length
+            ? activeTeachers.filter(teacher=>availabilityDraft.teacherIds.includes(teacher.id)).map(teacher=>teacher.name).join(' · ')
+            : 'Selecciona uno o varios'}</small>
         </label>
 
         <label className="availability-multi-field">
