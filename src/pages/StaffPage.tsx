@@ -136,7 +136,7 @@ export function StaffPage({
       setTemplateMessage('No hay una plantilla docente importada en el proyecto.')
       return
     }
-    setTemplateMessage(`La plantilla importada ya contiene ${imported.length} docentes. Revísalos y actualiza altas, bajas, jornadas, cargos y especialidades para ${project.academicYear.label}.`)
+    setTemplateMessage(`La plantilla importada ya contiene ${imported.length} ${imported.length===1?'docente':'docentes'}. Revísalos y actualiza altas, bajas, jornadas, cargos y especialidades para ${project.academicYear.label}.`)
   }
 
   if(!isStudyPlanComplete(project)){
@@ -218,7 +218,7 @@ export function StaffPage({
       <aside className="wizard-aside">
         <article className={'aside-card validation '+(validation.length===0&&activeTeachers.length?'ready':'')}>
           <span className="panel-kicker">Prevalidación</span>
-          <strong>{validation.length===0&&activeTeachers.length?'Plantilla válida':validation.length?`${validation.length} incidencias`:'Sin profesorado'}</strong>
+          <strong>{validation.length===0&&activeTeachers.length?'Plantilla válida':validation.length?`${validation.length} ${validation.length===1?'incidencia':'incidencias'}`:'Sin profesorado'}</strong>
           <p>{validation[0]??'Todos los docentes activos tienen al menos una especialidad.'}</p>
         </article>
         <TemplatePanel
@@ -228,7 +228,7 @@ export function StaffPage({
             {
               id:'imported-staff',
               label:'Revisar plantilla importada',
-              description:project.teachers.length?`${project.teachers.length} docentes disponibles`:'No hay profesorado importado',
+              description:project.teachers.length?`${project.teachers.length} ${project.teachers.length===1?'docente disponible':'docentes disponibles'}`:'No hay profesorado importado',
               disabled:project.teachers.length===0,
               onApply:applyImportedTemplate,
             },
