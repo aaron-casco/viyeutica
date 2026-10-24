@@ -3,7 +3,17 @@ import {
   ArrowUpToLine, CheckCircle2, Eye, FileInput, FileJson,
   FileSpreadsheet, ShieldAlert, Trash2, TriangleAlert,
 } from 'lucide-react'
-import { EMPTY_PROJECT, type ViyeuticaProject } from '../domain/project'
+import {
+  EMPTY_PROJECT,
+  isCenterComplete,
+  isStructureComplete,
+  validateAssignments,
+  validateRules,
+  validateSchedule,
+  validateStaff,
+  validateStudyPlan,
+  type ViyeuticaProject,
+} from '../domain/project'
 import {
   buildEmptyJsonTemplate,
   buildEmptyXlsTemplate,
@@ -56,7 +66,13 @@ function normalizeProject(raw:Partial<ViyeuticaProject>):ViyeuticaProject {
 function nextAcademicYear(project:ViyeuticaProject):ViyeuticaProject {
   const start=project.academicYear.startYear+1
   const end=project.academicYear.endYear+1
-  return {...project,academicYear:{id:start+'-'+end,label:start+'/'+end,startYear:start,endYear:end},updatedAt:null}
+  return {
+    ...project,
+    academicYear:{id:start+'-'+end,label:start+'/'+end,startYear:start,endYear:end},
+    generationRuns:[],
+    selectedGenerationRunId:null,
+    updatedAt:null,
+  }
 }
 
 export function ProjectImportPage({project,navigate}:{project:ViyeuticaProject;navigate:(path:string)=>void}) {
@@ -75,6 +91,16 @@ export function ProjectImportPage({project,navigate}:{project:ViyeuticaProject;n
   const [storedPreview,setStoredPreview]=useState<StoredTemplateFile|null>(null)
 
   useEffect(()=>setStoredFiles(loadStoredTemplateFiles()),[])
+
+  const candidateIssues=candidate?[
+    ...(!isCenterComplete(candidate.center)?['Los datos del centro están incompletos.']:[]),
+    ...(!isStructureComplete(candidate)?['La estructura y los grupos están incompletos.']:[]),
+    ...validateSchedule(candidate.schedule),
+    ...validateStudyPlan(candidate),
+    ...validateStaff(candidate),
+    ...validateAssignments(candidate),
+    ...validateRules(candidate),
+  ]:[]
 
   const readJson=async(file:File)=>{
     setError('');setDone('')
@@ -239,7 +265,12 @@ export function ProjectImportPage({project,navigate}:{project:ViyeuticaProject;n
         <strong>{candidate.center.name||'Centro sin nombre en la plantilla'}</strong>
         <span>{candidate.center.centerType||'Tipo sin especificar'} · {candidate.center.stages.join(' + ')||'Etapas sin especificar'}</span>
       </div>
-      {review.length>0&&<div className="import-review"><ShieldAlert size={18}/><div><strong>{review.length} campos requieren revisión</strong>{review.slice(0,6).map(item=><p key={item.path}><code>{item.path}</code> — {item.reason}</p>)}</div></div>}
+      {review.length>0&&<div className="import-review"><ShieldAlert size={18}/><div><strong>{review.length} {review.length===1?'campo requiere':'campos requieren'} revisión</strong>{review.slice(0,6).map(item=><p key={item.path}><strong>{importPathLabel(item.path)}</strong> — {item.reason}</p>)}</div></div>}
+      {candidateIssues.length>0&&<div className="import-review"><TriangleAlert size={18}/><div>
+        <strong>{candidateIssues.length} {candidateIssues.length===1?'incidencia detectada':'incidencias detectadas'} en la configuración importada</strong>
+        <p>La importación está permitida para que puedas corregirlas después. Prevalidación volverá a comprobarlas antes de generar.</p>
+        {candidateIssues.slice(0,6).map((item,index)=><p key={index}>{item}</p>)}
+      </div></div>}
       <div className="import-actions">
         <button className="btn secondary-light" onClick={()=>setPendingMode('same')}>Importar en {candidate.academicYear.label}</button>
         <button className="btn primary" onClick={()=>setPendingMode('next')}>Usar como base para {candidate.academicYear.startYear+1}/{candidate.academicYear.endYear+1}</button>
@@ -267,8 +298,26 @@ export function ProjectImportPage({project,navigate}:{project:ViyeuticaProject;n
     >
       <p>Esta acción sustituirá los datos actuales guardados en este navegador por los de <strong>{filename}</strong>.</p>
       <p style={{marginTop:8}}>La plantilla original no se modificará y podrás seguir editando todos los datos después de importarlos.</p>
+      {candidateIssues.length>0&&<p style={{marginTop:8}}><strong>Atención:</strong> se han detectado {candidateIssues.length} {candidateIssues.length===1?'incidencia':'incidencias'} que deberán revisarse antes de generar.</p>}
     </AppModal>}
   </div>
+}
+
+function importPathLabel(path:string){
+  const root=path.split(/[.[\]]/).filter(Boolean)[0]??path
+  const labels:Record<string,string>={
+    center:'Centro',
+    academicYear:'Curso académico',
+    groups:'Estructura y grupos',
+    schedule:'Jornada y sesiones',
+    subjects:'Materias',
+    studyPlan:'Plan de estudios',
+    teachers:'Profesorado',
+    teacherAvailability:'Disponibilidad',
+    assignments:'Asignaciones',
+    rules:'Reglas',
+  }
+  return labels[root]??'Dato importado'
 }
 
 function Kpi({label,value}:{label:string;value:string}){return <article><span>{label}</span><strong>{value}</strong></article>}
