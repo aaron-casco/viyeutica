@@ -813,7 +813,7 @@ function MultiCheckSelect({
     onChange(values.includes(value)?values.filter(item=>item!==value):[...values,value])
   }
 
-  return <label className={'availability-compact-field'+(disabled?' disabled':'')}>
+  return <div className={'availability-compact-field'+(disabled?' disabled':'')}>
     <span>{label}</span>
     <details
       ref={detailsRef}
@@ -845,7 +845,7 @@ function MultiCheckSelect({
         {values.length>0&&<button type="button" className="multicheck-clear" onClick={()=>onChange([])}>Limpiar selección</button>}
       </div>}
     </details>
-  </label>
+  </div>
 }
 
 function RuleTargetFields({
