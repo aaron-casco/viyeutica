@@ -151,10 +151,10 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
         <p>Carga documentos normativos para que ⩒Yeutika extraiga reglas candidatas. Ninguna regla se utiliza en plantillas hasta que sea revisada y aprobada.</p>
       </div>
       <div className="normative-kpis">
-        <span><strong>{project.normativeSources.length}</strong><small>documentos</small></span>
-        <span><strong>{project.normativeRules.length}</strong><small>reglas detectadas</small></span>
-        <span><strong>{approved.length}</strong><small>aprobadas</small></span>
-        <span className={conflicts.length?'warning':''}><strong>{conflicts.length}</strong><small>contradicciones</small></span>
+        <span><strong>{project.normativeSources.length}</strong><small>{project.normativeSources.length===1?'documento':'documentos'}</small></span>
+        <span><strong>{project.normativeRules.length}</strong><small>{project.normativeRules.length===1?'regla detectada':'reglas detectadas'}</small></span>
+        <span><strong>{approved.length}</strong><small>{approved.length===1?'aprobada':'aprobadas'}</small></span>
+        <span className={conflicts.length?'warning':''}><strong>{conflicts.length}</strong><small>{conflicts.length===1?'contradicción':'contradicciones'}</small></span>
       </div>
     </section>
 
