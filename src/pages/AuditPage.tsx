@@ -107,7 +107,7 @@ function AuditSection({
 }) {
   return <section className="audit-card">
     <div className="audit-card-heading">
-      <div><span className="panel-kicker">{title}</span><h2>{issues.length} incidencias</h2><p>{description}</p></div>
+      <div><span className="panel-kicker">{title}</span><h2>{issues.length} {issues.length===1?'incidencia':'incidencias'}</h2><p>{description}</p></div>
     </div>
     {issues.length===0
       ? <div className="audit-empty"><CheckCircle2 size={18}/><span>Sin incidencias</span></div>
