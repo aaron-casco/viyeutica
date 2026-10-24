@@ -140,12 +140,13 @@ export function consecutiveRunLength(
   slot:RuleSlot,
   scope:string,
   orderBySession:Map<string,number>,
+  rule?:CenterRule,
 ){
   const currentOrder=slot.order??orderBySession.get(slot.sessionId)
   if(currentOrder===undefined) return 1
   const occupied=new Set<number>([currentOrder])
   for(const entry of entries){
-    if(entry.day!==slot.day||!entryMatchesScope(entry,assignment,scope)) continue
+    if(entry.day!==slot.day||!entryMatchesScope(entry,assignment,scope)|| (rule&&!entryMatchesRuleFilters(rule,entry))) continue
     const order=orderBySession.get(entry.sessionId)
     if(order!==undefined) occupied.add(order)
   }
@@ -165,7 +166,7 @@ export function violatesConsecutiveLimitRule(
   if(ruleConditionKind(rule)!=='consecutive_limit'||!ruleMatchesAssignment(rule,assignment)) return false
   const value=ruleNumericValue(rule)
   if(value===null) return false
-  const run=consecutiveRunLength(entries,assignment,slot,rule.scope,orderBySession)
+  const run=consecutiveRunLength(entries,assignment,slot,rule.scope,orderBySession,rule)
   return ['maximum','equals'].includes(ruleComparison(rule))&&run>value
 }
 
@@ -204,7 +205,7 @@ export function softRulePlacementCost(
     if(cmp==='minimum'&&count<value) cost+=weight
   }
   if(kind==='consecutive_limit'&&ruleNumericValue(rule)!==null&&orderBySession){
-    const run=consecutiveRunLength(entries,assignment,slot,rule.scope,orderBySession)
+    const run=consecutiveRunLength(entries,assignment,slot,rule.scope,orderBySession,rule)
     const value=ruleNumericValue(rule)!
     if((cmp==='maximum'||cmp==='equals')&&run>value) cost+=weight*(run-value)*6
     if(cmp==='minimum'&&run<value) cost+=weight
