@@ -48,8 +48,7 @@ export function AuditPage({
   return <div className="audit-page">
     <section className="wizard-intro">
       <div>
-        <span className="eyebrow dark"><SearchCheck size={15}/> Verificación independiente</span>
-        <h1>Auditoría</h1>
+        <h1 className="wizard-page-title"><SearchCheck size={28}/> Auditoría</h1>
         <p>Revisa el horario generado con comprobaciones independientes del solver para detectar conflictos, incumplimientos y cargas incoherentes.</p>
       </div>
       <div className={'audit-status '+(result.passed?'passed':'failed')}>
