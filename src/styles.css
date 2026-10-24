@@ -1483,3 +1483,31 @@ main .generated-schedule th strong{
 .multicheck-trigger:disabled{
   cursor:not-allowed;
 }
+
+
+/* === Prevalidación: guía de corrección === */
+.prevalidation-guidance{
+  margin:7px 0 0;
+  padding:8px 10px;
+  border-left:3px solid var(--border);
+  border-radius:7px;
+  background:var(--surface-subtle,#f7f8fa);
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.45;
+}
+.prevalidation-guidance strong{
+  color:var(--text);
+}
+.prevalidation-card.error .prevalidation-guidance{
+  border-left-color:#d66;
+}
+.prevalidation-card.warning .prevalidation-guidance{
+  border-left-color:#d6a24a;
+}
+.prevalidation-card.info .prevalidation-guidance{
+  border-left-color:var(--navy2);
+}
+[data-theme="dark"] .prevalidation-guidance{
+  background:#18202b;
+}
