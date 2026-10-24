@@ -130,8 +130,7 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
   return <div className="normative-page">
     <section className="wizard-intro">
       <div>
-        <span className="eyebrow dark"><FileSearch size={15}/> Fuentes del proyecto</span>
-        <h1>Normativa</h1>
+        <h1 className="wizard-page-title"><FileSearch size={28}/> Normativa</h1>
         <p>Carga documentos normativos para que Viyeutica extraiga reglas candidatas. Ninguna regla se utiliza en plantillas hasta que sea revisada y aprobada.</p>
       </div>
       <div className="normative-kpis">
