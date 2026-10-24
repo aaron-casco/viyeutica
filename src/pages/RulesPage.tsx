@@ -115,6 +115,28 @@ function normalizeDraftForCondition(draft:Draft,kind:string):Draft{
   return next
 }
 
+function normalizeDraftForScope(draft:Draft,scope:string):Draft{
+  if(scope===draft.scope) return draft
+  return {
+    ...draft,
+    scope,
+    teacherId:'',
+    groupId:'',
+    subjectId:'',
+    stage:'',
+    day:'',
+    sessionId:'',
+  }
+}
+
+function targetFieldOrder(scope:string):ConditionField[]{
+  if(scope==='assignment'||scope==='group') return ['groupId','subjectId','teacherId','stage','day','sessionId']
+  if(scope==='teacher') return ['teacherId','groupId','subjectId','stage','day','sessionId']
+  if(scope==='subject') return ['subjectId','groupId','teacherId','stage','day','sessionId']
+  if(scope==='schedule') return ['day','sessionId','stage','groupId','subjectId','teacherId']
+  return ['stage','groupId','subjectId','teacherId','day','sessionId']
+}
+
 function buildParameters(draft:Draft){
   const parameters:Record<string,unknown>={conditionKind:draft.conditionKind}
   if(conditionUses(draft.conditionKind,'teacherId')&&draft.teacherId) parameters.teacherId=draft.teacherId
@@ -396,13 +418,6 @@ export function RulesPage({
               <option value="SOFT">SOFT · preferencia</option>
             </select>
           </Field>
-          <Field label="Ámbito" required>
-            <select value={draft.scope} onChange={e=>setDraft({...draft,scope:e.target.value})}>
-              {scopes
-                .filter(([value])=>allowedScopes(draft.conditionKind).includes(value))
-                .map(([value,label])=><option key={value} value={value}>{label}</option>)}
-            </select>
-          </Field>
           <Field label="Código" required>
             <input value={draft.code} onChange={e=>setDraft({...draft,code:e.target.value.toUpperCase().replace(/\s+/g,'_')})} placeholder="Ej. SIN_SOLAPE_DOCENTE"/>
           </Field>
@@ -432,50 +447,20 @@ export function RulesPage({
                 <option value="weekly_load">Carga semanal</option>
               </select>
             </Field>
+            <Field label="Ámbito" required>
+              <select value={draft.scope} onChange={e=>setDraft(normalizeDraftForScope(draft,e.target.value))}>
+                {scopes
+                  .filter(([value])=>allowedScopes(draft.conditionKind).includes(value))
+                  .map(([value,label])=><option key={value} value={value}>{label}</option>)}
+              </select>
+            </Field>
             {conditionUses(draft.conditionKind,'comparison')&&<Field label="Comparación">
               <select value={draft.comparison} onChange={e=>setDraft({...draft,comparison:e.target.value})}>
                 {(CONDITION_COMPARISONS[draft.conditionKind]??CONDITION_COMPARISONS.generic).map(value=><option key={value} value={value}>{comparisonLabel(value)}</option>)}
               </select>
             </Field>}
 
-            {conditionUses(draft.conditionKind,'teacherId')&&<Field label="Profesor/a">
-              <select value={draft.teacherId} onChange={e=>setDraft({...draft,teacherId:e.target.value})}>
-                <option value="">Cualquiera / no aplica</option>
-                {project.teachers.filter(t=>t.active).map(t=><option key={t.id} value={t.id}>{t.name}</option>)}
-              </select>
-            </Field>}
-            {conditionUses(draft.conditionKind,'groupId')&&<Field label="Grupo">
-              <select value={draft.groupId} onChange={e=>setDraft({...draft,groupId:e.target.value})}>
-                <option value="">Cualquiera / no aplica</option>
-                {project.groups.filter(g=>g.active).map(g=><option key={g.id} value={g.id}>{g.name}</option>)}
-              </select>
-            </Field>}
-
-            {conditionUses(draft.conditionKind,'subjectId')&&<Field label="Materia">
-              <select value={draft.subjectId} onChange={e=>setDraft({...draft,subjectId:e.target.value})}>
-                <option value="">Cualquiera / no aplica</option>
-                {project.subjects.filter(s=>s.active).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </Field>}
-            {conditionUses(draft.conditionKind,'stage')&&<Field label="Etapa">
-              <select value={draft.stage} onChange={e=>setDraft({...draft,stage:e.target.value})}>
-                <option value="">Cualquiera / no aplica</option>
-                {project.center.stages.map(stage=><option key={stage} value={stage}>{stage}</option>)}
-              </select>
-            </Field>}
-
-            {conditionUses(draft.conditionKind,'day')&&<Field label="Día">
-              <select value={draft.day} onChange={e=>setDraft({...draft,day:e.target.value})}>
-                <option value="">Cualquiera / no aplica</option>
-                {project.schedule.activeDays.map(day=><option key={day} value={day}>{day==='L'?'Lunes':day==='M'?'Martes':day==='X'?'Miércoles':day==='J'?'Jueves':day==='V'?'Viernes':'Sábado'}</option>)}
-              </select>
-            </Field>}
-            {conditionUses(draft.conditionKind,'sessionId')&&<Field label="Sesión">
-              <select value={draft.sessionId} onChange={e=>setDraft({...draft,sessionId:e.target.value})}>
-                <option value="">Cualquiera / no aplica</option>
-                {project.schedule.blocks.filter(b=>b.active).map(block=><option key={block.id} value={block.id}>{block.label} · {block.start}-{block.end}</option>)}
-              </select>
-            </Field>}
+            <RuleTargetFields draft={draft} project={project} onChange={setDraft}/>
 
             {conditionUses(draft.conditionKind,'value')&&<Field label="Valor">
               <input type="number" min="1" value={draft.value} onChange={e=>setDraft({...draft,value:e.target.value})} placeholder="Ej. 2"/>
@@ -569,6 +554,145 @@ export function RulesPage({
 
 function Summary({label,value,detail}:{label:string;value:string;detail:string}){return <article className="structure-summary-card"><span>{label}</span><strong>{value}</strong><small>{detail}</small></article>}
 function Field({label,required,children}:{label:string;required?:boolean;children:React.ReactNode}){return <label className="form-field"><span>{label}{required&&<em>*</em>}</span>{children}</label>}
+
+function RuleTargetFields({
+  draft,project,onChange,
+}:{
+  draft:Draft
+  project:ViyeuticaProject
+  onChange:(draft:Draft)=>void
+}){
+  const activeAssignments=project.assignments.filter(item=>item.active)
+
+  const groupOptions=project.groups.filter(group=>{
+    if(!group.active)return false
+    if(draft.scope==='teacher'&&draft.teacherId){
+      return activeAssignments.some(item=>item.teacherId===draft.teacherId&&item.groupId===group.id)
+    }
+    if(draft.scope==='subject'&&draft.subjectId){
+      return activeAssignments.some(item=>item.subjectId===draft.subjectId&&item.groupId===group.id)
+    }
+    return true
+  })
+
+  const subjectOptions=project.subjects.filter(subject=>{
+    if(!subject.active)return false
+    if(draft.groupId){
+      return activeAssignments.some(item=>item.groupId===draft.groupId&&item.subjectId===subject.id) ||
+        project.studyPlan.some(item=>item.active&&item.groupId===draft.groupId&&item.subjectId===subject.id)
+    }
+    if(draft.scope==='teacher'&&draft.teacherId){
+      return activeAssignments.some(item=>item.teacherId===draft.teacherId&&item.subjectId===subject.id)
+    }
+    return true
+  })
+
+  const teacherOptions=project.teachers.filter(teacher=>{
+    if(!teacher.active)return false
+    if(draft.scope==='teacher')return true
+    if(draft.groupId||draft.subjectId){
+      return activeAssignments.some(item=>
+        item.teacherId===teacher.id &&
+        (!draft.groupId||item.groupId===draft.groupId) &&
+        (!draft.subjectId||item.subjectId===draft.subjectId)
+      )
+    }
+    return true
+  })
+
+  const update=(field:ConditionField,value:string)=>{
+    const next={...draft,[field]:value} as Draft
+    if(field==='teacherId'&&draft.scope==='teacher'){
+      next.groupId=''
+      next.subjectId=''
+    }
+    if(field==='subjectId'&&draft.scope==='subject'){
+      next.groupId=''
+      next.teacherId=''
+    }
+    if(field==='groupId'){
+      if(draft.scope==='group'||draft.scope==='assignment'){
+        next.subjectId=''
+        next.teacherId=''
+      }else{
+        next.subjectId=''
+      }
+    }
+    if(field==='subjectId'&&(draft.scope==='group'||draft.scope==='assignment')){
+      next.teacherId=''
+    }
+    onChange(next)
+  }
+
+  const disabled=(field:ConditionField)=>{
+    if(field==='groupId'){
+      if(draft.scope==='teacher') return !draft.teacherId
+      if(draft.scope==='subject') return !draft.subjectId
+    }
+    if(field==='subjectId'){
+      if(draft.scope==='group'||draft.scope==='assignment'||draft.scope==='teacher') return !draft.groupId
+    }
+    if(field==='teacherId'){
+      if(draft.scope==='group'||draft.scope==='assignment') return !draft.subjectId
+      if(draft.scope==='subject') return !draft.groupId
+    }
+    if(field==='sessionId'&&draft.conditionKind==='fixed_slot') return !draft.day
+    return false
+  }
+
+  const placeholder=(field:ConditionField)=>{
+    if(field==='groupId'&&draft.scope==='teacher'&&!draft.teacherId)return 'Selecciona primero Profesor/a'
+    if(field==='groupId'&&draft.scope==='subject'&&!draft.subjectId)return 'Selecciona primero Materia'
+    if(field==='subjectId'&&!draft.groupId&&['group','assignment','teacher'].includes(draft.scope))return 'Selecciona primero Grupo'
+    if(field==='teacherId'&&!draft.subjectId&&['group','assignment'].includes(draft.scope))return 'Selecciona primero Materia'
+    if(field==='teacherId'&&!draft.groupId&&draft.scope==='subject')return 'Selecciona primero Grupo'
+    if(field==='sessionId'&&draft.conditionKind==='fixed_slot'&&!draft.day)return 'Selecciona primero Día'
+    return 'Cualquiera / no aplica'
+  }
+
+  const render=(field:ConditionField)=>{
+    if(!conditionUses(draft.conditionKind,field))return null
+    if(field==='teacherId')return <Field key={field} label="Profesor/a">
+      <select disabled={disabled(field)} value={draft.teacherId} onChange={e=>update(field,e.target.value)}>
+        <option value="">{placeholder(field)}</option>
+        {teacherOptions.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
+      </select>
+    </Field>
+    if(field==='groupId')return <Field key={field} label="Grupo">
+      <select disabled={disabled(field)} value={draft.groupId} onChange={e=>update(field,e.target.value)}>
+        <option value="">{placeholder(field)}</option>
+        {groupOptions.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
+      </select>
+    </Field>
+    if(field==='subjectId')return <Field key={field} label="Materia">
+      <select disabled={disabled(field)} value={draft.subjectId} onChange={e=>update(field,e.target.value)}>
+        <option value="">{placeholder(field)}</option>
+        {subjectOptions.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
+      </select>
+    </Field>
+    if(field==='stage')return <Field key={field} label="Etapa">
+      <select value={draft.stage} onChange={e=>update(field,e.target.value)}>
+        <option value="">Cualquiera / no aplica</option>
+        {project.center.stages.map(stage=><option key={stage} value={stage}>{stage}</option>)}
+      </select>
+    </Field>
+    if(field==='day')return <Field key={field} label="Día">
+      <select value={draft.day} onChange={e=>update(field,e.target.value)}>
+        <option value="">Cualquiera / no aplica</option>
+        {project.schedule.activeDays.map(day=><option key={day} value={day}>{dayName(day)}</option>)}
+      </select>
+    </Field>
+    if(field==='sessionId')return <Field key={field} label="Sesión">
+      <select disabled={disabled(field)} value={draft.sessionId} onChange={e=>update(field,e.target.value)}>
+        <option value="">{placeholder(field)}</option>
+        {project.schedule.blocks.filter(block=>block.active).map(block=><option key={block.id} value={block.id}>{block.label} · {block.start}-{block.end}</option>)}
+      </select>
+    </Field>
+    return null
+  }
+
+  return <>{targetFieldOrder(draft.scope).map(render)}</>
+}
 function scopeLabel(scope:string){return scopes.find(([value])=>value===scope)?.[1]??scope}
 function sourceLabel(source:CenterRule['source']){return source==='normative'?'Normativa':source==='imported'?'Importada':'Manual'}
 function NormativeTrace({project,id}:{project:ViyeuticaProject;id:string}){
