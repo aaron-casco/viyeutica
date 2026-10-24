@@ -551,13 +551,10 @@ export function validateRules(project: ViyeuticaProject) {
         errors.push(`La regla "${rule.description || 'sin descripción'}" necesita un Valor numérico mayor que cero.`)
       }
     }
-    if (kind==='fixed_slot' && (!rule.parameters?.day || !rule.parameters?.sessionId)) {
+    if (kind==='fixed_slot' && (!days.length || !sessions.length)) {
       errors.push(`La regla "${rule.description || 'sin descripción'}" de franja fija necesita Día y Sesión.`)
     }
-    if (['avoid_slot','availability'].includes(kind) &&
-      !rule.parameters?.day && !rule.parameters?.sessionId &&
-      !(Array.isArray(rule.parameters?.days) && rule.parameters.days.length) &&
-      !(Array.isArray(rule.parameters?.sessionIds) && rule.parameters.sessionIds.length)) {
+    if (['avoid_slot','availability'].includes(kind) && !days.length && !sessions.length) {
       const label=kind==='availability'?'de disponibilidad':'para evitar franja'
       errors.push(`La regla "${rule.description || 'sin descripción'}" ${label} necesita al menos un Día o una Sesión.`)
     }
