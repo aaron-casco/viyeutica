@@ -36,8 +36,38 @@ export function loadProject(): ViyeuticaProject {
   }
 }
 
-export function saveProject(project: ViyeuticaProject) {
-  const next = { ...project, updatedAt: new Date().toISOString() }
+function configurationFingerprint(project:ViyeuticaProject){
+  const {
+    generationRuns:_generationRuns,
+    selectedGenerationRunId:_selectedGenerationRunId,
+    updatedAt:_updatedAt,
+    ...configuration
+  }=project
+  return JSON.stringify(configuration)
+}
+
+export function saveProject(
+  project: ViyeuticaProject,
+  options:{preserveGeneration?:boolean}={},
+) {
+  let nextProject=project
+  if(!options.preserveGeneration){
+    try{
+      const raw=window.localStorage.getItem(STORAGE_KEY)
+      if(raw){
+        const current=JSON.parse(raw) as ViyeuticaProject
+        if(
+          current.schemaVersion===1 &&
+          configurationFingerprint(current)!==configurationFingerprint(project)
+        ){
+          nextProject={...project,generationRuns:[],selectedGenerationRunId:null}
+        }
+      }
+    }catch{
+      // Si el estado previo no puede leerse, se guarda el nuevo proyecto tal como llega.
+    }
+  }
+  const next = { ...nextProject, updatedAt: new Date().toISOString() }
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
   window.dispatchEvent(new CustomEvent(PROJECT_UPDATED_EVENT, { detail: next }))
   return next
