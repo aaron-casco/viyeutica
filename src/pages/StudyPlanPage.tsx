@@ -279,12 +279,22 @@ export function StudyPlanPage({
   }
 
   if(!isStructureComplete(project)){
-    return <section className="empty-state-card">
-      <BookOpen size={34}/>
-      <h1>Primero define los grupos</h1>
-      <p>El plan de estudios se asigna a unidades reales del centro. Puedes volver a este paso después aunque la jornada no esté terminada.</p>
-      <button className="btn primary" onClick={()=>navigate('/grupos')}>Ir a Estructura y grupos</button>
-    </section>
+    return <div className="wizard-page study-plan-page">
+      <section className="wizard-intro">
+        <div>
+          <h1 className="wizard-page-title"><BookOpen size={28}/> Plan de estudios</h1>
+          <p>Define las materias y su carga semanal por grupo. ⩒Yeutika no aplica aquí cargas normativas inventadas: los valores deben corresponder al centro y al curso configurado.</p>
+        </div>
+        <div className="wizard-progress-summary"><strong>4 <span>de 9</span></strong><small>Plan de estudios</small></div>
+      </section>
+      <WizardStepper currentStep={4} project={project} navigate={navigate}/>
+      <section className="empty-state-card">
+        <BookOpen size={34}/>
+        <h1>Primero define los grupos</h1>
+        <p>El plan de estudios se asigna a unidades reales del centro. Puedes volver a este paso después aunque la jornada no esté terminada.</p>
+        <button className="btn primary" onClick={()=>navigate('/grupos')}>Ir a Estructura y grupos</button>
+      </section>
+    </div>
   }
 
   const groupSubjects=(groupId:string)=>activeSubjects.filter(subject=>{
