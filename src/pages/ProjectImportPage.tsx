@@ -82,7 +82,7 @@ export function ProjectImportPage({project,navigate}:{project:ViyeuticaProject;n
       const rawText=await file.text()
       const parsed=JSON.parse(rawText) as ImportEnvelope|Partial<ViyeuticaProject>
       const envelope=(parsed as ImportEnvelope).project ? parsed as ImportEnvelope : {project:parsed as Partial<ViyeuticaProject>}
-      if(envelope.format && envelope.format!=='viyeutica-school-project') throw new Error('El JSON no tiene un formato Viyeutica reconocido.')
+      if(envelope.format && envelope.format!=='viyeutica-school-project') throw new Error('El JSON no tiene un formato ⩒Yeutika reconocido.')
       await storeTemplateFile(file,rawText,'json')
       setStoredFiles(loadStoredTemplateFiles())
       setCandidate(normalizeProject(envelope.project??{}))
@@ -152,12 +152,12 @@ export function ProjectImportPage({project,navigate}:{project:ViyeuticaProject;n
           <div className="normative-upload-icon"><FileJson size={28}/></div>
           <div>
             <h2>Importar desde JSON</h2>
-            <p>Para centros que ya dispongan de una plantilla Viyeutica o quieran trabajar con un formato estructurado.</p>
+            <p>Para centros que ya dispongan de una plantilla ⩒Yeutika o quieran trabajar con un formato estructurado.</p>
           </div>
         </div>
         <input ref={jsonInputRef} hidden type="file" accept=".json,application/json" onChange={e=>e.target.files?.[0]&&readJson(e.target.files[0])}/>
         <div className="template-option-actions">
-          <button className="btn secondary-light" onClick={()=>downloadTextFile(buildEmptyJsonTemplate(),'Viyeutica_Plantilla_Vacia.json','application/json')}>
+          <button className="btn secondary-light" onClick={()=>downloadTextFile(buildEmptyJsonTemplate(),'⩒Yeutika_Plantilla_Vacia.json','application/json')}>
             <FileJson size={16}/> Descargar plantilla JSON
           </button>
           <button className="btn primary" onClick={()=>jsonInputRef.current?.click()}><ArrowUpToLine size={16}/> Seleccionar JSON</button>
@@ -169,12 +169,12 @@ export function ProjectImportPage({project,navigate}:{project:ViyeuticaProject;n
           <div className="normative-upload-icon"><FileSpreadsheet size={28}/></div>
           <div>
             <h2>Importar desde hoja de cálculo</h2>
-            <p>Utiliza la plantilla XLS de Viyeutica con hojas separadas para Centro, Grupos, Jornada, Materias, Profesorado, Asignaciones y Reglas.</p>
+            <p>Utiliza la plantilla XLS de ⩒Yeutika con hojas separadas para Centro, Grupos, Jornada, Materias, Profesorado, Asignaciones y Reglas.</p>
           </div>
         </div>
         <input ref={xlsInputRef} hidden type="file" accept=".xls,application/vnd.ms-excel,application/xml,text/xml" onChange={e=>e.target.files?.[0]&&readXls(e.target.files[0])}/>
         <div className="template-option-actions">
-          <button className="btn secondary-light" onClick={()=>downloadTextFile(buildEmptyXlsTemplate(),'Viyeutica_Plantilla_Vacia.xls','application/vnd.ms-excel')}>
+          <button className="btn secondary-light" onClick={()=>downloadTextFile(buildEmptyXlsTemplate(),'⩒Yeutika_Plantilla_Vacia.xls','application/vnd.ms-excel')}>
             <FileSpreadsheet size={16}/> Descargar plantilla XLS
           </button>
           <button className="btn primary" onClick={()=>xlsInputRef.current?.click()}><ArrowUpToLine size={16}/> Seleccionar XLS</button>
