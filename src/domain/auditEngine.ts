@@ -167,7 +167,7 @@ export function auditGeneration(project:ViyeuticaProject,run:GenerationRun):Audi
 
     if(kind==='daily_limit'){
       const value=ruleNumericValue(rule)
-      if(value!==null&&ruleComparison(rule)==='maximum'){
+      if(value!==null){
         const matching=run.entries.filter(entry=>ruleMatchesEntry({...rule,parameters:{...rule.parameters,day:undefined,sessionId:undefined}},entry))
         const byDay=new Map<string,number>()
         for(const entry of matching){
@@ -180,9 +180,15 @@ export function auditGeneration(project:ViyeuticaProject,run:GenerationRun):Audi
                 : entry.day
           byDay.set(key,(byDay.get(key)??0)+1)
         }
-        const exceeded=[...byDay.values()].filter(count=>count>value)
-        if(exceeded.length){
-          push({severity:'error',category:'Reglas',code:rule.code,message:`Se incumple la regla obligatoria: ${rule.description}`,detail:`${exceeded.length} límites diarios superados`})
+        const cmp=ruleComparison(rule)
+        const invalid=[...byDay.values()].filter(count=>
+          cmp==='maximum'?count>value:
+          cmp==='minimum'?count<value:
+          cmp==='equals'?count!==value:false
+        )
+        if(invalid.length){
+          const label=cmp==='maximum'?'superan el máximo':cmp==='minimum'?'no alcanzan el mínimo':'no coinciden con el valor exacto'
+          push({severity:'error',category:'Reglas',code:rule.code,message:`Se incumple la regla obligatoria: ${rule.description}`,detail:`${invalid.length} recuentos diarios ${label} de ${value}`})
         }
       }
       continue
@@ -190,7 +196,7 @@ export function auditGeneration(project:ViyeuticaProject,run:GenerationRun):Audi
 
     if(kind==='consecutive_limit'){
       const value=ruleNumericValue(rule)
-      if(value!==null&&ruleComparison(rule)==='maximum'){
+      if(value!==null){
         const orderBySession=new Map(teachingBlocks.map((block,index)=>[block.id,index]))
         const matching=run.entries.filter(entry=>ruleMatchesEntry({...rule,parameters:{...rule.parameters,day:undefined,sessionId:undefined}},entry))
         const grouped=new Map<string,number[]>()
@@ -206,7 +212,7 @@ export function auditGeneration(project:ViyeuticaProject,run:GenerationRun):Audi
                 : entry.day
           grouped.set(key,[...(grouped.get(key)??[]),order])
         }
-        let exceeded=0
+        const maxRuns:number[]=[]
         for(const orders of grouped.values()){
           const sorted=[...new Set(orders)].sort((a,b)=>a-b)
           let runLength=0
@@ -217,10 +223,17 @@ export function auditGeneration(project:ViyeuticaProject,run:GenerationRun):Audi
             maxRun=Math.max(maxRun,runLength)
             previous=order
           }
-          if(maxRun>value) exceeded++
+          maxRuns.push(maxRun)
         }
-        if(exceeded){
-          push({severity:'error',category:'Reglas',code:rule.code,message:`Se incumple la regla obligatoria: ${rule.description}`,detail:`${exceeded} secuencias superan el máximo de ${value} sesiones consecutivas`})
+        const cmp=ruleComparison(rule)
+        const invalid=maxRuns.filter(maxRun=>
+          cmp==='maximum'?maxRun>value:
+          cmp==='minimum'?maxRun<value:
+          cmp==='equals'?maxRun!==value:false
+        )
+        if(invalid.length){
+          const label=cmp==='maximum'?'superan el máximo':cmp==='minimum'?'no alcanzan el mínimo':'no coinciden con el valor exacto'
+          push({severity:'error',category:'Reglas',code:rule.code,message:`Se incumple la regla obligatoria: ${rule.description}`,detail:`${invalid.length} secuencias ${label} de ${value} sesiones consecutivas`})
         }
       }
       continue
@@ -240,6 +253,19 @@ export function auditGeneration(project:ViyeuticaProject,run:GenerationRun):Audi
                 ? entry.groupId+'|'+entry.subjectId
                 : 'center'
           grouped.set(key,(grouped.get(key)??0)+1)
+        }
+        const teacherIds=Array.isArray(rule.parameters?.teacherIds)?rule.parameters.teacherIds.map(String):rule.parameters?.teacherId?[String(rule.parameters.teacherId)]:[]
+        const groupIds=Array.isArray(rule.parameters?.groupIds)?rule.parameters.groupIds.map(String):rule.parameters?.groupId?[String(rule.parameters.groupId)]:[]
+        const subjectIds=Array.isArray(rule.parameters?.subjectIds)?rule.parameters.subjectIds.map(String):rule.parameters?.subjectId?[String(rule.parameters.subjectId)]:[]
+        if(rule.scope==='teacher')for(const id of teacherIds)if(!grouped.has(id))grouped.set(id,0)
+        if(rule.scope==='group')for(const id of groupIds)if(!grouped.has(id))grouped.set(id,0)
+        if(rule.scope==='subject'){
+          for(const groupId of groupIds){
+            for(const subjectId of subjectIds){
+              const key=groupId+'|'+subjectId
+              if(!grouped.has(key))grouped.set(key,0)
+            }
+          }
         }
         const cmp=ruleComparison(rule)
         const invalid=[...grouped.values()].filter(count=>
