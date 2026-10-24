@@ -1059,3 +1059,60 @@ main .generated-schedule th strong{
   .generation-alternative-impact{align-items:flex-start;flex-direction:column}
   .generation-applied-actions{margin-left:0;width:100%}
 }
+
+
+/* === Asignaciones: disponibilidad múltiple === */
+.availability-form-multiple{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+  align-items:end;
+}
+.availability-multi-field,
+.availability-single-field{
+  display:grid;
+  gap:6px;
+  min-width:0;
+}
+.availability-multi-field>span,
+.availability-single-field>span{
+  font-size:11px;
+  font-weight:800;
+  color:var(--text);
+}
+.availability-multi-field select{
+  min-height:116px;
+  padding:7px;
+  border:1px solid var(--border);
+  border-radius:10px;
+  background:var(--surface);
+  color:var(--text);
+}
+.availability-multi-field select option{
+  padding:6px 8px;
+  border-radius:6px;
+}
+.availability-multi-field small{
+  min-height:16px;
+  color:var(--muted);
+  font-size:10px;
+  line-height:1.35;
+}
+.availability-single-field select,
+.availability-single-field input{
+  width:100%;
+}
+.availability-detail-field{
+  grid-column:span 2;
+}
+.availability-submit{
+  justify-self:start;
+}
+@media(max-width:900px){
+  .availability-form-multiple{grid-template-columns:1fr 1fr}
+}
+@media(max-width:620px){
+  .availability-form-multiple{grid-template-columns:1fr}
+  .availability-detail-field{grid-column:auto}
+  .availability-submit{width:100%}
+}
