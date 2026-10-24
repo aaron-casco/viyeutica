@@ -118,7 +118,11 @@ function normalizeDraftForCondition(draft:Draft,kind:string):Draft{
   const next={...draft,conditionKind:kind,scope:allowedScopeValues.includes(draft.scope)?draft.scope:allowedScopeValues[0]}
   const fields=CONDITION_FIELDS[kind]??CONDITION_FIELDS.generic
   for(const field of ['teacherId','groupId','subjectId','stage','day','sessionId','value'] as ConditionField[]){
-    if(!fields.includes(field)) (next as any)[field]=''
+    if(!fields.includes(field)){
+      (next as any)[field]=''
+      const plural=field==='teacherId'?'teacherIds':field==='groupId'?'groupIds':field==='subjectId'?'subjectIds':field==='day'?'days':field==='sessionId'?'sessionIds':null
+      if(plural) (next as any)[plural]=[]
+    }
   }
   const allowed=CONDITION_COMPARISONS[kind]??CONDITION_COMPARISONS.generic
   next.comparison=allowed.includes(next.comparison)?next.comparison:allowed[0]
@@ -150,6 +154,86 @@ function targetFieldOrder(scope:string):ConditionField[]{
   if(scope==='subject') return ['subjectId','groupId','teacherId','stage','day','sessionId']
   if(scope==='schedule') return ['day','sessionId','stage','groupId','subjectId','teacherId']
   return ['stage','groupId','subjectId','teacherId','day','sessionId']
+}
+
+function isMultiField(draft:Draft,field:ConditionField){
+  if(draft.conditionKind==='fixed_slot'||draft.scope==='assignment'||draft.conditionKind==='generic') return false
+  if((draft.conditionKind==='availability'||draft.conditionKind==='avoid_slot')&&(field==='day'||field==='sessionId')) return true
+  if(draft.scope==='teacher'&&field==='teacherId') return true
+  if(draft.scope==='group'&&field==='groupId') return true
+  if(draft.scope==='subject'&&field==='subjectId') return true
+  return false
+}
+
+function conditionKindLabel(kind:string){
+  const labels:Record<string,string>={
+    generic:'Condición general',
+    availability:'Disponibilidad',
+    daily_limit:'Límite diario',
+    consecutive_limit:'Sesiones consecutivas',
+    fixed_slot:'Franja fija',
+    avoid_slot:'Evitar franja',
+    weekly_load:'Carga semanal',
+  }
+  return labels[kind]??kind
+}
+
+function selectedNames(ids:string[],items:{id:string;name:string}[]){
+  const names=ids.map(id=>items.find(item=>item.id===id)?.name).filter(Boolean) as string[]
+  if(!names.length)return ''
+  if(names.length<=2)return names.join(' y ')
+  return names.slice(0,2).join(', ')+` y ${names.length-2} más`
+}
+
+function generateRuleDescription(draft:Draft,project:ViyeuticaProject){
+  const teachers=draft.teacherIds.length?draft.teacherIds:draft.teacherId?[draft.teacherId]:[]
+  const groups=draft.groupIds.length?draft.groupIds:draft.groupId?[draft.groupId]:[]
+  const subjects=draft.subjectIds.length?draft.subjectIds:draft.subjectId?[draft.subjectId]:[]
+  const days=draft.days.length?draft.days:draft.day?[draft.day]:[]
+  const sessions=draft.sessionIds.length?draft.sessionIds:draft.sessionId?[draft.sessionId]:[]
+
+  const target=draft.scope==='teacher'
+    ? selectedNames(teachers,project.teachers)
+    : draft.scope==='group'
+      ? selectedNames(groups,project.groups)
+      : draft.scope==='subject'
+        ? selectedNames(subjects,project.subjects)
+        : draft.scope==='assignment'
+          ? [selectedNames(groups,project.groups),selectedNames(subjects,project.subjects),selectedNames(teachers,project.teachers)].filter(Boolean).join(' · ')
+          : scopeLabel(draft.scope)
+
+  const targetText=target||scopeLabel(draft.scope)
+  const dayText=days.length?days.map(dayName).join(', '):''
+  const sessionText=sessions.length?sessions.map(id=>project.schedule.blocks.find(block=>block.id===id)?.label??id).join(', '):''
+  const place=[dayText,sessionText].filter(Boolean).join(' · ')
+  const cmp=comparisonLabel(draft.comparison).toLowerCase()
+  const value=draft.value.trim()
+
+  if(draft.conditionKind==='fixed_slot') return `${targetText}: franja fija${place?' en '+place:''}.`
+  if(draft.conditionKind==='avoid_slot') return `${draft.comparison==='prefer'?'Preferir':'Evitar'} ${place||'la franja seleccionada'} para ${targetText}.`
+  if(draft.conditionKind==='availability'){
+    const verb=draft.comparison==='not_equals'?'No disponible':draft.comparison==='prefer'?'Preferencia de disponibilidad':'Disponible'
+    return `${targetText}: ${verb.toLowerCase()}${place?' en '+place:''}.`
+  }
+  if(draft.conditionKind==='daily_limit') return `${targetText}: ${cmp} ${value||'—'} sesiones al día.`
+  if(draft.conditionKind==='consecutive_limit') return `${targetText}: ${cmp} ${value||'—'} sesiones consecutivas.`
+  if(draft.conditionKind==='weekly_load') return `${targetText}: ${cmp} ${value||'—'} sesiones semanales.`
+  return `${conditionKindLabel(draft.conditionKind)} · ${targetText}${place?' · '+place:''}${value?' · '+comparisonLabel(draft.comparison)+' '+value:''}.`
+}
+
+function sanitizeCode(value:string){
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,'_').replace(/^_+|_+$/g,'')
+}
+
+function generatedRuleCode(draft:Draft,project:ViyeuticaProject,editingId:string|null){
+  const parts=[draft.conditionKind,draft.scope,draft.comparison]
+  if(draft.value) parts.push(draft.value)
+  const base=sanitizeCode(parts.join('_'))||'REGLA'
+  const used=new Set(project.rules.filter(rule=>rule.id!==editingId).map(rule=>rule.code))
+  if(!used.has(base))return base
+  let index=2
+  while(used.has(base+'_'+index)) index++
+  return base+'_'+index
 }
 
 function buildParameters(draft:Draft){
