@@ -901,3 +901,28 @@ main .generated-schedule th strong{
 @media(max-width:620px){
   .template-option-actions{grid-template-columns:1fr}
 }
+
+
+/* === Importar Plantilla: cabecera e iconos === */
+.template-page-title{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.template-page-title svg{
+  flex:0 0 auto;
+}
+.template-card-heading{
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+}
+.template-card-heading .normative-upload-icon{
+  flex:0 0 auto;
+}
+.template-card-heading h2{
+  margin:0 0 5px;
+}
+.template-card-heading p{
+  margin:0;
+}
