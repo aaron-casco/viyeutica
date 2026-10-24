@@ -588,13 +588,17 @@ export function RulesPage({
           <RuleConditionPreview draft={draft} project={project}/>
         </section>
 
-        <div className="form-grid two rule-definition-fields">
-          <Field label="Código" required>
-            <input value={draft.code} onChange={e=>setDraft({...draft,code:e.target.value.toUpperCase().replace(/\s+/g,'_')})} placeholder="Ej. MAX_CONSECUTIVAS_DOCENTE"/>
-          </Field>
-        </div>
         <Field label="Descripción" required>
-          <textarea value={draft.description} onChange={e=>setDraft({...draft,description:e.target.value})} placeholder="Describe de forma inequívoca qué debe cumplir esta regla..."/>
+          <textarea
+            value={draft.description}
+            onChange={e=>{setDescriptionCustomized(true);setDraft({...draft,description:e.target.value})}}
+            placeholder="La descripción se genera automáticamente a partir de la condición."
+          />
+          {descriptionCustomized&&<button
+            type="button"
+            className="btn ghost-inline rule-auto-description"
+            onClick={()=>{setDescriptionCustomized(false);setDraft({...draft,description:automaticDescription})}}
+          >Usar descripción automática</button>}
         </Field>
 
         {error&&<div className="inline-error">{error}</div>}
@@ -661,7 +665,7 @@ export function RulesPage({
         : <div className="rules-list">{visible.map(rule=><article className={'rule-card '+rule.ruleType.toLowerCase()+(!rule.active?' inactive':'')} key={rule.id}>
             <div className="rule-type-badge">{rule.ruleType}</div>
             <div className="rule-card-main">
-              <div className="rule-title-row"><strong>{humanRuleName(rule.code)}</strong><span>{scopeLabel(rule.scope)}</span>{rule.source&&<span>{sourceLabel(rule.source)}</span>}{rule.reviewRequired&&<span className="review-tag">Revisar</span>}</div>
+              <div className="rule-title-row"><strong>{ruleDisplayName(rule)}</strong><span>{scopeLabel(rule.scope)}</span>{rule.source&&<span>{sourceLabel(rule.source)}</span>}{rule.reviewRequired&&<span className="review-tag">Revisar</span>}</div>
               <p>{rule.description}</p>
               <small>{describeParameters(rule,project)}{rule.ruleType==='SOFT'&&<> · Peso <strong>{rule.weight??'—'}</strong></>}</small>
               {rule.source==='normative'&&rule.normativeRuleId&&<NormativeTrace project={project} id={rule.normativeRuleId}/>}
@@ -841,6 +845,12 @@ function humanRuleName(code:string){
   return names[code]??code.replace(/_/g,' ').toLowerCase().replace(/^./,letter=>letter.toUpperCase())
 }
 
+function ruleDisplayName(rule:CenterRule){
+  const builtin=['SIN_SOLAPE_DOCENTE','SIN_SOLAPE_GRUPO','RESPETAR_DISPONIBILIDAD_DOCENTE','RESPETAR_FRANJAS_FIJAS','REDUCIR_HUECOS_DOCENTES']
+  if(builtin.includes(rule.code)) return humanRuleName(rule.code)
+  return conditionKindLabel(String(rule.parameters?.conditionKind??'generic'))
+}
+
 
 function describeParameters(rule:CenterRule, project:ViyeuticaProject){
   const p=rule.parameters??{}
@@ -865,7 +875,7 @@ function RuleConditionPreview({draft,project}:{draft:Draft;project:ViyeuticaProj
     description:draft.description||'Vista previa',parameters:buildParameters(draft),
     weight:draft.ruleType==='SOFT'?(Number(draft.weight)||null):null,source:'manual',active:true,
   }
-  return <div className="rule-condition-preview"><strong>Así se interpretará:</strong><span>{describeParameters(temp,project)}</span></div>
+  return <div className="rule-condition-preview"><strong>Así se interpretará:</strong><span>{generateRuleDescription(draft,project)}</span></div>
 }
 
 function dayName(day:string){
