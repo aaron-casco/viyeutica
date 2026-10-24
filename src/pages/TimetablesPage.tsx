@@ -137,8 +137,7 @@ export function TimetablesPage({
   return <div className="timetables-page">
     <section className="wizard-intro">
       <div>
-        <span className="eyebrow dark"><CalendarDays size={15}/> Revisión del resultado</span>
-        <h1>Horarios</h1>
+        <h1 className="wizard-page-title"><CalendarDays size={28}/> Horarios</h1>
         <p>Consulta la propuesta generada por grupo o por docente antes de realizar la auditoría final.</p>
       </div>
       <div className={'timetable-status '+run.status}>
