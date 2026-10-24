@@ -866,7 +866,6 @@ main .generated-schedule th strong{
 .template-download-panel h2{margin:3px 0 5px}
 .template-download-panel p{margin:0;color:var(--muted);max-width:720px}
 .template-download-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-.template-import-grid .normative-upload-card{min-height:220px}
 @media(max-width:850px){
   .template-download-panel{align-items:stretch;flex-direction:column}
   .template-download-actions{justify-content:flex-start}
