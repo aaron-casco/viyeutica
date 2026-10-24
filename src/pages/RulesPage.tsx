@@ -835,7 +835,11 @@ function RuleTargetFields({
     if(groupOptionIds.length===1){
       const only=groupOptionIds[0]
       if(draft.groupIds.length!==1||draft.groupIds[0]!==only){
-        const next={...draft,groupId:'',groupIds:[only],subjectId:'',subjectIds:[],teacherId:'',teacherIds:[]}
+        const next={...draft,groupId:'',groupIds:[only],subjectId:'',subjectIds:[]}
+        if(draft.scope==='group'||draft.scope==='subject'){
+          next.teacherId=''
+          next.teacherIds=[]
+        }
         onChange(next)
       }
       return
