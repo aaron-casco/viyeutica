@@ -436,6 +436,37 @@ export function isAssignmentsComplete(project: ViyeuticaProject) {
 export function validateRules(project: ViyeuticaProject) {
   const errors: string[] = []
   const activeRules = project.rules.filter(rule => rule.active)
+  const activeAssignments=project.assignments.filter(item=>item.active)
+  const activeTeacherIds=new Set(project.teachers.filter(item=>item.active).map(item=>item.id))
+  const activeGroupIds=new Set(project.groups.filter(item=>item.active).map(item=>item.id))
+  const activeSubjectIds=new Set(project.subjects.filter(item=>item.active).map(item=>item.id))
+
+  const parameterValues=(parameters:Record<string,unknown>,singleKey:string,multiKey:string)=>{
+    const multi=parameters[multiKey]
+    if(Array.isArray(multi))return multi.map(String).filter(Boolean)
+    const single=parameters[singleKey]
+    return single?[String(single)]:[]
+  }
+
+  const allowedScopes:Record<string,string[]>={
+    availability:['teacher','group','subject','assignment'],
+    daily_limit:['teacher','group','subject'],
+    consecutive_limit:['teacher','group','subject'],
+    fixed_slot:['assignment','teacher','group','subject'],
+    avoid_slot:['teacher','group','subject','assignment','schedule'],
+    weekly_load:['teacher','group','subject'],
+  }
+
+  const allowedComparisons:Record<string,string[]>={
+    availability:['equals','not_equals','prefer'],
+    daily_limit:['maximum','minimum','equals'],
+    consecutive_limit:['maximum','minimum','equals'],
+    fixed_slot:['equals'],
+    avoid_slot:['avoid','prefer'],
+    weekly_load:['maximum','minimum','equals'],
+  }
+
+  const usesTeachingCoverage=(kind:string)=>['daily_limit','consecutive_limit','weekly_load'].includes(kind)
 
   if (!activeRules.length) errors.push('Añade o importa al menos una regla activa.')
 
@@ -446,6 +477,74 @@ export function validateRules(project: ViyeuticaProject) {
       errors.push(`La regla SOFT "${rule.code || 'sin código'}" necesita un peso mayor que cero.`)
     }
     const kind=ruleConditionKind(rule)
+    const teachers=parameterValues(rule.parameters,'teacherId','teacherIds')
+    const groups=parameterValues(rule.parameters,'groupId','groupIds')
+    const subjects=parameterValues(rule.parameters,'subjectId','subjectIds')
+    const days=parameterValues(rule.parameters,'day','days')
+    const sessions=parameterValues(rule.parameters,'sessionId','sessionIds')
+    const comparison=String(rule.parameters?.comparison??(kind==='fixed_slot'?'equals':''))
+
+    if(allowedScopes[kind]&&!allowedScopes[kind].includes(rule.scope)){
+      errors.push(`La regla "${rule.description || rule.code}" usa un ámbito no compatible con su tipo de condición.`)
+    }
+    if(allowedComparisons[kind]&&comparison&&!allowedComparisons[kind].includes(comparison)){
+      errors.push(`La regla "${rule.description || rule.code}" usa una comparación no compatible con su tipo de condición.`)
+    }
+
+    const inactiveTeachers=teachers.filter(id=>!activeTeacherIds.has(id))
+    const inactiveGroups=groups.filter(id=>!activeGroupIds.has(id))
+    const inactiveSubjects=subjects.filter(id=>!activeSubjectIds.has(id))
+    if(inactiveTeachers.length)errors.push(`La regla "${rule.description || rule.code}" referencia profesorado inexistente o inactivo.`)
+    if(inactiveGroups.length)errors.push(`La regla "${rule.description || rule.code}" referencia grupos inexistentes o inactivos.`)
+    if(inactiveSubjects.length)errors.push(`La regla "${rule.description || rule.code}" referencia materias inexistentes o inactivas.`)
+
+    if(rule.scope==='teacher'&&['availability','daily_limit','consecutive_limit','fixed_slot','avoid_slot','weekly_load'].includes(kind)&&!teachers.length){
+      errors.push(`La regla "${rule.description || rule.code}" necesita al menos un docente.`)
+    }
+    if(rule.scope==='group'&&['availability','daily_limit','consecutive_limit','fixed_slot','avoid_slot','weekly_load'].includes(kind)&&!groups.length){
+      errors.push(`La regla "${rule.description || rule.code}" necesita al menos un grupo.`)
+    }
+    if(rule.scope==='subject'&&['availability','daily_limit','consecutive_limit','fixed_slot','avoid_slot','weekly_load'].includes(kind)&&!subjects.length){
+      errors.push(`La regla "${rule.description || rule.code}" necesita al menos una materia.`)
+    }
+    if(rule.scope==='assignment'&&['availability','fixed_slot','avoid_slot'].includes(kind)&&(!teachers.length||!groups.length||!subjects.length)){
+      errors.push(`La regla "${rule.description || rule.code}" necesita Grupo, Materia y Profesor/a para identificar la asignación.`)
+    }
+
+    if(usesTeachingCoverage(kind)&&rule.scope==='teacher'&&teachers.length){
+      if(!groups.length){
+        errors.push(`La regla "${rule.description || rule.code}" necesita seleccionar grupos para el profesorado indicado.`)
+      }else{
+        const uncoveredTeachers=teachers.filter(teacherId=>
+          !activeAssignments.some(item=>item.teacherId===teacherId&&groups.includes(item.groupId))
+        )
+        if(uncoveredTeachers.length){
+          errors.push(`La regla "${rule.description || rule.code}" deja profesorado sin cubrir por los grupos seleccionados.`)
+        }
+      }
+
+      if(groups.length&&!subjects.length){
+        errors.push(`La regla "${rule.description || rule.code}" necesita seleccionar materias para los grupos indicados.`)
+      }else if(groups.length&&subjects.length){
+        const uncoveredBySubject=teachers.filter(teacherId=>
+          !activeAssignments.some(item=>
+            item.teacherId===teacherId&&
+            groups.includes(item.groupId)&&
+            subjects.includes(item.subjectId)
+          )
+        )
+        if(uncoveredBySubject.length){
+          errors.push(`La regla "${rule.description || rule.code}" deja profesorado sin cubrir por las materias seleccionadas.`)
+        }
+      }
+    }
+
+    if(usesTeachingCoverage(kind)&&rule.scope==='group'&&groups.length&&!subjects.length){
+      errors.push(`La regla "${rule.description || rule.code}" necesita seleccionar al menos una materia para los grupos indicados.`)
+    }
+    if(usesTeachingCoverage(kind)&&rule.scope==='subject'&&subjects.length&&!groups.length){
+      errors.push(`La regla "${rule.description || rule.code}" necesita seleccionar al menos un grupo para las materias indicadas.`)
+    }
     if (['daily_limit','consecutive_limit','weekly_load'].includes(kind)) {
       const value=ruleNumericValue(rule)
       if (value===null || value<=0) {
