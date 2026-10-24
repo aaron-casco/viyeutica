@@ -45,7 +45,7 @@ export function ExportPage({project,navigate}:{project:ViyeuticaProject;navigate
 
   const downloadAudit=()=>{
     const rows=[
-      ['Severidad','Categoría','Código','Mensaje','Detalle','Grupo','Materia','Docente','Día','Sesión'],
+      ['Severidad','Categoría','Mensaje','Detalle','Grupo','Materia','Docente','Día','Sesión'],
       ...audit.issues.map(issue=>auditRow(project,issue)),
     ]
     const csv=rows.map(row=>row.map(csvCell).join(';')).join('\n')
@@ -90,7 +90,7 @@ export function ExportPage({project,navigate}:{project:ViyeuticaProject;navigate
         {official?<CheckCircle2 size={20}/>:<ShieldAlert size={20}/>}
         <span>
           <strong>{official?'Lista para exportación definitiva':'Solo exportación como borrador'}</strong>
-          <small>Propuesta {proposalNumber} · {audit.errors} errores · {audit.warnings} advertencias</small>
+          <small>Propuesta {proposalNumber} · {audit.errors} {audit.errors===1?'error':'errores'} · {audit.warnings} {audit.warnings===1?'advertencia':'advertencias'}</small>
         </span>
       </div>
     </section>
@@ -166,7 +166,7 @@ function auditRow(project:ViyeuticaProject,issue:AuditIssue){
   const block=issue.sessionId?project.schedule.blocks.find(item=>item.id===issue.sessionId)?.label??'':''
   return [
     issue.severity==='error'?'Error':issue.severity==='warning'?'Advertencia':'Información',
-    issue.category,issue.code,issue.message,issue.detail??'',group,subject,teacher,
+    issue.category,issue.message,issue.detail??'',group,subject,teacher,
     issue.day?dayLabels[issue.day]:'',block,
   ]
 }
