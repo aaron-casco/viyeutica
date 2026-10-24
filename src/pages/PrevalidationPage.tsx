@@ -37,8 +37,7 @@ export function PrevalidationPage({
   return <div className="wizard-page prevalidation-page">
     <section className="wizard-intro">
       <div>
-        <span className="eyebrow dark"><ClipboardCheck size={15}/> Paso 8 · Comprobación transversal</span>
-        <h1>Prevalidación</h1>
+        <h1 className="wizard-page-title"><ClipboardCheck size={28}/> Prevalidación</h1>
         <p>Comprueba la coherencia completa del proyecto antes de generar horarios. Los errores bloquean la generación; las advertencias requieren revisión; la información no bloquea.</p>
       </div>
       <div className="wizard-progress-summary"><strong>8 <span>de 9</span></strong><small>Prevalidación</small></div>
