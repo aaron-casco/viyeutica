@@ -43,6 +43,15 @@ export function SetupWizard({
   const [saved, setSaved] = useState(false)
 
   const complete = useMemo(() => isCenterComplete(form), [form])
+  const guide=!form.name.trim()?'Introduce el nombre oficial del centro.'
+    :!form.officialCode.trim()?'Introduce el código oficial del centro.'
+    :!form.ownership?'Selecciona la titularidad.'
+    :!form.centerType?'Selecciona el tipo de centro.'
+    :!form.autonomousCommunity.trim()?'Indica la comunidad autónoma.'
+    :!form.province.trim()?'Indica la provincia.'
+    :!form.locality.trim()?'Indica la localidad.'
+    :!form.stages.length?'Selecciona al menos una etapa educativa.'
+    :'Los datos mínimos del centro están completos. Ya puedes guardar y continuar.'
 
   const setField = <K extends keyof CenterData>(key: K, value: CenterData[K]) => {
     setSaved(false)
@@ -172,12 +181,13 @@ export function SetupWizard({
           </div>
           {errors.stages && <p className="field-error standalone">{errors.stages}</p>}
 
+          <div className={'form-guide '+(complete?'complete':'partial')}><strong>{complete?'Centro listo':'Siguiente paso'}</strong><span>{guide}</span></div>
           <div className="form-actions">
             <button type="button" className="btn secondary-light" onClick={() => navigate('/')}><ArrowLeft size={16}/> Volver al inicio</button>
             <div className="form-actions-right">
               {saved && <span className="save-confirmation"><CheckCircle2 size={16}/> Guardado</span>}
-              <button type="button" className="btn ghost-inline" onClick={persist}><Save size={16}/> Guardar</button>
-              <button type="submit" className="btn primary">Guardar y continuar <ArrowRight size={16}/></button>
+              <button type="button" className="btn ghost-inline" disabled={!complete} onClick={persist}><Save size={16}/> Guardar</button>
+              <button type="submit" className="btn primary" disabled={!complete}>Guardar y continuar <ArrowRight size={16}/></button>
             </div>
           </div>
         </section>
