@@ -1542,3 +1542,17 @@ main .generated-schedule th strong{
 [data-theme="dark"] .form-guide{
   background:#18202b;
 }
+
+
+/* === Estado deshabilitado global de acciones === */
+.btn:disabled,
+button.btn:disabled{
+  opacity:.48;
+  cursor:not-allowed;
+  transform:none;
+  box-shadow:none;
+}
+.btn:disabled:hover,
+button.btn:disabled:hover{
+  transform:none;
+}
