@@ -1,4 +1,4 @@
-# Viyeutica — identidad visual
+# ⩒Yeutika — identidad visual
 
 El logotipo se articula alrededor de una V central:
 
@@ -10,7 +10,7 @@ El logotipo se articula alrededor de una V central:
 ## Colores
 - Azul principal: #062050
 - Azul secundario: #0D3972
-- Verde Viyeutica: #59B411
+- Verde ⩒Yeutika: #59B411
 - Fondo: #F6F8FB
 - Superficie: #FFFFFF
 - Texto: #122038
