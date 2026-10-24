@@ -1,9 +1,9 @@
 import { useMemo, useRef, useState } from 'react'
 import {
-  CheckCircle2, Eye, FileSearch, FileText, ShieldCheck, Trash2, UploadCloud, XCircle,
+  AlertTriangle, CheckCircle2, Eye, FileSearch, FileText, ShieldCheck, Trash2, UploadCloud, XCircle,
 } from 'lucide-react'
 import type { NormativeRelevance, NormativeRule, NormativeSection, ViyeuticaProject } from '../domain/project'
-import { analyzeNormativeFile } from '../domain/normativeAnalyzer'
+import { analyzeNormativeFile, findNormativeConflicts } from '../domain/normativeAnalyzer'
 import { saveProject } from '../store/projectStorage'
 import { AppModal } from '../components/AppModal'
 import { deleteNormativeFile, getNormativeFile, saveNormativeFile } from '../store/normativeFileStorage'
@@ -29,6 +29,8 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
   const [viewerError,setViewerError]=useState('')
 
   const approved=project.normativeRules.filter(rule=>rule.approved)
+  const conflicts=useMemo(()=>findNormativeConflicts(project.normativeRules),[project.normativeRules])
+  const conflictRuleIds=useMemo(()=>new Set(conflicts.flatMap(item=>item.ruleIds)),[conflicts])
   const visibleRules=useMemo(
     ()=>project.normativeRules.filter(rule=>
       (rule.relevance??inferLegacyRelevance(rule))===relevanceFilter &&
@@ -105,7 +107,7 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
 
   const approveHighConfidence=()=>persist({
     normativeRules:project.normativeRules.map(rule=>
-      (rule.relevance??inferLegacyRelevance(rule))==='timetable'&&rule.confidence>=0.78
+      (rule.relevance??inferLegacyRelevance(rule))==='timetable'&&rule.confidence>=0.78&&!conflictRuleIds.has(rule.id)
         ? {...rule,approved:true}
         : rule
     ),
@@ -137,6 +139,7 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
         <span><strong>{project.normativeSources.length}</strong><small>documentos</small></span>
         <span><strong>{project.normativeRules.length}</strong><small>reglas detectadas</small></span>
         <span><strong>{approved.length}</strong><small>aprobadas</small></span>
+        <span className={conflicts.length?'warning':''}><strong>{conflicts.length}</strong><small>contradicciones</small></span>
       </div>
     </section>
 
@@ -180,6 +183,22 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
           </div>
         </article>
       })}
+    </section>}
+
+    {conflicts.length>0&&<section className="normative-conflicts-card">
+      <div className="normative-conflicts-heading">
+        <AlertTriangle size={20}/>
+        <div>
+          <strong>Posibles contradicciones normativas</strong>
+          <p>Viyeutica ha detectado reglas equivalentes con valores distintos. Revísalas antes de aprobarlas o convertirlas en reglas del horario.</p>
+        </div>
+      </div>
+      <div className="normative-conflict-list">
+        {conflicts.map((conflict,index)=><article key={conflict.key}>
+          <span>{index+1}</span>
+          <p>{conflict.description}</p>
+        </article>)}
+      </div>
     </section>}
 
     <section className="normative-rules-card">
@@ -227,6 +246,7 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
                 onOpen={()=>source&&openSource(source.id,source.name,rule.page)}
                 relevance={rule.relevance??inferLegacyRelevance(rule)}
                 onMove={value=>setRuleRelevance(rule.id,value)}
+                conflict={conflictRuleIds.has(rule.id)}
               />
             })}
           </div>}
@@ -254,7 +274,7 @@ export function NormativePage({project}:{project:ViyeuticaProject}) {
 }
 
 function RuleCard({
-  rule,sourceName,sourceMimeType,onToggle,onOpen,relevance,onMove,
+  rule,sourceName,sourceMimeType,onToggle,onOpen,relevance,onMove,conflict,
 }:{
   rule:NormativeRule
   sourceName:string
@@ -263,6 +283,7 @@ function RuleCard({
   onOpen:()=>void
   relevance:NormativeRelevance
   onMove:(value:NormativeRelevance)=>void
+  conflict:boolean
 }) {
   return <article className={'normative-rule '+(rule.approved?'approved':'')}>
     <button className={'normative-approve '+(rule.approved?'approved':'')} onClick={onToggle}>
@@ -271,6 +292,8 @@ function RuleCard({
     <div className="normative-rule-body">
       <div className="normative-rule-meta">
         <span>{SECTION_LABELS[rule.section]}</span>
+        {rule.reference&&<span className="normative-reference">{rule.reference}</span>}
+        {conflict&&<span className="normative-conflict-badge"><AlertTriangle size={12}/> Posible contradicción</span>}
         {rule.stage&&<span>{rule.stage}</span>}
         {rule.level&&<span>{rule.level}</span>}
         {rule.subject&&<span>{rule.subject}</span>}
