@@ -157,12 +157,22 @@ export function SchedulePage({project,navigate}:{project:ViyeuticaProject;naviga
   const last=[...blocks].reverse().find(b=>b.active)
 
   if(!isStructureComplete(project)) {
-    return <section className="empty-state-card">
-      <CalendarClock size={34}/>
-      <h1>Completa primero la estructura del centro</h1>
-      <p>La jornada se configura sobre los grupos y etapas activas del curso.</p>
-      <button className="btn primary" onClick={()=>navigate('/grupos')}>Ir a Estructura y grupos</button>
-    </section>
+    return <div className="wizard-page schedule-page">
+      <section className="wizard-intro">
+        <div>
+          <h1 className="wizard-page-title"><CalendarClock size={28}/> Jornada y sesiones</h1>
+          <p>Define cuándo puede existir actividad en el centro. Estos tramos serán la rejilla temporal sobre la que trabajará el generador.</p>
+        </div>
+        <div className="wizard-progress-summary"><strong>3 <span>de 9</span></strong><small>Jornada y sesiones</small></div>
+      </section>
+      <WizardStepper currentStep={3} project={project} navigate={navigate}/>
+      <section className="empty-state-card">
+        <CalendarClock size={34}/>
+        <h1>Completa primero la estructura del centro</h1>
+        <p>La jornada se configura sobre los grupos y etapas activas del curso.</p>
+        <button className="btn primary" onClick={()=>navigate('/grupos')}>Ir a Estructura y grupos</button>
+      </section>
+    </div>
   }
 
   return <div className="wizard-page schedule-page">
