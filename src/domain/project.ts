@@ -474,7 +474,7 @@ export function validateRules(project: ViyeuticaProject) {
     if (!rule.code.trim()) errors.push('Todas las reglas necesitan un código.')
     if (!rule.description.trim()) errors.push('Todas las reglas necesitan una descripción.')
     if (rule.ruleType === 'SOFT' && (rule.weight === null || rule.weight === undefined || rule.weight <= 0)) {
-      errors.push(`La regla SOFT "${rule.code || 'sin código'}" necesita un peso mayor que cero.`)
+      errors.push(`La regla SOFT "${rule.description || 'sin descripción'}" necesita una prioridad válida.`)
     }
     const kind=ruleConditionKind(rule)
     const teachers=parameterValues(rule.parameters,'teacherId','teacherIds')
@@ -548,18 +548,18 @@ export function validateRules(project: ViyeuticaProject) {
     if (['daily_limit','consecutive_limit','weekly_load'].includes(kind)) {
       const value=ruleNumericValue(rule)
       if (value===null || value<=0) {
-        errors.push(`La regla "${rule.code || 'sin código'}" necesita un valor numérico mayor que cero.`)
+        errors.push(`La regla "${rule.description || 'sin descripción'}" necesita un Valor numérico mayor que cero.`)
       }
     }
     if (kind==='fixed_slot' && (!rule.parameters?.day || !rule.parameters?.sessionId)) {
-      errors.push(`La regla "${rule.code || 'sin código'}" de franja fija necesita día y sesión.`)
+      errors.push(`La regla "${rule.description || 'sin descripción'}" de franja fija necesita Día y Sesión.`)
     }
     if (['avoid_slot','availability'].includes(kind) &&
       !rule.parameters?.day && !rule.parameters?.sessionId &&
       !(Array.isArray(rule.parameters?.days) && rule.parameters.days.length) &&
       !(Array.isArray(rule.parameters?.sessionIds) && rule.parameters.sessionIds.length)) {
       const label=kind==='availability'?'de disponibilidad':'para evitar franja'
-      errors.push(`La regla "${rule.code || 'sin código'}" ${label} necesita al menos un día o una sesión.`)
+      errors.push(`La regla "${rule.description || 'sin descripción'}" ${label} necesita al menos un Día o una Sesión.`)
     }
     if (rule.source === 'normative' && rule.normativeRuleId) {
       const normative = project.normativeRules.find(item => item.id === rule.normativeRuleId)
