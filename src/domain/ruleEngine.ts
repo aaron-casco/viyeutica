@@ -85,7 +85,6 @@ export function violatesDailyLimitRule(
   assignment:TeachingAssignment,
   slot:RuleSlot,
   entries:GeneratedScheduleEntry[],
-  orderBySession?:Map<string,number>,
 ){
   if(ruleConditionKind(rule)!=='daily_limit'||!ruleMatchesAssignment(rule,assignment)) return false
   const value=ruleNumericValue(rule)
@@ -103,7 +102,7 @@ export function violatesWeeklyLoadRule(
   const value=ruleNumericValue(rule)
   if(value===null) return false
   const count=countRuleScopeWeekly(entries,assignment,rule.scope)
-  return ruleComparison(rule)==='maximum'&&count>=value
+  return ['maximum','equals'].includes(ruleComparison(rule))&&count>=value
 }
 
 export function consecutiveRunLength(
@@ -153,6 +152,7 @@ export function softRulePlacementCost(
   assignment:TeachingAssignment,
   slot:RuleSlot,
   entries:GeneratedScheduleEntry[],
+  orderBySession?:Map<string,number>,
 ){
   if(!ruleMatchesAssignment(rule,assignment)) return 0
   const weight=rule.weight??1
