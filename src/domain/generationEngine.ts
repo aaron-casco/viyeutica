@@ -7,6 +7,17 @@ import type {
   ViyeuticaProject,
   Weekday,
 } from './project'
+import {
+  fixedSlotFromRule,
+  ruleComparison,
+  ruleConditionKind,
+  ruleMatchesAssignment,
+  ruleNumericValue,
+  ruleSlotMatches,
+  softRulePlacementCost,
+  violatesAvoidRule,
+  violatesDailyLimitRule,
+} from './ruleEngine'
 
 type Slot={day:Weekday;sessionId:string;order:number;duration:number}
 type Occupancy={
@@ -51,32 +62,6 @@ function sessionsRequired(project:ViyeuticaProject,assignment:TeachingAssignment
   return Math.max(1,Math.ceil(target/median))
 }
 
-function ruleMatches(rule:CenterRule,assignment:TeachingAssignment){
-  const p=rule.parameters??{}
-  if(p.teacherId&&p.teacherId!==assignment.teacherId) return false
-  if(p.groupId&&p.groupId!==assignment.groupId) return false
-  if(p.subjectId&&p.subjectId!==assignment.subjectId) return false
-  return true
-}
-
-function slotMatches(rule:CenterRule,slot:Slot){
-  const p=rule.parameters??{}
-  if(p.day&&p.day!==slot.day) return false
-  if(p.sessionId&&p.sessionId!==slot.sessionId) return false
-  return true
-}
-
-function comparison(rule:CenterRule){
-  return String(rule.parameters?.comparison??'equals')
-}
-function conditionKind(rule:CenterRule){
-  return String(rule.parameters?.conditionKind??'generic')
-}
-function numericValue(rule:CenterRule){
-  const value=Number(rule.parameters?.value)
-  return Number.isFinite(value)?value:null
-}
-
 function unavailable(project:ViyeuticaProject,teacherId:string,slot:Slot){
   return project.teacherAvailability.some(item=>
     item.teacherId===teacherId &&
@@ -86,29 +71,6 @@ function unavailable(project:ViyeuticaProject,teacherId:string,slot:Slot){
   )
 }
 
-function countOnDay(entries:GeneratedScheduleEntry[],assignment:TeachingAssignment,day:Weekday,scope:string){
-  if(scope==='teacher') return entries.filter(e=>e.day===day&&e.teacherId===assignment.teacherId).length
-  if(scope==='group') return entries.filter(e=>e.day===day&&e.groupId===assignment.groupId).length
-  if(scope==='subject') return entries.filter(e=>e.day===day&&e.subjectId===assignment.subjectId&&e.groupId===assignment.groupId).length
-  return entries.filter(e=>e.day===day).length
-}
-
-function violatesDailyLimit(rule:CenterRule,assignment:TeachingAssignment,slot:Slot,entries:GeneratedScheduleEntry[]){
-  if(conditionKind(rule)!=='daily_limit'||!ruleMatches(rule,assignment)) return false
-  const value=numericValue(rule)
-  if(value===null) return false
-  const count=countOnDay(entries,assignment,slot.day,rule.scope)
-  const cmp=comparison(rule)
-  return cmp==='maximum' && count>=value
-}
-
-function violatesAvoid(rule:CenterRule,assignment:TeachingAssignment,slot:Slot){
-  if(!ruleMatches(rule,assignment)||!slotMatches(rule,slot)) return false
-  const kind=conditionKind(rule)
-  const cmp=comparison(rule)
-  return kind==='avoid_slot'||cmp==='avoid'||(kind==='availability'&&cmp==='not_equals')
-}
-
 function hardAllows(project:ViyeuticaProject,assignment:TeachingAssignment,slot:Slot,entries:GeneratedScheduleEntry[],occupancy:Occupancy){
   const key=slot.day+'|'+slot.sessionId
   if(occupancy.group.has(assignment.groupId+'|'+key)) return false
@@ -116,38 +78,24 @@ function hardAllows(project:ViyeuticaProject,assignment:TeachingAssignment,slot:
   if(unavailable(project,assignment.teacherId,slot)) return false
 
   for(const rule of project.rules.filter(r=>r.active&&r.ruleType==='HARD')){
-    if(violatesAvoid(rule,assignment,slot)) return false
-    if(violatesDailyLimit(rule,assignment,slot,entries)) return false
+    if(violatesAvoidRule(rule,assignment,slot)) return false
+    if(violatesDailyLimitRule(rule,assignment,slot,entries)) return false
   }
   return true
 }
 
 function softCost(project:ViyeuticaProject,assignment:TeachingAssignment,slot:Slot,entries:GeneratedScheduleEntry[]){
-  let cost=0
-  for(const rule of project.rules.filter(r=>r.active&&r.ruleType==='SOFT')){
-    if(!ruleMatches(rule,assignment)) continue
-    const weight=rule.weight??1
-    const kind=conditionKind(rule)
-    const cmp=comparison(rule)
-    const matches=slotMatches(rule,slot)
-    if((kind==='avoid_slot'||cmp==='avoid')&&matches) cost+=weight*10
-    if(cmp==='prefer'&&!matches&&(rule.parameters?.day||rule.parameters?.sessionId)) cost+=weight*2
-    if(kind==='daily_limit'&&numericValue(rule)!==null){
-      const count=countOnDay(entries,assignment,slot.day,rule.scope)
-      const value=numericValue(rule)!
-      if(cmp==='maximum'&&count>=value) cost+=weight*(count-value+1)*4
-      if(cmp==='minimum'&&count<value) cost+=weight
-    }
-  }
-  return cost
+  return project.rules
+    .filter(rule=>rule.active&&rule.ruleType==='SOFT')
+    .reduce((total,rule)=>total+softRulePlacementCost(rule,assignment,slot,entries),0)
 }
 
 function fixedSlotsFor(project:ViyeuticaProject,assignment:TeachingAssignment){
   const explicit=assignment.fixedSlots??[]
   const fromRules=project.rules
-    .filter(rule=>rule.active&&rule.ruleType==='HARD'&&conditionKind(rule)==='fixed_slot'&&ruleMatches(rule,assignment))
-    .map(rule=>({day:String(rule.parameters?.day??''),session:String(rule.parameters?.sessionId??'')}))
-    .filter(item=>item.day&&item.session)
+    .filter(rule=>rule.active&&rule.ruleType==='HARD')
+    .map(rule=>fixedSlotFromRule(rule,assignment))
+    .filter(Boolean) as {day:string;session:string}[]
   return [...explicit,...fromRules] as {day:string;session:string}[]
 }
 
@@ -189,7 +137,7 @@ function staticFeasibleSlots(project:ViyeuticaProject,assignment:TeachingAssignm
   const hardRules=project.rules.filter(rule=>rule.active&&rule.ruleType==='HARD')
   return slots.filter(slot=>{
     if(unavailable(project,assignment.teacherId,slot))return false
-    return !hardRules.some(rule=>violatesAvoid(rule,assignment,slot))
+    return !hardRules.some(rule=>violatesAvoidRule(rule,assignment,slot))
   }).length
 }
 
@@ -352,8 +300,8 @@ function diagnosePlacementBlock(
     if(occupancy.teacher.has(assignment.teacherId+'|'+key)) teacherBusyCount++
     if(project.rules.some(rule=>
       rule.active&&rule.ruleType==='HARD'&&(
-        violatesAvoid(rule,assignment,slot)||
-        violatesDailyLimit(rule,assignment,slot,entries)
+        violatesAvoidRule(rule,assignment,slot)||
+        violatesDailyLimitRule(rule,assignment,slot,entries)
       )
     )) hardRuleCount++
   }
@@ -397,10 +345,10 @@ function evaluateSoft(project:ViyeuticaProject,entries:GeneratedScheduleEntry[],
     for(const entry of entries){
       const assignment=project.assignments.find(a=>a.id===entry.assignmentId)
       const slot=slots.find(s=>s.day===entry.day&&s.sessionId===entry.sessionId)
-      if(!assignment||!slot||!ruleMatches(rule,assignment)) continue
-      const kind=conditionKind(rule),cmp=comparison(rule)
-      if((kind==='avoid_slot'||cmp==='avoid')&&slotMatches(rule,slot)) penalty+=weight*10
-      if(cmp==='prefer'&&(rule.parameters?.day||rule.parameters?.sessionId)&&!slotMatches(rule,slot)) penalty+=weight*2
+      if(!assignment||!slot||!ruleMatchesAssignment(rule,assignment)) continue
+      const kind=ruleConditionKind(rule),cmp=ruleComparison(rule)
+      if((kind==='avoid_slot'||cmp==='avoid')&&ruleSlotMatches(rule,slot)) penalty+=weight*10
+      if(cmp==='prefer'&&(rule.parameters?.day||rule.parameters?.sessionId)&&!ruleSlotMatches(rule,slot)) penalty+=weight*2
     }
   }
   return penalty
