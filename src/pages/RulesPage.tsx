@@ -11,6 +11,7 @@ import {
   type ViyeuticaProject,
 } from '../domain/project'
 import { saveProject } from '../store/projectStorage'
+import { convertNormativeToCenterRule } from '../domain/normativeRuleBridge'
 import { WizardStepper } from '../components/WizardStepper'
 import { TemplatePanel } from '../components/TemplatePanel'
 
@@ -213,7 +214,8 @@ export function RulesPage({
     const additions:CenterRule[]=[]
     for(const normative of approved){
       if(existingNormIds.has(normative.id)) continue
-      additions.push(convertNormativeRule(normative))
+      const source=project.normativeSources.find(item=>item.id===normative.sourceId)
+      additions.push(convertNormativeToCenterRule(normative,source))
     }
     if(!additions.length){
       setTemplateMessage('No hay reglas normativas aprobadas nuevas para incorporar.')
@@ -513,40 +515,6 @@ export function RulesPage({
     <NormativeTraceabilityPanel project={project}/>
   
   </div>
-}
-
-function convertNormativeRule(rule:NormativeRule):CenterRule {
-  const code=('NORM_'+rule.section+'_'+rule.kind+'_'+rule.id.slice(-6)).toUpperCase()
-  return {
-    id:uid(),
-    scope:scopeFromNormative(rule),
-    ruleType:'HARD',
-    code,
-    description:rule.excerpt||rule.label,
-    parameters:{
-      kind:rule.kind,
-      value:rule.value,
-      unit:rule.unit,
-      stage:rule.stage,
-      level:rule.level,
-      subject:rule.subject,
-      page:rule.page,
-    },
-    weight:null,
-    source:'normative',
-    normativeRuleId:rule.id,
-    active:true,
-    reviewRequired:true,
-  }
-}
-
-function scopeFromNormative(rule:NormativeRule){
-  if(rule.section==='staff') return 'teacher'
-  if(rule.section==='study_plan') return 'subject'
-  if(rule.section==='schedule') return 'schedule'
-  if(rule.section==='assignments') return 'assignment'
-  if(rule.section==='structure') return 'group'
-  return 'center'
 }
 
 function Summary({label,value,detail}:{label:string;value:string;detail:string}){return <article className="structure-summary-card"><span>{label}</span><strong>{value}</strong><small>{detail}</small></article>}
