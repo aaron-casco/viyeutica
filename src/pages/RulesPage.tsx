@@ -584,7 +584,7 @@ export function RulesPage({
             </Field>}
           </div>
 
-          <RuleConditionPreview draft={draft} project={project}/>
+          <RuleConditionGuide draft={draft} project={project}/>
         </section>
 
         <Field label="Descripción" required>
@@ -818,16 +818,6 @@ function RuleTargetFields({
   const groupOptionIds=groupOptions.map(item=>item.id)
   const subjectOptionIds=subjectOptions.map(item=>item.id)
 
-  const selectedGroupIds=draft.groupIds.length?draft.groupIds:draft.groupId?[draft.groupId]:[]
-  const coverageTeachers=selectedTeachers.map(teacherId=>{
-    const teacher=project.teachers.find(item=>item.id===teacherId)
-    const covered=selectedGroupIds.length>0&&activeAssignments.some(item=>
-      item.teacherId===teacherId&&selectedGroupIds.includes(item.groupId)
-    )
-    return {teacherId,name:teacher?.name??teacherId,covered}
-  })
-  const coveredTeacherCount=coverageTeachers.filter(item=>item.covered).length
-  const uncoveredTeacherNames=coverageTeachers.filter(item=>!item.covered).map(item=>item.name)
 
   useEffect(()=>{
     if(!conditionUses(draft.conditionKind,'groupId')||!isMultiField(draft,'groupId')) return
@@ -952,19 +942,6 @@ function RuleTargetFields({
             <option value="">{placeholder(field)}</option>{groupOptions.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
           </select></Field>
 
-      if(draft.scope==='teacher'&&selectedTeachers.length>1){
-        return <div key={field} className="rule-dependent-field">
-          {control}
-          <div className={'rule-coverage '+(coveredTeacherCount===selectedTeachers.length?'complete':selectedGroupIds.length?'partial':'empty')}>
-            <strong>{coveredTeacherCount} de {selectedTeachers.length} profesores cubiertos</strong>
-            {selectedGroupIds.length===0
-              ? <span>Selecciona al menos un grupo para aplicar la regla a los profesores elegidos.</span>
-              : uncoveredTeacherNames.length>0
-                ? <span>Sin grupo seleccionado compatible: {uncoveredTeacherNames.join(', ')}.</span>
-                : <span>Todos los profesores seleccionados tienen al menos un grupo incluido.</span>}
-          </div>
-        </div>
-      }
       return control
     }
 
@@ -1051,13 +1028,90 @@ function describeParameters(rule:CenterRule, project:ViyeuticaProject){
   return parts.length?parts.join(' · '):'Sin condiciones específicas'
 }
 
-function RuleConditionPreview({draft,project}:{draft:Draft;project:ViyeuticaProject}){
-  const temp:CenterRule={
-    id:'preview',scope:draft.scope,ruleType:draft.ruleType,code:draft.code||'VISTA_PREVIA',
-    description:draft.description||'Vista previa',parameters:buildParameters(draft),
-    weight:draft.ruleType==='SOFT'?(Number(draft.weight)||null):null,source:'manual',active:true,
+function RuleConditionGuide({draft,project}:{draft:Draft;project:ViyeuticaProject}){
+  const teachers=draft.teacherIds.length?draft.teacherIds:draft.teacherId?[draft.teacherId]:[]
+  const groups=draft.groupIds.length?draft.groupIds:draft.groupId?[draft.groupId]:[]
+  const subjects=draft.subjectIds.length?draft.subjectIds:draft.subjectId?[draft.subjectId]:[]
+  const days=draft.days.length?draft.days:draft.day?[draft.day]:[]
+  const sessions=draft.sessionIds.length?draft.sessionIds:draft.sessionId?[draft.sessionId]:[]
+  const activeAssignments=project.assignments.filter(item=>item.active)
+
+  const teacherCoverage=teachers.map(teacherId=>{
+    const teacher=project.teachers.find(item=>item.id===teacherId)
+    const covered=groups.length>0&&activeAssignments.some(item=>item.teacherId===teacherId&&groups.includes(item.groupId))
+    return {name:teacher?.name??teacherId,covered}
+  })
+  const coveredTeacherCount=teacherCoverage.filter(item=>item.covered).length
+  const uncovered=teacherCoverage.filter(item=>!item.covered).map(item=>item.name)
+
+  const condition=conditionKindLabel(draft.conditionKind)
+
+  let title='Configura la regla paso a paso'
+  let message='Selecciona el tipo de condición para comenzar.'
+  let tone='empty'
+
+  if(draft.conditionKind){
+    if(!draft.scope){
+      title=`Selecciona el ámbito para ${condition}`
+      message='El ámbito determina sobre qué elemento se aplicará y cómo se contará la regla.'
+    }else if(draft.scope==='teacher'&&teachers.length===0&&conditionUses(draft.conditionKind,'teacherId')){
+      title=`Selecciona Profesor/a para ${condition}`
+      message='Puedes seleccionar uno o varios docentes cuando la regla admita aplicación múltiple.'
+    }else if(draft.scope==='group'&&groups.length===0&&conditionUses(draft.conditionKind,'groupId')){
+      title=`Selecciona Grupo para ${condition}`
+      message='Elige uno o varios grupos a los que se aplicará esta condición.'
+    }else if(draft.scope==='subject'&&subjects.length===0&&conditionUses(draft.conditionKind,'subjectId')){
+      title=`Selecciona Materia para ${condition}`
+      message='Elige una o varias materias para delimitar la regla.'
+    }else if(draft.scope==='assignment'&&groups.length===0){
+      title=`Selecciona Grupo para ${condition}`
+      message='La asignación se identifica en orden: Grupo → Materia → Profesor/a.'
+    }else if(draft.scope==='assignment'&&subjects.length===0){
+      title=`Selecciona Materia para ${condition}`
+      message='Ahora selecciona la materia asociada al grupo elegido.'
+    }else if(draft.scope==='assignment'&&teachers.length===0){
+      title=`Selecciona Profesor/a para ${condition}`
+      message='Completa la asignación seleccionando el docente correspondiente.'
+    }else if(draft.scope==='teacher'&&teachers.length>1&&conditionUses(draft.conditionKind,'groupId')){
+      if(groups.length===0){
+        title=`Selecciona Grupo para ${condition}`
+        message=`0 de ${teachers.length} profesores cubiertos. Selecciona al menos un grupo compatible.`
+        tone='partial'
+      }else if(coveredTeacherCount<teachers.length){
+        title=`${coveredTeacherCount} de ${teachers.length} profesores cubiertos`
+        message=`Sin grupo seleccionado compatible: ${uncovered.join(', ')}.`
+        tone='partial'
+      }else{
+        title=`${coveredTeacherCount} de ${teachers.length} profesores cubiertos`
+        message='Todos los profesores seleccionados tienen al menos un grupo incluido.'
+        tone='complete'
+      }
+    }else if(conditionUses(draft.conditionKind,'subjectId')&&
+      ((draft.scope==='teacher'&&groups.length>0)||(draft.scope==='group'&&groups.length>0))&&subjects.length===0){
+      title=`Selecciona Materia para ${condition}`
+      message='El listado ya está filtrado por los datos seleccionados anteriormente.'
+    }else if(conditionUses(draft.conditionKind,'day')&&days.length===0){
+      title=`Selecciona Día para ${condition}`
+      message=draft.conditionKind==='fixed_slot'
+        ? 'Después podrás seleccionar la sesión concreta.'
+        : 'Puedes elegir uno o varios días cuando la condición lo admita.'
+    }else if(conditionUses(draft.conditionKind,'sessionId')&&sessions.length===0&&draft.conditionKind==='fixed_slot'){
+      title=`Selecciona Sesión para ${condition}`
+      message='La sesión depende del día seleccionado.'
+    }else if(conditionUses(draft.conditionKind,'value')&&!draft.value){
+      title=`Indica el valor para ${condition}`
+      message='Introduce el número que debe cumplir esta regla.'
+    }else{
+      title='Regla lista para revisar'
+      message=generateRuleDescription(draft,project)
+      tone='complete'
+    }
   }
-  return <div className="rule-condition-preview"><strong>Así se interpretará:</strong><span>{generateRuleDescription(draft,project)}</span></div>
+
+  return <div className={'rule-condition-preview rule-guide '+tone}>
+    <strong>{title}</strong>
+    <span>{message}</span>
+  </div>
 }
 
 function dayName(day:string){
