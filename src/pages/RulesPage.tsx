@@ -61,6 +61,20 @@ const scopes=[
   ['resource','Recurso'],
 ] as const
 
+const CONDITION_SCOPES:Record<string,string[]>={
+  generic:['center','group','teacher','subject','schedule','assignment','resource'],
+  availability:['teacher','group','subject','assignment'],
+  daily_limit:['teacher','group','subject'],
+  consecutive_limit:['teacher','group','subject'],
+  fixed_slot:['assignment','teacher','group','subject'],
+  avoid_slot:['teacher','group','subject','assignment','schedule'],
+  weekly_load:['teacher','group','subject'],
+}
+
+function allowedScopes(kind:string){
+  return CONDITION_SCOPES[kind]??CONDITION_SCOPES.generic
+}
+
 const uid=()=> 'rule_'+crypto.randomUUID()
 
 type ConditionField='comparison'|'teacherId'|'groupId'|'subjectId'|'stage'|'day'|'sessionId'|'value'
@@ -90,7 +104,8 @@ function conditionUses(kind:string,field:ConditionField){
 }
 
 function normalizeDraftForCondition(draft:Draft,kind:string):Draft{
-  const next={...draft,conditionKind:kind}
+  const allowedScopeValues=allowedScopes(kind)
+  const next={...draft,conditionKind:kind,scope:allowedScopeValues.includes(draft.scope)?draft.scope:allowedScopeValues[0]}
   const fields=CONDITION_FIELDS[kind]??CONDITION_FIELDS.generic
   for(const field of ['teacherId','groupId','subjectId','stage','day','sessionId','value'] as ConditionField[]){
     if(!fields.includes(field)) (next as any)[field]=''
@@ -383,7 +398,9 @@ export function RulesPage({
           </Field>
           <Field label="Ámbito" required>
             <select value={draft.scope} onChange={e=>setDraft({...draft,scope:e.target.value})}>
-              {scopes.map(([value,label])=><option key={value} value={value}>{label}</option>)}
+              {scopes
+                .filter(([value])=>allowedScopes(draft.conditionKind).includes(value))
+                .map(([value,label])=><option key={value} value={value}>{label}</option>)}
             </select>
           </Field>
           <Field label="Código" required>
