@@ -264,6 +264,110 @@ function trySingleRepair(
   return false
 }
 
+
+function tryBoundedBacktrack(
+  project:ViyeuticaProject,
+  failedAssignment:TeachingAssignment,
+  slots:Slot[],
+  entries:GeneratedScheduleEntry[],
+  occupancy:Occupancy,
+  random:()=>number,
+){
+  const assignmentById=new Map(project.assignments.map(item=>[item.id,item]))
+  const movable=entries
+    .filter(entry=>{
+      const assignment=assignmentById.get(entry.assignmentId)
+      const slot=slots.find(item=>item.day===entry.day&&item.sessionId===entry.sessionId)
+      return Boolean(assignment&&slot&&assignment.assignmentType==='main'&&!isFixedAt(project,assignment,slot))
+    })
+    .slice(-6)
+
+  if(!movable.length)return false
+
+  const snapshot=[...entries]
+  const movableIds=new Set(movable.map(entry=>entry.id))
+  entries.splice(0,entries.length,...entries.filter(entry=>!movableIds.has(entry.id)))
+  rebuildOccupancy(entries,occupancy)
+
+  const queue:TeachingAssignment[]=[
+    failedAssignment,
+    ...movable.map(entry=>assignmentById.get(entry.assignmentId)).filter(Boolean) as TeachingAssignment[],
+  ]
+
+  queue.sort((a,b)=>
+    staticFeasibleSlots(project,a,slots)-staticFeasibleSlots(project,b,slots)
+  )
+
+  let explored=0
+  const maxNodes=450
+
+  const place=(index:number):boolean=>{
+    if(index>=queue.length)return true
+    if(explored>=maxNodes)return false
+
+    const assignment=queue[index]
+    const candidates=shuffle(slots,random)
+      .filter(slot=>hardAllows(project,assignment,slot,entries,occupancy))
+      .sort((a,b)=>candidateScore(project,assignment,a,entries)-candidateScore(project,assignment,b,entries))
+
+    for(const slot of candidates.slice(0,10)){
+      explored++
+      const before=entries.length
+      addEntry(entries,occupancy,assignment,slot)
+      if(place(index+1))return true
+      entries.splice(before)
+      rebuildOccupancy(entries,occupancy)
+      if(explored>=maxNodes)break
+    }
+    return false
+  }
+
+  if(place(0))return true
+
+  entries.splice(0,entries.length,...snapshot)
+  rebuildOccupancy(entries,occupancy)
+  return false
+}
+
+function diagnosePlacementBlock(
+  project:ViyeuticaProject,
+  assignment:TeachingAssignment,
+  slots:Slot[],
+  entries:GeneratedScheduleEntry[],
+  occupancy:Occupancy,
+  fixedTarget?:{day:string;session:string},
+){
+  const relevant=fixedTarget
+    ? slots.filter(slot=>slot.day===fixedTarget.day&&slot.sessionId===fixedTarget.session)
+    : slots
+  let unavailableCount=0
+  let groupBusyCount=0
+  let teacherBusyCount=0
+  let hardRuleCount=0
+
+  for(const slot of relevant){
+    const key=slot.day+'|'+slot.sessionId
+    if(unavailable(project,assignment.teacherId,slot)) unavailableCount++
+    if(occupancy.group.has(assignment.groupId+'|'+key)) groupBusyCount++
+    if(occupancy.teacher.has(assignment.teacherId+'|'+key)) teacherBusyCount++
+    if(project.rules.some(rule=>
+      rule.active&&rule.ruleType==='HARD'&&(
+        violatesAvoid(rule,assignment,slot)||
+        violatesDailyLimit(rule,assignment,slot,entries)
+      )
+    )) hardRuleCount++
+  }
+
+  return {
+    candidateSlots:relevant.length,
+    unavailableCount,
+    groupBusyCount,
+    teacherBusyCount,
+    hardRuleCount,
+    fixedTarget:Boolean(fixedTarget),
+  }
+}
+
 function teacherGapPenalty(entries:GeneratedScheduleEntry[],slots:Slot[]){
   let gaps=0
   const byTeacherDay=new Map<string,number[]>()
@@ -361,6 +465,19 @@ function generateAttempt(project:ViyeuticaProject,attempt:number){
           notes.push('Se ha recolocado una sesión previa para evitar un bloqueo durante la generación.')
           continue
         }
+        const backtracked=index>=fixed.length&&tryBoundedBacktrack(project,assignment,slots,entries,occupancy,random)
+        if(backtracked){
+          notes.push('Se ha reconstruido un bloque de sesiones mediante backtracking para evitar un bloqueo.')
+          continue
+        }
+        const diagnostics=diagnosePlacementBlock(
+          project,
+          assignment,
+          slots,
+          entries,
+          occupancy,
+          index<fixed.length?fixed[index]:undefined,
+        )
         hardViolations++
         issues.push({
           id:uid('issue'),
@@ -371,6 +488,7 @@ function generateAttempt(project:ViyeuticaProject,attempt:number){
           teacherId:assignment.teacherId,
           missingSessions:1,
           severity:'error',
+          diagnostics,
         })
         continue
       }
