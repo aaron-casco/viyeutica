@@ -188,6 +188,72 @@ export function auditGeneration(project:ViyeuticaProject,run:GenerationRun):Audi
       continue
     }
 
+    if(kind==='consecutive_limit'){
+      const value=ruleNumericValue(rule)
+      if(value!==null&&ruleComparison(rule)==='maximum'){
+        const orderBySession=new Map(teachingBlocks.map((block,index)=>[block.id,index]))
+        const matching=run.entries.filter(entry=>ruleMatchesEntry({...rule,parameters:{...rule.parameters,day:undefined,sessionId:undefined}},entry))
+        const grouped=new Map<string,number[]>()
+        for(const entry of matching){
+          const order=orderBySession.get(entry.sessionId)
+          if(order===undefined) continue
+          const key=rule.scope==='teacher'
+            ? entry.teacherId+'|'+entry.day
+            : rule.scope==='group'
+              ? entry.groupId+'|'+entry.day
+              : rule.scope==='subject'
+                ? entry.groupId+'|'+entry.subjectId+'|'+entry.day
+                : entry.day
+          grouped.set(key,[...(grouped.get(key)??[]),order])
+        }
+        let exceeded=0
+        for(const orders of grouped.values()){
+          const sorted=[...new Set(orders)].sort((a,b)=>a-b)
+          let runLength=0
+          let previous:number|undefined
+          let maxRun=0
+          for(const order of sorted){
+            runLength=previous!==undefined&&order===previous+1?runLength+1:1
+            maxRun=Math.max(maxRun,runLength)
+            previous=order
+          }
+          if(maxRun>value) exceeded++
+        }
+        if(exceeded){
+          push({severity:'error',category:'Reglas',code:rule.code,message:`Se incumple la regla obligatoria: ${rule.description}`,detail:`${exceeded} secuencias superan el máximo de ${value} sesiones consecutivas`})
+        }
+      }
+      continue
+    }
+
+    if(kind==='weekly_load'){
+      const value=ruleNumericValue(rule)
+      if(value!==null){
+        const matching=run.entries.filter(entry=>ruleMatchesEntry({...rule,parameters:{...rule.parameters,day:undefined,sessionId:undefined}},entry))
+        const grouped=new Map<string,number>()
+        for(const entry of matching){
+          const key=rule.scope==='teacher'
+            ? entry.teacherId
+            : rule.scope==='group'
+              ? entry.groupId
+              : rule.scope==='subject'
+                ? entry.groupId+'|'+entry.subjectId
+                : 'center'
+          grouped.set(key,(grouped.get(key)??0)+1)
+        }
+        const cmp=ruleComparison(rule)
+        const invalid=[...grouped.values()].filter(count=>
+          cmp==='maximum'?count>value:
+          cmp==='minimum'?count<value:
+          cmp==='equals'?count!==value:false
+        )
+        if(invalid.length){
+          push({severity:'error',category:'Reglas',code:rule.code,message:`Se incumple la regla obligatoria: ${rule.description}`,detail:`${invalid.length} cargas semanales no cumplen el valor ${value}`})
+        }
+      }
+      continue
+    }
+
     if(!isRuleAutomaticallyEvaluable(rule)){
       push({severity:'warning',category:'Reglas',code:'REGLA_NO_AUDITABLE',message:`La regla HARD "${rule.description}" todavía no está soportada por el motor común de evaluación.`})
     }
