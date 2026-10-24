@@ -152,7 +152,7 @@ export function ProjectImportPage({project,navigate}:{project:ViyeuticaProject;n
   const confirmApply=()=>{
     if(!candidate||!pendingMode)return
     const next=pendingMode==='next'?nextAcademicYear(candidate):candidate
-    saveProject(next)
+    saveProject(next,{preserveGeneration:pendingMode==='same'})
     setDone(pendingMode==='next'?'Importado como curso '+next.academicYear.label+'.':'Plantilla importada correctamente.')
     setPendingMode(null)
     window.setTimeout(()=>navigate('/'),250)
