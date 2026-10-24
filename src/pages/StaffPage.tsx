@@ -147,8 +147,7 @@ export function StaffPage({
   return <div className="wizard-page staff-page">
     <section className="wizard-intro">
       <div>
-        <span className="eyebrow dark"><Users size={15}/> Paso 5 · Recursos docentes</span>
-        <h1>Profesorado</h1>
+        <h1 className="wizard-page-title"><Users size={28}/> Profesorado</h1>
         <p>Define la plantilla docente que podrá participar en el horario: especialidades, tipo de jornada, cargos/reducciones e itinerancias.</p>
       </div>
       <div className="wizard-progress-summary"><strong>5 <span>de 9</span></strong><small>Profesorado</small></div>
