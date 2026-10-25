@@ -1573,3 +1573,11 @@ button.btn:disabled:hover{
     min-height:0;
   }
 }
+
+
+.list-filter-tags{display:flex;gap:6px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--border)}
+.list-filter-tags button{border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--muted);padding:6px 10px;font-size:8.8px;font-weight:800;cursor:pointer}
+.list-filter-tags button:hover{border-color:#a8bfd7;color:var(--navy2)}
+.list-filter-tags button.active{background:#eef3f8;color:var(--navy2);border-color:#a8bfd7}
+[data-theme="dark"] .list-filter-tags button{background:#101925}
+[data-theme="dark"] .list-filter-tags button.active{background:#1b2838;border-color:#45617e;color:#9fc8ef}
