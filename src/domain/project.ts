@@ -110,6 +110,10 @@ export interface TeacherDedication {
   weeklyPeriods: number | null
   weeklyMinutes: number | null
   notes: string
+  source?: 'manual' | 'normative'
+  status?: 'planned' | 'applicable'
+  affectsTeachingLoad?: boolean
+  reference?: string
 }
 
 export interface Teacher {
@@ -377,6 +381,17 @@ export function isStudyPlanComplete(project: ViyeuticaProject) {
 }
 
 
+export function operationalDedicationMinutes(teacher:Teacher){
+  return (teacher.dedications??[])
+    .filter(item=>item.status==='applicable'&&item.affectsTeachingLoad)
+    .reduce((total,item)=>total+((item.weeklyMinutes??0)>0?item.weeklyMinutes!:0),0)
+}
+
+export function effectiveTeacherTeachingMinutes(teacher:Teacher){
+  if(teacher.weeklyTeachingMinutes===null)return null
+  return Math.max(0,teacher.weeklyTeachingMinutes-operationalDedicationMinutes(teacher))
+}
+
 export function validateStaff(project: ViyeuticaProject) {
   const errors: string[] = []
   const activeTeachers = project.teachers.filter(teacher => teacher.active)
@@ -396,6 +411,9 @@ export function validateStaff(project: ViyeuticaProject) {
       }
       if ((dedication.weeklyPeriods ?? 0) <= 0 && (dedication.weeklyMinutes ?? 0) <= 0) {
         errors.push(`La dedicación "${dedication.label || 'sin nombre'}" de "${teacher.name}" debe indicar periodos o minutos semanales.`)
+      }
+      if (dedication.status==='applicable'&&dedication.affectsTeachingLoad&&(dedication.weeklyMinutes??0)<=0) {
+        errors.push(`La dedicación operativa "${dedication.label || 'sin nombre'}" de "${teacher.name}" necesita minutos semanales para descontarse de la carga lectiva.`)
       }
     }
   }
@@ -645,8 +663,28 @@ export function runPrevalidation(project: ViyeuticaProject): PrevalidationIssue[
   }
   for (const teacher of activeTeachers) {
     const assigned=assignmentMinutesByTeacher.get(teacher.id)??0
-    if (teacher.weeklyTeachingMinutes!==null && assigned>teacher.weeklyTeachingMinutes) {
-      push('error','Profesorado','SOBRECARGA_DOCENTE',`${teacher.name} supera su carga lectiva semanal configurada.`,`Asignado: ${assigned} min · Máximo: ${teacher.weeklyTeachingMinutes} min`,teacher.id)
+    const effectiveMaximum=effectiveTeacherTeachingMinutes(teacher)
+    if (effectiveMaximum!==null && assigned>effectiveMaximum) {
+      const reduction=operationalDedicationMinutes(teacher)
+      push(
+        'error',
+        'Profesorado',
+        'SOBRECARGA_DOCENTE',
+        `${teacher.name} supera su carga lectiva semanal efectiva.`,
+        `Asignado: ${assigned} min · Máximo efectivo: ${effectiveMaximum} min${reduction>0?` · Dedicaciones/reducciones: -${reduction} min`:''}`,
+        teacher.id
+      )
+    }
+    const operational=(teacher.dedications??[]).filter(item=>item.status==='applicable'&&item.affectsTeachingLoad)
+    if(operational.length&&teacher.weeklyTeachingMinutes===null){
+      push(
+        'warning',
+        'Profesorado',
+        'CARGA_BASE_SIN_CONFIGURAR',
+        `${teacher.name} tiene dedicaciones que descuentan docencia pero no tiene configurada una carga lectiva base máxima.`,
+        'Configura la carga lectiva base para que ⩒Yeutika pueda calcular y comprobar el máximo efectivo.',
+        teacher.id
+      )
     }
     if (teacher.status==='to_determine') {
       push('warning','Profesorado','DOCENTE_PENDIENTE',`${teacher.name} sigue marcado como "Por determinar".`,undefined,teacher.id)
