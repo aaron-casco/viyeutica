@@ -398,7 +398,7 @@ button.wizard-step:focus-visible{outline:3px solid rgba(89,180,17,.22);outline-o
 
 
 /* === Assignment progress explanation === */
-.assignment-progress-alert{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:start;padding:14px 16px;border:1px solid #e2c66b;background:#fff9e8;border-radius:14px}
+.assignment-progress-alert{display:block;padding:14px 16px;border:1px solid #e2c66b;background:#fff9e8;border-radius:14px}
 .assignment-progress-alert-icon{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:#fff1b8;color:#8a6a12}
 .assignment-progress-alert strong{font-size:11px}.assignment-progress-alert p{margin:4px 0 9px;color:#745f25;font-size:9.5px;line-height:1.45}
 .assignment-missing-list{display:grid;gap:7px}
@@ -1719,4 +1719,9 @@ button.btn:disabled:hover{
 .assignment-progress-heading>div:last-child{min-width:0}
 .assignment-progress-heading>div:last-child>strong{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .assignment-progress-alert.is-collapsed .availability-collapse-toggle svg{transform:rotate(-90deg)}
-.assignment-progress-alert.is-expanded .assignment-missing-list{margin-top:12px}
+.assignment-progress-alert.is-expanded .assignment-missing-list{margin-top:12px;margin-left:0;width:100%}
+
+.study-collapsible-heading{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px}
+.study-collapsible-card.is-collapsed .availability-collapse-toggle svg{transform:rotate(-90deg)}
+.study-collapsible-content{border-top:1px solid var(--border)}
+@media(max-width:780px){.study-collapsible-heading{grid-template-columns:auto minmax(0,1fr)}.study-collapsible-heading>.btn{grid-column:1/-1;justify-self:stretch}}
