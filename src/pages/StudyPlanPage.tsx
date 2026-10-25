@@ -88,6 +88,8 @@ export function StudyPlanPage({
   const [entryGroupFilter,setEntryGroupFilter]=useState<'all'|string>('all')
   const [subjectModalOpen,setSubjectModalOpen]=useState(false)
   const [entryModalOpen,setEntryModalOpen]=useState(false)
+  const [subjectsExpanded,setSubjectsExpanded]=useState(true)
+  const [entriesExpanded,setEntriesExpanded]=useState(true)
 
   const activeGroups=project.groups.filter(group=>group.active)
   const activeSubjects=project.subjects.filter(subject=>subject.active)
@@ -421,20 +423,32 @@ export function StudyPlanPage({
       </form>
     </div>}
 
-    <section className="groups-table-card">
-      <div className="groups-table-heading"><div><span className="panel-kicker">Catálogo</span><h2>Materias</h2></div><button className="btn ghost-inline" onClick={openSubjectCreate}><Plus size={16}/> Añadir materia</button></div>
-      {project.subjects.length>0&&<div className="list-filter-tags" aria-label="Filtrar materias por etapa"><button type="button" className={subjectStageFilter==='all'?'active':''} onClick={()=>setSubjectStageFilter('all')}>Todas</button>{project.center.stages.map(stage=><button type="button" key={stage} className={subjectStageFilter===stage?'active':''} onClick={()=>setSubjectStageFilter(stage)}>{stage}</button>)}</div>}
-      {project.subjects.length===0?<Empty text="Todavía no hay materias en el catálogo."/>:visibleSubjects.length===0?<Empty text="No hay materias para esta etapa."/>:<div className="groups-table-wrap"><table className="groups-table"><thead><tr><th>Materia</th><th>Código</th><th>Etapa</th><th>Tipo</th><th>Duración</th><th>Estado</th><th/></tr></thead><tbody>{visibleSubjects.map(subject=><tr key={subject.id} className={!subject.active?'is-inactive':''}><td><strong>{subject.name}</strong></td><td>{subject.code||'—'}</td><td>{subject.stage}</td><td>{subjectTypeLabel(subject.type)}</td><td>{subject.defaultSessionMinutes?`${subject.defaultSessionMinutes} min`:'—'}</td><td><button className={'status-toggle '+(subject.active?'active':'')} onClick={()=>toggleSubject(subject.id)}>{subject.active?'Activa':'Inactiva'}</button></td><td><div className="row-actions"><button onClick={()=>editSubject(subject)}><Pencil size={15}/></button><button className="danger" onClick={()=>removeSubject(subject.id)}><Trash2 size={15}/></button></div></td></tr>)}</tbody></table></div>}
+    <section className={'groups-table-card study-collapsible-card '+(subjectsExpanded?'is-expanded':'is-collapsed')}>
+      <div className="groups-table-heading study-collapsible-heading">
+        <button type="button" className="availability-collapse-toggle" onClick={()=>setSubjectsExpanded(value=>!value)} aria-expanded={subjectsExpanded} aria-label={subjectsExpanded?'Plegar catálogo':'Desplegar catálogo'}><ChevronDown size={17}/></button>
+        <div className="availability-heading-copy"><span className="panel-kicker">Catálogo</span><h2>Materias <span className="availability-count">{project.subjects.length}</span></h2></div>
+        <button className="btn ghost-inline" onClick={openSubjectCreate}><Plus size={16}/> Añadir materia</button>
+      </div>
+      {subjectsExpanded&&<div className="study-collapsible-content">
+        {project.subjects.length>0&&<div className="list-filter-tags" aria-label="Filtrar materias por etapa"><button type="button" className={subjectStageFilter==='all'?'active':''} onClick={()=>setSubjectStageFilter('all')}>Todas</button>{project.center.stages.map(stage=><button type="button" key={stage} className={subjectStageFilter===stage?'active':''} onClick={()=>setSubjectStageFilter(stage)}>{stage}</button>)}</div>}
+        {project.subjects.length===0?<Empty text="Todavía no hay materias en el catálogo."/>:visibleSubjects.length===0?<Empty text="No hay materias para esta etapa."/>:<div className="groups-table-wrap"><table className="groups-table"><thead><tr><th>Materia</th><th>Código</th><th>Etapa</th><th>Tipo</th><th>Duración</th><th>Estado</th><th/></tr></thead><tbody>{visibleSubjects.map(subject=><tr key={subject.id} className={!subject.active?'is-inactive':''}><td><strong>{subject.name}</strong></td><td>{subject.code||'—'}</td><td>{subject.stage}</td><td>{subjectTypeLabel(subject.type)}</td><td>{subject.defaultSessionMinutes?`${subject.defaultSessionMinutes} min`:'—'}</td><td><button className={'status-toggle '+(subject.active?'active':'')} onClick={()=>toggleSubject(subject.id)}>{subject.active?'Activa':'Inactiva'}</button></td><td><div className="row-actions"><button onClick={()=>editSubject(subject)}><Pencil size={15}/></button><button className="danger" onClick={()=>removeSubject(subject.id)}><Trash2 size={15}/></button></div></td></tr>)}</tbody></table></div>}
+      </div>}
     </section>
 
-    <section className="groups-table-card">
-      <div className="groups-table-heading"><div><span className="panel-kicker">Cargas</span><h2>Plan semanal por grupo</h2></div><button className="btn ghost-inline" onClick={openEntryCreate}><Plus size={16}/> Añadir carga</button></div>
-      {project.studyPlan.length>0&&<div className="list-filter-tags" aria-label="Filtrar cargas por grupo"><button type="button" className={entryGroupFilter==='all'?'active':''} onClick={()=>setEntryGroupFilter('all')}>Todos</button>{activeGroups.map(group=><button type="button" key={group.id} className={entryGroupFilter===group.id?'active':''} onClick={()=>setEntryGroupFilter(group.id)}>{group.name}</button>)}</div>}
-      {project.studyPlan.length===0?<Empty text="Todavía no hay cargas semanales configuradas."/>:visibleEntries.length===0?<Empty text="No hay cargas configuradas para este grupo."/>:<div className="groups-table-wrap"><table className="groups-table plan-table"><thead><tr><th>Grupo</th><th>Materia</th><th>Ses./sem.</th><th>Carga semanal</th><th>Organización</th><th>Docente</th><th>Duración</th><th>Estado</th><th/></tr></thead><tbody>{visibleEntries.map(entry=>{
-        const group=project.groups.find(x=>x.id===entry.groupId)
-        const subject=project.subjects.find(x=>x.id===entry.subjectId)
-        return <tr key={entry.id} className={!entry.active?'is-inactive':''}><td><strong>{group?.name??'Grupo eliminado'}</strong></td><td>{subject?.name??'Materia eliminada'}</td><td>{entry.weeklySessions>0?entry.weeklySessions:'—'}</td><td>{entry.weeklyMinutes?formatWeeklyMinutes(entry.weeklyMinutes):'—'}</td><td>{planModeLabel(entry.mode)}</td><td>{teacherRequirementLabel(entry.teacherRequirement)}</td><td>{entry.fixedSessionMinutes?`${entry.fixedSessionMinutes} min`:'—'}</td><td><button className={'status-toggle '+(entry.active?'active':'')} onClick={()=>toggleEntry(entry.id)}>{entry.active?'Activa':'Inactiva'}</button></td><td><div className="row-actions"><button onClick={()=>editEntry(entry)}><Pencil size={15}/></button><button className="danger" onClick={()=>removeEntry(entry.id)}><Trash2 size={15}/></button></div></td></tr>
-      })}</tbody></table></div>}
+    <section className={'groups-table-card study-collapsible-card '+(entriesExpanded?'is-expanded':'is-collapsed')}>
+      <div className="groups-table-heading study-collapsible-heading">
+        <button type="button" className="availability-collapse-toggle" onClick={()=>setEntriesExpanded(value=>!value)} aria-expanded={entriesExpanded} aria-label={entriesExpanded?'Plegar cargas':'Desplegar cargas'}><ChevronDown size={17}/></button>
+        <div className="availability-heading-copy"><span className="panel-kicker">Cargas</span><h2>Plan semanal por grupo <span className="availability-count">{project.studyPlan.length}</span></h2></div>
+        <button className="btn ghost-inline" onClick={openEntryCreate}><Plus size={16}/> Añadir carga</button>
+      </div>
+      {entriesExpanded&&<div className="study-collapsible-content">
+        {project.studyPlan.length>0&&<div className="list-filter-tags" aria-label="Filtrar cargas por grupo"><button type="button" className={entryGroupFilter==='all'?'active':''} onClick={()=>setEntryGroupFilter('all')}>Todos</button>{activeGroups.map(group=><button type="button" key={group.id} className={entryGroupFilter===group.id?'active':''} onClick={()=>setEntryGroupFilter(group.id)}>{group.name}</button>)}</div>}
+        {project.studyPlan.length===0?<Empty text="Todavía no hay cargas semanales configuradas."/>:visibleEntries.length===0?<Empty text="No hay cargas configuradas para este grupo."/>:<div className="groups-table-wrap"><table className="groups-table plan-table"><thead><tr><th>Grupo</th><th>Materia</th><th>Ses./sem.</th><th>Carga semanal</th><th>Organización</th><th>Docente</th><th>Duración</th><th>Estado</th><th/></tr></thead><tbody>{visibleEntries.map(entry=>{
+          const group=project.groups.find(x=>x.id===entry.groupId)
+          const subject=project.subjects.find(x=>x.id===entry.subjectId)
+          return <tr key={entry.id} className={!entry.active?'is-inactive':''}><td><strong>{group?.name??'Grupo eliminado'}</strong></td><td>{subject?.name??'Materia eliminada'}</td><td>{entry.weeklySessions>0?entry.weeklySessions:'—'}</td><td>{entry.weeklyMinutes?formatWeeklyMinutes(entry.weeklyMinutes):'—'}</td><td>{planModeLabel(entry.mode)}</td><td>{teacherRequirementLabel(entry.teacherRequirement)}</td><td>{entry.fixedSessionMinutes?`${entry.fixedSessionMinutes} min`:'—'}</td><td><button className={'status-toggle '+(entry.active?'active':'')} onClick={()=>toggleEntry(entry.id)}>{entry.active?'Activa':'Inactiva'}</button></td><td><div className="row-actions"><button onClick={()=>editEntry(entry)}><Pencil size={15}/></button><button className="danger" onClick={()=>removeEntry(entry.id)}><Trash2 size={15}/></button></div></td></tr>
+        })}</tbody></table></div>}
+      </div>}
     </section>
 
 
