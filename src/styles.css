@@ -1581,3 +1581,9 @@ button.btn:disabled:hover{
 .list-filter-tags button.active{background:#eef3f8;color:var(--navy2);border-color:#a8bfd7}
 [data-theme="dark"] .list-filter-tags button{background:#101925}
 [data-theme="dark"] .list-filter-tags button.active{background:#1b2838;border-color:#45617e;color:#9fc8ef}
+
+
+.copy-plan-card .copy-plan-multicheck{min-width:0}
+.copy-plan-card .copy-plan-multicheck .multicheck-trigger{height:40px}
+.multicheck-option.disabled{opacity:.48;cursor:not-allowed}
+.multicheck-option.disabled:hover{background:transparent}
