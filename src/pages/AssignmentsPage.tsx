@@ -186,6 +186,18 @@ export function AssignmentsPage({
     return matches.length?matches:activeTeachers
   }
 
+  const defaultTeacherForAssignment=(groupId:string,subjectId:string)=>{
+    if(!groupId||!subjectId)return ''
+    const subject=project.subjects.find(item=>item.id===subjectId)
+    const group=project.groups.find(item=>item.id===groupId)
+    if(subject?.type==='common'&&group?.tutorTeacherId){
+      const tutor=activeTeachers.find(teacher=>teacher.id===group.tutorTeacherId)
+      if(tutor)return tutor.id
+    }
+    const teachers=compatibleTeachers(subjectId)
+    return teachers.length===1?teachers[0].id:''
+  }
+
   const assignmentTeachers=compatibleTeachers(draft.subjectId)
   const hasSpecialtyFilter=draft.subjectId&&assignmentTeachers.length<activeTeachers.length
   const otherAssignmentTeachers=hasSpecialtyFilter
@@ -534,13 +546,21 @@ export function AssignmentsPage({
           <div className="form-card-heading"><div className="form-card-number">06A</div><div><span className="panel-kicker">{editingId?'Edición':'Docencia'}</span><h2>{editingId?'Editar asignación':'Asignar docente'}</h2><p>Una misma materia puede tener titular, apoyo y codocencia mediante asignaciones independientes.</p></div></div>
           <div className="form-grid two">
             <Field label="Grupo" required><select value={draft.groupId} onChange={e=>setDraft({...draft,groupId:e.target.value,subjectId:'',weeklySessions:'',weeklyMinutes:''})}><option value="">Selecciona...</option>{activeGroups.map(group=>{const complete=groupMainComplete(group.id)&&draft.assignmentType==='main';return <option key={group.id} value={group.id} disabled={complete}>{group.name}{complete?' · completo':''}</option>})}</select></Field>
-            <Field label="Materia" required><select value={draft.subjectId} disabled={!draft.groupId} onChange={e=>{const subjectId=e.target.value;const load=studyPlanLoad(draft.groupId,subjectId);const teachers=compatibleTeachers(subjectId);setShowOtherTeachers(false);setDraft({...draft,subjectId,teacherId:teachers.length===1?teachers[0].id:'',...load})}}> <option value="">Selecciona...</option>{groupSubjects(draft.groupId).map(subject=>{const assigned=assignmentExists(draft.groupId,subject.id,draft.assignmentType);return <option key={subject.id} value={subject.id} disabled={assigned}>{subject.name}{assigned?' · ya asignada':''}</option>})}</select></Field>
+            <Field label="Materia" required><select value={draft.subjectId} disabled={!draft.groupId} onChange={e=>{const subjectId=e.target.value;const load=studyPlanLoad(draft.groupId,subjectId);const teacherId=defaultTeacherForAssignment(draft.groupId,subjectId);setShowOtherTeachers(false);setDraft({...draft,subjectId,teacherId,...load})}}> <option value="">Selecciona...</option>{groupSubjects(draft.groupId).map(subject=>{const assigned=assignmentExists(draft.groupId,subject.id,draft.assignmentType);return <option key={subject.id} value={subject.id} disabled={assigned}>{subject.name}{assigned?' · ya asignada':''}</option>})}</select></Field>
             <Field label="Docente" required><select value={draft.teacherId} disabled={!draft.subjectId} onChange={e=>{const value=e.target.value;if(value==='__others__'){setShowOtherTeachers(true);setDraft({...draft,teacherId:''});return}setDraft({...draft,teacherId:value})}}><option value="">Selecciona...</option>{assignmentTeachers.map(teacher=><option key={teacher.id} value={teacher.id}>{teacher.name}</option>)}{hasSpecialtyFilter&&!showOtherTeachers&&otherAssignmentTeachers.length>0&&<option value="__others__">Otros…</option>}{showOtherTeachers&&otherAssignmentTeachers.map(teacher=><option key={teacher.id} value={teacher.id}>{teacher.name}</option>)}</select>{showOtherTeachers&&hasSpecialtyFilter&&<button type="button" className="assignment-teacher-filter-reset" onClick={()=>{setShowOtherTeachers(false);setDraft({...draft,teacherId:''})}}>Volver a docentes compatibles</button>}</Field>
             <Field label="Tipo de intervención"><select value={draft.assignmentType} onChange={e=>{setShowOtherTeachers(false);setDraft({...draft,assignmentType:e.target.value as AssignmentType,subjectId:'',teacherId:'',weeklySessions:'',weeklyMinutes:''})}}>{(Object.entries(assignmentTypeLabels) as [AssignmentType,string][]).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></Field>
             <Field label="Sesiones semanales"><input type="number" min="0" step="0.25" value={draft.weeklySessions} onChange={e=>setDraft({...draft,weeklySessions:e.target.value})} placeholder="Opcional"/></Field>
             <Field label="Minutos semanales"><input type="number" min="0" step="5" value={draft.weeklyMinutes} onChange={e=>setDraft({...draft,weeklyMinutes:e.target.value})} placeholder="Opcional"/></Field>
             {draft.groupId&&draft.subjectId&&<div className="assignment-load-source"><CheckCircle2 size={14}/><span>Carga tomada del Plan de estudios. Puedes modificarla si esta asignación necesita una excepción.</span></div>}
-            {draft.subjectId&&hasSpecialtyFilter&&<div className="assignment-teacher-source"><UsersRound size={14}/><span>{showOtherTeachers?'Mostrando también el resto del profesorado activo por selección manual.':assignmentTeachers.length===1?'Docente seleccionado automáticamente porque es el único compatible con esta materia. Puedes elegir “Otros…” si necesitas una excepción.':'Docentes filtrados según las especialidades configuradas en Profesorado. Usa “Otros…” para ver el resto.'}</span></div>}
+            {draft.subjectId&&<div className="assignment-teacher-source"><UsersRound size={14}/><span>{project.subjects.find(item=>item.id===draft.subjectId)?.type==='common'&&project.groups.find(item=>item.id===draft.groupId)?.tutorTeacherId
+              ? 'Materia común: se ha preseleccionado el tutor/a del grupo. Puedes cambiarlo manualmente si existe una excepción.'
+              : showOtherTeachers
+                ? 'Mostrando también el resto del profesorado activo por selección manual.'
+                : hasSpecialtyFilter
+                  ? assignmentTeachers.length===1
+                    ? 'Docente seleccionado automáticamente porque es el único compatible con esta materia. Puedes elegir “Otros…” si necesitas una excepción.'
+                    : 'Docentes filtrados según las especialidades configuradas en Profesorado. Usa “Otros…” para ver el resto.'
+                  : 'No hay un filtro específico de especialidad para esta materia; se muestra todo el profesorado activo.'}</span></div>}
           </div>
           {error&&<div className="inline-error">{error}</div>}
           <div className={'form-guide '+(assignmentReady?'complete':'partial')}><strong>{assignmentReady?'Asignación lista':'Siguiente paso'}</strong><span>{assignmentGuide}</span></div>
