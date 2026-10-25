@@ -1606,3 +1606,13 @@ button.btn:disabled:hover{
 .staff-row-detail{display:block;margin-top:3px;color:var(--muted);font-size:8px;font-weight:600}
 [data-theme="dark"] .staff-dependent-section.disabled{background:#111923}
 @media(max-width:780px){.staff-dependent-section{padding:13px}.staff-tutor-multicheck{max-width:none}}
+
+
+.staff-main-tools{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+.staff-main-aside{grid-template-columns:repeat(2,minmax(0,1fr))}
+.staff-modal-backdrop{padding:16px}
+.staff-teacher-modal{width:min(1180px,calc(100vw - 32px));max-height:calc(100vh - 32px)}
+.staff-modal-body{padding:18px;overflow:auto}
+.staff-modal-intro{margin-bottom:18px}
+@media(max-width:900px){.staff-main-aside{grid-template-columns:1fr}.staff-teacher-modal{width:100%;max-height:calc(100vh - 20px)}}
+@media(max-width:650px){.staff-modal-backdrop{padding:10px}.staff-teacher-modal{max-height:calc(100vh - 10px);border-radius:16px}.staff-modal-body{padding:14px}}
