@@ -1609,10 +1609,13 @@ button.btn:disabled:hover{
 
 
 .staff-main-tools{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
-.staff-main-aside{grid-template-columns:repeat(2,minmax(0,1fr))}
+.staff-prevalidation-card,.staff-template-full{width:100%}
+.staff-info-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .staff-modal-backdrop{padding:16px}
 .staff-teacher-modal{width:min(1180px,calc(100vw - 32px));max-height:calc(100vh - 32px)}
 .staff-modal-body{padding:18px;overflow:auto}
 .staff-modal-intro{margin-bottom:18px}
 @media(max-width:900px){.staff-main-aside{grid-template-columns:1fr}.staff-teacher-modal{width:100%;max-height:calc(100vh - 20px)}}
 @media(max-width:650px){.staff-modal-backdrop{padding:10px}.staff-teacher-modal{max-height:calc(100vh - 10px);border-radius:16px}.staff-modal-body{padding:14px}}
+
+@media(max-width:780px){.structure-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.staff-info-grid{grid-template-columns:1fr}}
