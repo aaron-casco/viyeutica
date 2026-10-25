@@ -259,25 +259,80 @@ export function StaffPage({
             <input value={draft.name} onChange={e=>setDraft({...draft,name:e.target.value})} placeholder="Ej. María López / Inglés PDTE"/>
           </Field>
           <Field label="Estado">
-            <select value={draft.status} onChange={e=>setDraft({...draft,status:e.target.value as TeacherStatus})}>
+            <select disabled={!hasName} value={draft.status} onChange={e=>setDraft({...draft,status:e.target.value as TeacherStatus})}>
               <option value="confirmed">Confirmado</option>
               <option value="to_determine">Por determinar</option>
             </select>
           </Field>
           <Field label="Tipo de jornada">
-            <select value={draft.employmentType} onChange={e=>setDraft({...draft,employmentType:e.target.value as EmploymentType})}>
+            <select disabled={!hasName} value={draft.employmentType} onChange={e=>setDraft({...draft,employmentType:e.target.value as EmploymentType})}>
               {(Object.entries(employmentLabels) as [EmploymentType,string][]).map(([value,label])=><option key={value} value={value}>{label}</option>)}
             </select>
           </Field>
-          <Field label="Carga lectiva semanal (min)">
-            <input type="number" min="0" step="5" value={draft.weeklyTeachingMinutes} onChange={e=>setDraft({...draft,weeklyTeachingMinutes:e.target.value})} placeholder="Opcional"/>
-          </Field>
           <Field label="Especialidades" required>
-            <input value={draft.specialties} onChange={e=>setDraft({...draft,specialties:e.target.value})} placeholder="Primaria, Inglés, PT..."/>
+            <input disabled={!hasName} value={draft.specialties} onChange={e=>setDraft({...draft,specialties:e.target.value})} placeholder={hasName?"Primaria, Inglés, PT...":"Indica primero el nombre"}/>
+          </Field>
+          <Field label="Carga lectiva objetivo / máxima (min)">
+            <input disabled={!hasSpecialties} type="number" min="0" step="5" value={draft.weeklyTeachingMinutes} onChange={e=>setDraft({...draft,weeklyTeachingMinutes:e.target.value})} placeholder={hasSpecialties?"Opcional":"Indica primero una especialidad"}/>
           </Field>
           <Field label="Cargos / funciones">
-            <input value={draft.roles} onChange={e=>setDraft({...draft,roles:e.target.value})} placeholder="Tutor 3.º, Dirección, Coordinación..."/>
+            <input disabled={!hasSpecialties} value={draft.roles} onChange={e=>setDraft({...draft,roles:e.target.value})} placeholder={hasSpecialties?"Dirección, Secretaría, Coordinación...":"Indica primero una especialidad"}/>
           </Field>
+        </div>
+
+        <div className={'staff-dependent-section'+(!hasSpecialties?' disabled':'')}>
+          <div className="staff-subsection-heading">
+            <div><span className="panel-kicker">Tutoría</span><h3>Grupos tutorados</h3><p>La tutoría se vincula directamente al grupo y podrá utilizarse después en Asignaciones y Reglas.</p></div>
+          </div>
+          <StaffMultiCheck
+            placeholder={hasSpecialties?'Selecciona uno o varios grupos':'Indica primero una especialidad'}
+            values={draft.tutorGroupIds}
+            disabled={!hasSpecialties}
+            options={project.groups.filter(group=>group.active).map(group=>{
+              const assignedTeacher=teachers.find(teacher=>teacher.id===group.tutorTeacherId)
+              const assignedToOther=Boolean(group.tutorTeacherId&&group.tutorTeacherId!==editingId)
+              return {
+                value:group.id,
+                label:group.name+(assignedToOther&&assignedTeacher?` · ${assignedTeacher.name}`:''),
+                disabled:assignedToOther,
+              }
+            })}
+            onChange={values=>setDraft({...draft,tutorGroupIds:values})}
+          />
+        </div>
+
+        <div className={'staff-dependent-section'+(!hasSpecialties?' disabled':'')}>
+          <div className="staff-subsection-heading">
+            <div><span className="panel-kicker">Dedicaciones</span><h3>Cargos, coordinaciones y reducciones</h3><p>Registra cada dedicación con su carga semanal. Ej.: Dirección · 14 periodos, REBEX · 2 periodos, reducción &gt;55 · 2 periodos.</p></div>
+          </div>
+          <div className="form-grid three staff-dedication-grid">
+            <Field label="Tipo">
+              <select disabled={!hasSpecialties} value={dedicationDraft.type} onChange={e=>setDedicationDraft({...dedicationDraft,type:e.target.value as TeacherDedicationType})}>
+                {(Object.entries(dedicationLabels) as [TeacherDedicationType,string][]).map(([value,label])=><option key={value} value={value}>{label}</option>)}
+              </select>
+            </Field>
+            <Field label="Nombre">
+              <input disabled={!hasSpecialties} value={dedicationDraft.label} onChange={e=>setDedicationDraft({...dedicationDraft,label:e.target.value})} placeholder="Ej. Dirección"/>
+            </Field>
+            <Field label="Periodos semanales">
+              <input disabled={!hasSpecialties} type="number" min="0" step="1" value={dedicationDraft.weeklyPeriods} onChange={e=>setDedicationDraft({...dedicationDraft,weeklyPeriods:e.target.value})} placeholder="Ej. 14"/>
+            </Field>
+            <Field label="Minutos semanales">
+              <input disabled={!hasSpecialties} type="number" min="0" step="5" value={dedicationDraft.weeklyMinutes} onChange={e=>setDedicationDraft({...dedicationDraft,weeklyMinutes:e.target.value})} placeholder="Alternativa a periodos"/>
+            </Field>
+            <Field label="Observación">
+              <input disabled={!hasSpecialties} value={dedicationDraft.notes} onChange={e=>setDedicationDraft({...dedicationDraft,notes:e.target.value})} placeholder="Opcional"/>
+            </Field>
+            <div className="staff-dedication-action">
+              <button type="button" className="btn ghost-inline" disabled={!dedicationReady} onClick={addDedication}><Plus size={15}/> Añadir dedicación</button>
+            </div>
+          </div>
+          {draft.dedications.length>0&&<div className="staff-dedication-list">
+            {draft.dedications.map(item=><article key={item.id}>
+              <div><strong>{item.label}</strong><span>{dedicationLabels[item.type]} · {item.weeklyPeriods?`${item.weeklyPeriods} periodos`:item.weeklyMinutes?formatMinutes(item.weeklyMinutes):'Sin carga'}{item.notes?` · ${item.notes}`:''}</span></div>
+              <button type="button" className="row-delete" onClick={()=>removeDedication(item.id)}><Trash2 size={14}/></button>
+            </article>)}
+          </div>}
         </div>
 
         {error&&<div className="inline-error">{error}</div>}
