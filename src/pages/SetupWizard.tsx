@@ -126,10 +126,13 @@ export function SetupWizard({
         <Summary label="Etapas" value={String(project.center.stages.length)} detail={project.center.stages.join(' · ')||'sin etapas'}/>
       </section>
 
-      <article className={'aside-card validation section-prevalidation-card '+(isCenterComplete(project.center)?'ready':'')}>
-        <span className="panel-kicker">Prevalidación</span>
-        <strong>{isCenterComplete(project.center)?'Datos del centro completos':'Faltan datos del centro'}</strong>
-        <p>{isCenterComplete(project.center)?'La identificación, ubicación, titularidad, tipo y etapas del centro están configuradas.':'Completa los campos obligatorios antes de continuar con la estructura y los grupos.'}</p>
+      <article className={'aside-card validation section-prevalidation-card '+(isCenterComplete(project.center)?'ready':'incomplete')}>
+        <span className="panel-kicker">ESTADO:</span>
+        <strong>{isCenterComplete(project.center)?'Sección Datos del centro válida':'Sección Datos del centro incompleta'}</strong>
+        <p>{isCenterComplete(project.center)
+          ? `${project.center.name} · ${project.center.centerType} · ${project.center.stages.join(', ')}. La identificación, ubicación, titularidad y etapas necesarias están guardadas.`
+          : 'Faltan datos obligatorios de identificación, ubicación o etapas. Completa el formulario para poder validar la estructura del centro.'}</p>
+        {!isCenterComplete(project.center)&&<button type="button" className="section-status-action" onClick={()=>setModalOpen(true)}>Completar datos del centro</button>}
       </article>
 
       <section className="groups-table-card center-data-card">
