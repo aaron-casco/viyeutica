@@ -424,6 +424,16 @@ export function RulesPage({
   const softCount=activeRules.filter(rule=>rule.ruleType==='SOFT').length
   const normativeCount=activeRules.filter(rule=>rule.source==='normative').length
   const importedCount=activeRules.filter(rule=>rule.source==='imported').length
+  const normativeDedications=project.teachers.flatMap(teacher=>
+    (teacher.dedications??[])
+      .filter(item=>item.source==='normative'&&item.status==='applicable'&&item.affectsTeachingLoad)
+      .map(item=>({teacher,item}))
+  )
+  const engineRules=[
+    {id:'engine_teacher_overlap',title:'Sin solape de profesorado',description:'Un docente no puede ocupar dos actividades en la misma franja.',detail:'Aplicación automática durante cada intento de colocación.'},
+    {id:'engine_group_overlap',title:'Sin solape de grupos',description:'Un grupo no puede ocupar dos actividades en la misma franja.',detail:'Aplicación automática durante cada intento de colocación.'},
+    {id:'engine_availability',title:'Respetar indisponibilidad docente',description:'No se asigna docencia en franjas registradas como No disponible o Desplazamiento.',detail:'Lee directamente las restricciones de Disponibilidad configuradas en Asignaciones.'},
+  ]
 
   const automaticDescription=generateRuleDescription(draft,project)
   const displayedDescription=descriptionCustomized?draft.description:automaticDescription
@@ -599,30 +609,6 @@ export function RulesPage({
 
     {auditFocus&&<section className="template-result audit-context-banner"><CheckCircle2 size={16}/><span>{auditFocus}</span></section>}
 
-    <section className="engine-rules-card">
-      <div className="groups-table-heading">
-        <div><span className="panel-kicker">REGLAS DEL MOTOR ⩒YEUTIKA</span><h2>Protecciones estructurales</h2><p>Siempre activas. Forman parte del generador y no se pueden editar, desactivar ni eliminar.</p></div>
-        <span className="engine-rule-count">3</span>
-      </div>
-      <div className="rules-list engine-rules-list">
-        <article className="rule-card hard engine-rule">
-          <div className="rule-type-badge engine">MOTOR</div>
-          <div className="rule-card-main"><div className="rule-title-row"><strong>Sin solape de profesorado</strong><span>HARD</span></div><p>Un docente no puede ocupar dos actividades en la misma franja.</p><small>Aplicación automática durante cada intento de colocación.</small></div>
-          <div className="engine-rule-lock"><ShieldCheck size={17}/><span>Siempre activa</span></div>
-        </article>
-        <article className="rule-card hard engine-rule">
-          <div className="rule-type-badge engine">MOTOR</div>
-          <div className="rule-card-main"><div className="rule-title-row"><strong>Sin solape de grupos</strong><span>HARD</span></div><p>Un grupo no puede ocupar dos actividades en la misma franja.</p><small>Aplicación automática durante cada intento de colocación.</small></div>
-          <div className="engine-rule-lock"><ShieldCheck size={17}/><span>Siempre activa</span></div>
-        </article>
-        <article className="rule-card hard engine-rule">
-          <div className="rule-type-badge engine">MOTOR</div>
-          <div className="rule-card-main"><div className="rule-title-row"><strong>Respetar indisponibilidad docente</strong><span>HARD</span></div><p>No se asigna docencia en franjas registradas como No disponible o Desplazamiento.</p><small>Lee directamente las restricciones de Disponibilidad configuradas en Asignaciones.</small></div>
-          <div className="engine-rule-lock"><ShieldCheck size={17}/><span>Siempre activa</span></div>
-        </article>
-      </div>
-    </section>
-
     <section className="structure-summary">
       <Summary label="Reglas activas" value={String(activeRules.length)} detail="total aplicable"/>
       <Summary label="HARD" value={String(hardCount)} detail="obligatorias"/>
@@ -681,22 +667,41 @@ export function RulesPage({
         </div></div>
       </div>
 
-      {visible.length===0
-        ? <div className="groups-empty"><ShieldAlert size={28}/><strong>No hay reglas en esta vista</strong><p>Añade una regla o aplica una plantilla.</p></div>
-        : <div className="rules-list">{visible.map(rule=><article className={'rule-card '+rule.ruleType.toLowerCase()+(!rule.active?' inactive':'')} key={rule.id}>
-            <div className="rule-type-badge">{rule.ruleType}</div>
-            <div className="rule-card-main">
-              <div className="rule-title-row"><strong>{ruleDisplayName(rule)}</strong><span>{scopeLabel(rule.scope)}</span>{rule.source&&<span>{sourceLabel(rule.source)}</span>}{rule.reviewRequired&&<span className="review-tag">Revisar</span>}</div>
-              <p>{rule.description}</p>
-              <small>{describeParameters(rule,project)}{rule.ruleType==='SOFT'&&<> · Peso <strong>{rule.weight??'—'}</strong></>}</small>
-              {rule.source==='normative'&&rule.normativeRuleId&&<NormativeTrace project={project} id={rule.normativeRuleId}/>}
-            </div>
-            <div className="rule-card-actions">
-              <button className={'status-toggle '+(rule.active?'active':'')} onClick={()=>toggle(rule.id)}>{rule.active?'Activa':'Inactiva'}</button>
-              <button title="Editar" onClick={()=>edit(rule)}><Pencil size={15}/></button>
-              <button title="Eliminar" className="danger" onClick={()=>remove(rule.id)}><Trash2 size={15}/></button>
-            </div>
-          </article>)}</div>}
+      {(visible.length===0&&filter!=='all')
+        ? <div className="groups-empty"><ShieldAlert size={28}/><strong>No hay reglas configurables en esta vista</strong><p>Las reglas del motor y normativas se muestran en la vista Todas.</p></div>
+        : <div className="rules-list">
+            {filter==='all'&&engineRules.map(rule=><article className="rule-card hard rule-origin-engine" key={rule.id}>
+              <div className="rule-type-badge engine">MOTOR</div>
+              <div className="rule-card-main">
+                <div className="rule-title-row"><strong>{rule.title}</strong><span>HARD</span><span className="origin-tag engine">Motor</span></div>
+                <p>{rule.description}</p><small>{rule.detail}</small>
+              </div>
+              <div className="engine-rule-lock"><ShieldCheck size={17}/><span>Siempre activa</span></div>
+            </article>)}
+            {filter==='all'&&normativeDedications.map(({teacher,item})=><article className="rule-card hard rule-origin-normative" key={'norm-ded-'+teacher.id+'-'+item.id}>
+              <div className="rule-type-badge normative">NORMA</div>
+              <div className="rule-card-main">
+                <div className="rule-title-row"><strong>{item.label}</strong><span>HARD</span><span className="origin-tag normative">Normativa</span></div>
+                <p>{teacher.name}: descuenta {item.weeklyMinutes??0} min semanales de docencia directa.</p>
+                <small>{item.reference||'Dedicación normativa registrada en Profesorado'} · Se aplica al cálculo de carga lectiva efectiva y a Generación.</small>
+              </div>
+              <div className="engine-rule-lock"><ShieldCheck size={17}/><span>Derivada de Profesorado</span></div>
+            </article>)}
+            {visible.map(rule=><article className={'rule-card '+rule.ruleType.toLowerCase()+' rule-origin-'+(rule.source??'manual')+(!rule.active?' inactive':'')} key={rule.id}>
+              <div className="rule-type-badge">{rule.ruleType}</div>
+              <div className="rule-card-main">
+                <div className="rule-title-row"><strong>{ruleDisplayName(rule)}</strong><span>{scopeLabel(rule.scope)}</span>{rule.source&&<span className={'origin-tag '+rule.source}>{sourceLabel(rule.source)}</span>}{rule.reviewRequired&&<span className="review-tag">Revisar</span>}</div>
+                <p>{rule.description}</p>
+                <small>{describeParameters(rule,project)}{rule.ruleType==='SOFT'&&<> · Peso <strong>{rule.weight??'—'}</strong></>}</small>
+                {rule.source==='normative'&&rule.normativeRuleId&&<NormativeTrace project={project} id={rule.normativeRuleId}/>}
+              </div>
+              <div className="rule-card-actions">
+                <button className={'status-toggle '+(rule.active?'active':'')} onClick={()=>toggle(rule.id)}>{rule.active?'Activa':'Inactiva'}</button>
+                <button title="Editar" onClick={()=>edit(rule)}><Pencil size={15}/></button>
+                <button title="Eliminar" className="danger" onClick={()=>remove(rule.id)}><Trash2 size={15}/></button>
+              </div>
+            </article>)}
+          </div>}
     </section>
 
     <div className="section-template-full">
