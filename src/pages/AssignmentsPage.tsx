@@ -83,6 +83,7 @@ export function AssignmentsPage({
   const [assignmentsExpanded,setAssignmentsExpanded]=useState(true)
   const [assignmentGroupFilter,setAssignmentGroupFilter]=useState<'all'|string>('all')
   const [assignmentTeacherFilter,setAssignmentTeacherFilter]=useState<'all'|string>('all')
+  const [progressExpanded,setProgressExpanded]=useState(true)
 
   const activeGroups=project.groups.filter(group=>group.active)
   const activeSubjects=project.subjects.filter(subject=>subject.active)
@@ -441,36 +442,46 @@ export function AssignmentsPage({
       <Summary label="Restricciones temporales" value={String(project.teacherAvailability.length)} detail="disponibilidad registrada"/>
     </section>
 
-    {uncoveredStudyEntries.length>0&&<section className="assignment-progress-alert">
-      <div className="assignment-progress-alert-icon"><CheckCircle2 size={18}/></div>
-      <div>
-        <strong>Asignaciones todavía en progreso</strong>
-        <p>Faltan {uncoveredStudyEntries.length} {uncoveredStudyEntries.length===1?'carga':'cargas'} del Plan de estudios por vincular a profesorado. El paso se marcará como completo cuando todas estén cubiertas.</p>
-        <div className="assignment-missing-list">
-          {uncoveredStudyEntries.map(entry=>{
-            const group=project.groups.find(item=>item.id===entry.groupId)
-            const subject=project.subjects.find(item=>item.id===entry.subjectId)
-            return <button
-              key={entry.id}
-              type="button"
-              onClick={()=>{
-                setDraft({
-                  groupId:entry.groupId,
-                  subjectId:entry.subjectId,
-                  teacherId:'',
-                  assignmentType:'main',
-                  weeklySessions:entry.weeklySessions>0?String(entry.weeklySessions):'',
-                  weeklyMinutes:(entry.weeklyMinutes??0)>0?String(entry.weeklyMinutes):'',
-                })
-                setAssignmentModalOpen(true)
-              }}
-            >
-              <span><strong>{group?.name??'Grupo'}</strong> · {subject?.name??'Materia'}</span>
-              <small>{entry.weeklySessions>0?`${entry.weeklySessions} ses./sem.`:''}{entry.weeklyMinutes?`${entry.weeklySessions>0?' · ':''}${entry.weeklyMinutes} min/sem.`:''} · Pulsa para completar</small>
-            </button>
-          })}
+    {uncoveredStudyEntries.length>0&&<section className={'assignment-progress-alert '+(progressExpanded?'is-expanded':'is-collapsed')}>
+      <div className="assignment-progress-heading">
+        <button
+          type="button"
+          className="availability-collapse-toggle"
+          onClick={()=>setProgressExpanded(value=>!value)}
+          aria-expanded={progressExpanded}
+          aria-label={progressExpanded?'Plegar asignaciones pendientes':'Desplegar asignaciones pendientes'}
+        ><ChevronDown size={17}/></button>
+        <div className="assignment-progress-alert-icon"><CheckCircle2 size={18}/></div>
+        <div>
+          <strong>Asignaciones todavía en progreso <span className="availability-count">{uncoveredStudyEntries.length}</span></strong>
+          <p>Faltan {uncoveredStudyEntries.length} {uncoveredStudyEntries.length===1?'carga':'cargas'} del Plan de estudios por vincular a profesorado. El paso se marcará como completo cuando todas estén cubiertas.</p>
         </div>
       </div>
+
+      {progressExpanded&&<div className="assignment-missing-list">
+        {uncoveredStudyEntries.map(entry=>{
+          const group=project.groups.find(item=>item.id===entry.groupId)
+          const subject=project.subjects.find(item=>item.id===entry.subjectId)
+          return <button
+            key={entry.id}
+            type="button"
+            onClick={()=>{
+              setDraft({
+                groupId:entry.groupId,
+                subjectId:entry.subjectId,
+                teacherId:'',
+                assignmentType:'main',
+                weeklySessions:entry.weeklySessions>0?String(entry.weeklySessions):'',
+                weeklyMinutes:(entry.weeklyMinutes??0)>0?String(entry.weeklyMinutes):'',
+              })
+              setAssignmentModalOpen(true)
+            }}
+          >
+            <span><strong>{group?.name??'Grupo'}</strong> · {subject?.name??'Materia'}</span>
+            <small>{entry.weeklySessions>0?`${entry.weeklySessions} ses./sem.`:''}{entry.weeklyMinutes?`${entry.weeklySessions>0?' · ':''}${entry.weeklyMinutes} min/sem.`:''} · Pulsa para completar</small>
+          </button>
+        })}
+      </div>}
     </section>}
 
     <article className={'aside-card validation section-prevalidation-card '+(validation.length?'error':activeAssignments.length?'ready':'incomplete')}>
