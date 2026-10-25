@@ -206,10 +206,16 @@ export function SchedulePage({project,navigate}:{project:ViyeuticaProject;naviga
       <Summary label="Horario" value={first&&last?`${first.start}–${last.end}`:'—'} detail={modeLabel(schedule.mode)}/>
     </section>
 
-    <article className={'aside-card validation section-prevalidation-card '+(validation.length===0&&blocks.length?'ready':'')}>
-      <span className="panel-kicker">Prevalidación</span>
-      <strong>{validation.length===0&&blocks.length?'Jornada válida':validation.length?`${validation.length} incidencias`:'Sin tramos'}</strong>
-      <p>{validation[0]??'No hay solapamientos ni intervalos temporales inválidos.'}</p>
+    <article className={'aside-card validation section-prevalidation-card '+(validation.length?'error':blocks.length?'ready':'incomplete')}>
+      <span className="panel-kicker">ESTADO:</span>
+      <strong>{validation.length?'Sección Jornada y sesiones con errores':blocks.length?'Sección Jornada y sesiones válida':'Sección Jornada y sesiones incompleta'}</strong>
+      <p>{validation.length
+        ? `${validation[0]} Revisa los tramos configurados y corrige horarios o solapamientos antes de continuar.`
+        : blocks.length
+          ? `${schedule.activeDays.length} días activos · ${blocks.filter(b=>b.active&&b.type==='teaching').length} sesiones lectivas · ${first&&last?`${first.start}–${last.end}`:'horario definido'}. No hay solapamientos ni intervalos inválidos.`
+          : 'Todavía no hay tramos configurados. Añade las sesiones lectivas y pausas que forman la jornada.'}</p>
+      {validation.length>0&&<button type="button" className="section-status-action" onClick={()=>document.querySelector('.timeline-card')?.scrollIntoView({behavior:'smooth',block:'start'})}>Revisar tramos</button>}
+      {!validation.length&&!blocks.length&&<button type="button" className="section-status-action" onClick={openCreate}>Añadir primer tramo</button>}
     </article>
 
     {blockModalOpen&&<div className="modal-backdrop section-form-modal-backdrop">
