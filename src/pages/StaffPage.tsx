@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import {
   BriefcaseBusiness, CheckCircle2, ChevronDown, Clock3, GraduationCap, Pencil, Plus,
-  Save, Trash2, UserRoundCog, Users,
+  Trash2, UserRoundCog, Users,
 } from 'lucide-react'
 import type { Teacher, TeacherDedication, TeacherDedicationType, ViyeuticaProject } from '../domain/project'
 import { isStudyPlanComplete, validateStaff } from '../domain/project'
@@ -283,13 +283,6 @@ export function StaffPage({
         </div>
         <div className="staff-modal-body">
         <div className="form-card-heading staff-modal-intro">
-          <div className="form-card-number">05</div>
-          <div>
-            <span className="panel-kicker">{editingId?'Edición':'Plantilla docente'}</span>
-            <h2>{editingId?'Editar docente':'Añadir docente'}</h2>
-            <p>Las asignaciones concretas a grupos y materias se realizarán en el Paso 6.</p>
-          </div>
-        </div>
           <div className="form-card-number">05</div>
           <div>
             <span className="panel-kicker">{editingId?'Edición':'Plantilla docente'}</span>
