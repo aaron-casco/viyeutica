@@ -88,8 +88,8 @@ export function StudyPlanPage({
   const [entryGroupFilter,setEntryGroupFilter]=useState<'all'|string>('all')
   const [subjectModalOpen,setSubjectModalOpen]=useState(false)
   const [entryModalOpen,setEntryModalOpen]=useState(false)
-  const [subjectsExpanded,setSubjectsExpanded]=useState(true)
-  const [entriesExpanded,setEntriesExpanded]=useState(true)
+  const [subjectsExpanded,setSubjectsExpanded]=useState(false)
+  const [entriesExpanded,setEntriesExpanded]=useState(false)
 
   const activeGroups=project.groups.filter(group=>group.active)
   const activeSubjects=project.subjects.filter(subject=>subject.active)
