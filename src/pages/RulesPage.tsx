@@ -314,9 +314,9 @@ function isRuleDraftReady(draft:Draft,project:ViyeuticaProject){
   const sessions=selectedDraftValues(draft.sessionId,draft.sessionIds)
   const activeAssignments=project.assignments.filter(item=>item.active)
 
-  if(draft.scope==='teacher'&&conditionUses(draft.conditionKind,'teacherId')&&!teachers.length)return false
-  if(draft.scope==='group'&&conditionUses(draft.conditionKind,'groupId')&&!groups.length)return false
-  if(draft.scope==='subject'&&conditionUses(draft.conditionKind,'subjectId')&&!subjects.length)return false
+  if(draft.conditionKind!=='generic'&&draft.scope==='teacher'&&conditionUses(draft.conditionKind,'teacherId')&&!teachers.length)return false
+  if(draft.conditionKind!=='generic'&&draft.scope==='group'&&conditionUses(draft.conditionKind,'groupId')&&!groups.length)return false
+  if(draft.conditionKind!=='generic'&&draft.scope==='subject'&&conditionUses(draft.conditionKind,'subjectId')&&!subjects.length)return false
   if(draft.scope==='assignment'&&(!groups.length||!subjects.length||!teachers.length))return false
 
   if(conditionUsesTeachingCoverage(draft.conditionKind)&&draft.scope==='teacher'&&conditionUses(draft.conditionKind,'groupId')&&teachers.length){
@@ -1029,6 +1029,9 @@ function RuleTargetFields({
   }
 
   const placeholder=(field:ConditionField)=>{
+    if(draft.conditionKind==='generic'&&field==='teacherId'&&draft.scope==='teacher')return 'Todo el profesorado'
+    if(draft.conditionKind==='generic'&&field==='groupId'&&draft.scope==='group')return 'Todos los grupos'
+    if(draft.conditionKind==='generic'&&field==='subjectId'&&draft.scope==='subject')return 'Todas las materias'
     if(field==='groupId'&&draft.scope==='teacher'&&selectedTeachers.length===0)return 'Selecciona primero Profesor/a'
     if(field==='groupId'&&draft.scope==='subject'&&selectedSubjects.length===0)return 'Selecciona primero Materia'
     if(field==='subjectId'&&selectedGroups.length===0&&['group','assignment','teacher'].includes(draft.scope))return 'Selecciona primero Grupo'
@@ -1228,6 +1231,18 @@ function RuleConditionGuide({draft,project}:{draft:Draft;project:ViyeuticaProjec
     if(!draft.scope){
       title=`Selecciona el ámbito para ${condition}`
       message='El ámbito determina sobre qué elemento se aplicará y cómo se contará la regla.'
+    }else if(draft.conditionKind==='generic'&&draft.scope==='teacher'&&teachers.length===0){
+      title='Regla general para todo el profesorado'
+      message='No necesitas seleccionar Profesor/a. Al dejarlo vacío, la regla se aplicará a todo el profesorado activo.'
+      tone='complete'
+    }else if(draft.conditionKind==='generic'&&draft.scope==='group'&&groups.length===0){
+      title='Regla general para todos los grupos'
+      message='No necesitas seleccionar Grupo. Al dejarlo vacío, la regla se aplicará a todos los grupos activos.'
+      tone='complete'
+    }else if(draft.conditionKind==='generic'&&draft.scope==='subject'&&subjects.length===0){
+      title='Regla general para todas las materias'
+      message='No necesitas seleccionar Materia. Al dejarlo vacío, la regla se aplicará a todas las materias activas.'
+      tone='complete'
     }else if(draft.scope==='teacher'&&teachers.length===0&&conditionUses(draft.conditionKind,'teacherId')){
       title=`Selecciona Profesor/a para ${condition}`
       message='Puedes seleccionar uno o varios docentes cuando la regla admita aplicación múltiple.'
