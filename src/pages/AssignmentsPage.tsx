@@ -78,6 +78,8 @@ export function AssignmentsPage({
   const [bulkSubjectId,setBulkSubjectId]=useState('')
   const [bulkTeacherId,setBulkTeacherId]=useState('')
   const [availabilitySuggestion,setAvailabilitySuggestion]=useState('')
+  const [availabilityExpanded,setAvailabilityExpanded]=useState(true)
+  const [availabilityTeacherFilter,setAvailabilityTeacherFilter]=useState<'all'|string>('all')
 
   const activeGroups=project.groups.filter(group=>group.active)
   const activeSubjects=project.subjects.filter(subject=>subject.active)
@@ -102,6 +104,8 @@ export function AssignmentsPage({
   const availabilityReasons=Array.from(new Set(
     project.teacherAvailability.map(item=>item.detail.trim()).filter(Boolean)
   )).sort((a,b)=>a.localeCompare(b,'es',{sensitivity:'base'}))
+  const availabilityTeacherIds=Array.from(new Set(project.teacherAvailability.map(item=>item.teacherId)))
+  const visibleAvailability=project.teacherAvailability.filter(item=>availabilityTeacherFilter==='all'||item.teacherId===availabilityTeacherFilter)
   const availabilityGuide=!availabilityDraft.teacherIds.length?'Selecciona al menos un docente.'
     :!availabilityDraft.days.length?'Selecciona al menos un día.'
     :!availabilityDraft.sessions.length?'Selecciona al menos una sesión.'
@@ -591,18 +595,44 @@ export function AssignmentsPage({
         </table></div>}
     </section>
 
-    <section className="availability-card">
-      <div className="groups-table-heading"><div><span className="panel-kicker">Disponibilidad</span><h2>Restricciones por día y sesión</h2></div><button className="btn ghost-inline" onClick={()=>setAvailabilityModalOpen(true)}><Plus size={16}/> Añadir restricción</button></div>
-      {project.teacherAvailability.length===0
-        ? <div className="groups-empty"><CalendarClock size={26}/><strong>No hay restricciones temporales</strong><p>Añade únicamente las excepciones de disponibilidad que afecten al horario.</p></div>
-        : <div className="availability-list">{project.teacherAvailability.map((item,index)=>{
-          const teacher=project.teachers.find(value=>value.id===item.teacherId)
-          const block=project.schedule.blocks.find(value=>value.id===item.session)
-          return <article key={`${item.teacherId}-${item.day}-${item.session}-${index}`}>
-            <div><strong>{teacher?.name??'Docente eliminado'}</strong><span>{dayLabels[item.day as Weekday]??item.day} · {block?.label??item.session} · {availabilityLabels[item.status]}</span>{item.detail&&<small>{item.detail}</small>}</div>
-            <button className="row-delete" onClick={()=>removeAvailability(item)}><Trash2 size={15}/></button>
-          </article>
-        })}</div>}
+    <section className={'availability-card '+(availabilityExpanded?'is-expanded':'is-collapsed')}>
+      <div className="groups-table-heading availability-heading">
+        <button
+          type="button"
+          className="availability-collapse-toggle"
+          onClick={()=>setAvailabilityExpanded(value=>!value)}
+          aria-expanded={availabilityExpanded}
+          aria-label={availabilityExpanded?'Plegar disponibilidad':'Desplegar disponibilidad'}
+        ><ChevronDown size={17}/></button>
+        <div className="availability-heading-copy">
+          <span className="panel-kicker">Disponibilidad</span>
+          <h2>Restricciones por día y sesión <span className="availability-count">{project.teacherAvailability.length}</span></h2>
+        </div>
+        <button className="btn ghost-inline availability-add-action" onClick={()=>setAvailabilityModalOpen(true)}><Plus size={16}/> Añadir restricción</button>
+      </div>
+
+      {availabilityExpanded&&<div className="availability-content">
+        {project.teacherAvailability.length>0&&<div className="list-filter-tags availability-filter-tags" aria-label="Filtrar restricciones por docente">
+          <button type="button" className={availabilityTeacherFilter==='all'?'active':''} onClick={()=>setAvailabilityTeacherFilter('all')}>Todos</button>
+          {availabilityTeacherIds.map(teacherId=>{
+            const teacher=project.teachers.find(item=>item.id===teacherId)
+            return <button type="button" key={teacherId} className={availabilityTeacherFilter===teacherId?'active':''} onClick={()=>setAvailabilityTeacherFilter(teacherId)}>{teacher?.name??'Docente eliminado'}</button>
+          })}
+        </div>}
+
+        {project.teacherAvailability.length===0
+          ? <div className="groups-empty"><CalendarClock size={26}/><strong>No hay restricciones temporales</strong><p>Añade únicamente las excepciones de disponibilidad que afecten al horario.</p></div>
+          : visibleAvailability.length===0
+            ? <div className="groups-empty"><CalendarClock size={26}/><strong>No hay restricciones para este docente</strong><p>Selecciona otro filtro para consultar sus restricciones.</p></div>
+            : <div className="availability-list">{visibleAvailability.map((item,index)=>{
+              const teacher=project.teachers.find(value=>value.id===item.teacherId)
+              const block=project.schedule.blocks.find(value=>value.id===item.session)
+              return <article key={`${item.teacherId}-${item.day}-${item.session}-${index}`}>
+                <div><strong>{teacher?.name??'Docente eliminado'}</strong><span>{dayLabels[item.day as Weekday]??item.day} · {block?.label??item.session} · {availabilityLabels[item.status]}</span>{item.detail&&<small>{item.detail}</small>}</div>
+                <button className="row-delete" onClick={()=>removeAvailability(item)}><Trash2 size={15}/></button>
+              </article>
+            })}</div>}
+      </div>}
     </section>
 
     <div className="section-template-full">
