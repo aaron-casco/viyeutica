@@ -53,11 +53,13 @@ export function GroupsPage({
   const [draft,setDraft] = useState<GroupDraft>(emptyDraft)
   const [editingId,setEditingId] = useState<string | null>(null)
   const [error,setError] = useState('')
+  const [stageFilter,setStageFilter] = useState<'all'|EducationStage>('all')
   const groups = project.groups ?? []
   const allowedStages = project.center.stages
 
   const levels = draft.stage ? EDUCATION_LEVELS[draft.stage] : []
   const activeGroups = groups.filter(group => group.active)
+  const visibleGroups = groups.filter(group => stageFilter==='all'||group.stage===stageFilter)
   const studentTotal = activeGroups.reduce((sum,group) => sum + (group.students ?? 0),0)
   const levelTotal = new Set(activeGroups.map(group => `${group.stage}|${group.level}`)).size
   const complete = isStructureComplete(project)
@@ -272,12 +274,18 @@ export function GroupsPage({
         <div><span className="panel-kicker">Unidades del curso</span><h2>Grupos creados</h2></div>
         <button className="btn ghost-inline" onClick={() => {resetDraft();window.scrollTo({top:0,behavior:'smooth'})}}><Plus size={16}/> Nuevo grupo</button>
       </div>
+      {groups.length>0&&<div className="list-filter-tags" aria-label="Filtrar grupos por etapa">
+        <button type="button" className={stageFilter==='all'?'active':''} onClick={()=>setStageFilter('all')}>Todos</button>
+        {allowedStages.map(stage=><button type="button" key={stage} className={stageFilter===stage?'active':''} onClick={()=>setStageFilter(stage)}>{stage}</button>)}
+      </div>}
       {groups.length === 0 ? <div className="groups-empty">
         <LayoutGrid size={28}/><strong>No hay grupos todavía</strong><p>Añade el primero manualmente o genera la estructura estándar.</p>
+      </div> : visibleGroups.length===0 ? <div className="groups-empty">
+        <LayoutGrid size={28}/><strong>No hay grupos para esta etapa</strong><p>Cambia el filtro o crea un grupo nuevo.</p>
       </div> : <div className="groups-table-wrap">
         <table className="groups-table">
           <thead><tr><th>Grupo</th><th>Etapa</th><th>Nivel</th><th>Alumnos</th><th>Aula</th><th>Tipo</th><th>Estado</th><th/></tr></thead>
-          <tbody>{groups.map(group => <tr key={group.id} className={!group.active?'is-inactive':''}>
+          <tbody>{visibleGroups.map(group => <tr key={group.id} className={!group.active?'is-inactive':''}>
             <td><strong>{group.name}</strong></td>
             <td>{group.stage}</td>
             <td>{group.level}</td>
