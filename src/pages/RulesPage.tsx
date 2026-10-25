@@ -545,72 +545,24 @@ export function RulesPage({
   }
 
   const addBaseRules=()=>{
-    const seeds:CenterRule[]=[
-      {
-        id:uid(),
-        scope:'teacher',
-        ruleType:'HARD',
-        code:'SIN_SOLAPE_DOCENTE',
-        description:'Un docente no puede estar asignado a dos actividades simultáneas.',
-        parameters:{},
-        weight:null,
-        source:'manual',
-        active:true,
-        reviewRequired:false,
-      },
-      {
-        id:uid(),
-        scope:'group',
-        ruleType:'HARD',
-        code:'SIN_SOLAPE_GRUPO',
-        description:'Un grupo no puede tener dos actividades simultáneas.',
-        parameters:{},
-        weight:null,
-        source:'manual',
-        active:true,
-        reviewRequired:false,
-      },
-      {
-        id:uid(),
-        scope:'teacher',
-        ruleType:'HARD',
-        code:'RESPETAR_DISPONIBILIDAD_DOCENTE',
-        description:'Las asignaciones deben respetar la disponibilidad e indisponibilidad docente registrada.',
-        parameters:{},
-        weight:null,
-        source:'manual',
-        active:true,
-        reviewRequired:false,
-      },
-      {
-        id:uid(),
-        scope:'schedule',
-        ruleType:'HARD',
-        code:'RESPETAR_FRANJAS_FIJAS',
-        description:'Las franjas fijadas deben mantenerse en el día y sesión indicados.',
-        parameters:{},
-        weight:null,
-        source:'manual',
-        active:true,
-        reviewRequired:false,
-      },
-      {
-        id:uid(),
-        scope:'teacher',
-        ruleType:'SOFT',
-        code:'REDUCIR_HUECOS_DOCENTES',
-        description:'Minimizar huecos innecesarios en el horario individual del profesorado.',
-        parameters:{},
-        weight:5,
-        source:'manual',
-        active:true,
-        reviewRequired:false,
-      },
-    ]
-    const existingCodes=new Set(project.rules.map(rule=>rule.code))
-    const additions=seeds.filter(seed=>!existingCodes.has(seed.code))
-    persist([...project.rules,...additions])
-    setTemplateMessage(additions.length?`Se han añadido ${additions.length} reglas base editables.`:'Las reglas base ya existen.')
+    const seed:CenterRule={
+      id:uid(),
+      scope:'teacher',
+      ruleType:'SOFT',
+      code:'REDUCIR_HUECOS_DOCENTES',
+      description:'Minimizar huecos innecesarios en el horario individual del profesorado.',
+      parameters:{conditionKind:'generic'},
+      weight:5,
+      source:'manual',
+      active:true,
+      reviewRequired:false,
+    }
+    if(project.rules.some(rule=>rule.code===seed.code)){
+      setTemplateMessage('La preferencia para reducir huecos del profesorado ya existe.')
+      return
+    }
+    persist([...project.rules,seed])
+    setTemplateMessage('Se ha añadido la preferencia para reducir huecos del profesorado.')
   }
 
   if(!isAssignmentsComplete(project)){
@@ -647,16 +599,27 @@ export function RulesPage({
 
     {auditFocus&&<section className="template-result audit-context-banner"><CheckCircle2 size={16}/><span>{auditFocus}</span></section>}
 
-    <section className="rule-engine-safeguards">
-      <div>
-        <span className="panel-kicker">PROTECCIONES DEL MOTOR</span>
-        <strong>Restricciones estructurales aplicadas automáticamente</strong>
-        <p>No es necesario crearlas como reglas manuales: el generador las comprueba siempre al colocar cada sesión.</p>
+    <section className="engine-rules-card">
+      <div className="groups-table-heading">
+        <div><span className="panel-kicker">REGLAS DEL MOTOR ⩒YEUTIKA</span><h2>Protecciones estructurales</h2><p>Siempre activas. Forman parte del generador y no se pueden editar, desactivar ni eliminar.</p></div>
+        <span className="engine-rule-count">3</span>
       </div>
-      <div className="rule-engine-safeguard-list">
-        <span><CheckCircle2 size={14}/> Sin solape de profesorado</span>
-        <span><CheckCircle2 size={14}/> Sin solape de grupos</span>
-        <span><CheckCircle2 size={14}/> Respeto de indisponibilidades y desplazamientos</span>
+      <div className="rules-list engine-rules-list">
+        <article className="rule-card hard engine-rule">
+          <div className="rule-type-badge engine">MOTOR</div>
+          <div className="rule-card-main"><div className="rule-title-row"><strong>Sin solape de profesorado</strong><span>HARD</span></div><p>Un docente no puede ocupar dos actividades en la misma franja.</p><small>Aplicación automática durante cada intento de colocación.</small></div>
+          <div className="engine-rule-lock"><ShieldCheck size={17}/><span>Siempre activa</span></div>
+        </article>
+        <article className="rule-card hard engine-rule">
+          <div className="rule-type-badge engine">MOTOR</div>
+          <div className="rule-card-main"><div className="rule-title-row"><strong>Sin solape de grupos</strong><span>HARD</span></div><p>Un grupo no puede ocupar dos actividades en la misma franja.</p><small>Aplicación automática durante cada intento de colocación.</small></div>
+          <div className="engine-rule-lock"><ShieldCheck size={17}/><span>Siempre activa</span></div>
+        </article>
+        <article className="rule-card hard engine-rule">
+          <div className="rule-type-badge engine">MOTOR</div>
+          <div className="rule-card-main"><div className="rule-title-row"><strong>Respetar indisponibilidad docente</strong><span>HARD</span></div><p>No se asigna docencia en franjas registradas como No disponible o Desplazamiento.</p><small>Lee directamente las restricciones de Disponibilidad configuradas en Asignaciones.</small></div>
+          <div className="engine-rule-lock"><ShieldCheck size={17}/><span>Siempre activa</span></div>
+        </article>
       </div>
     </section>
 
@@ -741,7 +704,7 @@ export function RulesPage({
         title="Plantillas de reglas"
         description="Combina reglas base del motor, reglas importadas del curso anterior y reglas obtenidas de normativa aprobada."
         actions={[
-          {id:'base-rules',label:'Añadir reglas base',description:'Solapes, disponibilidad, franjas fijas y reducción de huecos',onApply:addBaseRules},
+          {id:'base-rules',label:'Añadir optimización base',description:'Preferencia SOFT para reducir huecos del profesorado',onApply:addBaseRules},
           {id:'imported-rules',label:'Revisar reglas importadas',description:project.rules.some(rule=>rule.source==='imported'||rule.reviewRequired)?'Hay reglas del curso anterior':'No hay reglas importadas pendientes',disabled:!project.rules.some(rule=>rule.source==='imported'||rule.reviewRequired),onApply:markImportedReviewed},
           {id:'normative-rules',label:'Incorporar normativa aprobada',description:project.normativeRules.some(rule=>rule.approved&&(rule.relevance??legacyNormativeRelevance(rule))==='timetable')?'Crear reglas trazables desde Normativa':'No hay normativa aplicable al horario aprobada',disabled:!project.normativeRules.some(rule=>rule.approved&&(rule.relevance??legacyNormativeRelevance(rule))==='timetable'),onApply:createNormativeRules},
         ]}
