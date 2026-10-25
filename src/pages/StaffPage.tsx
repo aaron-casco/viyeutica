@@ -83,6 +83,7 @@ export function StaffPage({
   const [error,setError]=useState('')
   const [templateMessage,setTemplateMessage]=useState('')
   const [dedicationDraft,setDedicationDraft]=useState<DedicationDraft>(emptyDedication)
+  const [modalOpen,setModalOpen]=useState(false)
 
   const teachers=project.teachers
   const activeTeachers=teachers.filter(teacher=>teacher.active)
@@ -111,6 +112,15 @@ export function StaffPage({
     setDedicationDraft(emptyDedication)
     setEditingId(null)
     setError('')
+    setModalOpen(false)
+  }
+
+  const openCreate=()=>{
+    setDraft(emptyDraft)
+    setDedicationDraft(emptyDedication)
+    setEditingId(null)
+    setError('')
+    setModalOpen(true)
   }
 
   const addDedication=()=>{
@@ -180,7 +190,7 @@ export function StaffPage({
       dedications:teacher.dedications??[],
     })
     setError('')
-    window.scrollTo({top:0,behavior:'smooth'})
+    setModalOpen(true)
   }
 
   const remove=(id:string)=>{
@@ -243,9 +253,43 @@ export function StaffPage({
       <Summary label="Itinerantes" value={String(itinerant)} detail="desplazamientos entre centros"/>
     </section>
 
-    <section className="staff-layout">
-      <form className="form-card" onSubmit={submit}>
-        <div className="form-card-heading">
+    <section className="staff-main-tools">
+      <aside className="wizard-aside staff-main-aside">
+        <article className={'aside-card validation '+(validation.length===0&&activeTeachers.length?'ready':'')}>
+          <span className="panel-kicker">Prevalidación</span>
+          <strong>{validation.length===0&&activeTeachers.length?'Plantilla válida':validation.length?`${validation.length} ${validation.length===1?'incidencia':'incidencias'}`:'Sin profesorado'}</strong>
+          <p>{validation[0]??'Todos los docentes activos tienen al menos una especialidad.'}</p>
+        </article>
+        <TemplatePanel
+          title="Plantilla del curso anterior"
+          description="Si has importado un JSON, conserva la plantilla docente para revisar únicamente cambios de este curso."
+          actions={[
+            {
+              id:'imported-staff',
+              label:'Revisar plantilla importada',
+              description:project.teachers.length?`${project.teachers.length} ${project.teachers.length===1?'docente disponible':'docentes disponibles'}`:'No hay profesorado importado',
+              disabled:project.teachers.length===0,
+              onApply:applyImportedTemplate,
+            },
+          ]}
+        />
+      </aside>
+    </section>
+
+    {modalOpen&&<div className="modal-backdrop staff-modal-backdrop" role="presentation">
+      <form className="app-modal staff-teacher-modal" onSubmit={submit} role="dialog" aria-modal="true" aria-label={editingId?'Editar docente':'Añadir docente'}>
+        <div className="app-modal-header">
+          <div><Users size={20}/><div><span className="panel-kicker">{editingId?'Edición':'Plantilla docente'}</span><h2>{editingId?'Editar docente':'Añadir docente'}</h2></div></div>
+        </div>
+        <div className="staff-modal-body">
+        <div className="form-card-heading staff-modal-intro">
+          <div className="form-card-number">05</div>
+          <div>
+            <span className="panel-kicker">{editingId?'Edición':'Plantilla docente'}</span>
+            <h2>{editingId?'Editar docente':'Añadir docente'}</h2>
+            <p>Las asignaciones concretas a grupos y materias se realizarán en el Paso 6.</p>
+          </div>
+        </div>
           <div className="form-card-number">05</div>
           <div>
             <span className="panel-kicker">{editingId?'Edición':'Plantilla docente'}</span>
@@ -338,43 +382,20 @@ export function StaffPage({
         {error&&<div className="inline-error">{error}</div>}
         <div className={'form-guide '+(teacherReady?'complete':'partial')}><strong>{teacherReady?'Docente listo':'Siguiente paso'}</strong><span>{teacherGuide}</span></div>
 
-        <div className="form-actions">
-          <button type="button" className="btn secondary-light" onClick={()=>navigate('/materias')}>Paso anterior</button>
-          <div className="form-actions-right">
-            {editingId&&<button type="button" className="btn ghost-inline" onClick={reset}>Cancelar</button>}
-            <button className="btn primary" type="submit" disabled={!teacherReady}><Save size={16}/>{editingId?'Guardar cambios':'Añadir docente'}</button>
-          </div>
+        </div>
+        <div className="app-modal-footer">
+          <button type="button" className="btn ghost-inline" onClick={reset}>Cancelar</button>
+          <button className="btn primary" type="submit" disabled={!teacherReady}>Aceptar</button>
         </div>
       </form>
-
-      <aside className="wizard-aside">
-        <article className={'aside-card validation '+(validation.length===0&&activeTeachers.length?'ready':'')}>
-          <span className="panel-kicker">Prevalidación</span>
-          <strong>{validation.length===0&&activeTeachers.length?'Plantilla válida':validation.length?`${validation.length} ${validation.length===1?'incidencia':'incidencias'}`:'Sin profesorado'}</strong>
-          <p>{validation[0]??'Todos los docentes activos tienen al menos una especialidad.'}</p>
-        </article>
-        <TemplatePanel
-          title="Plantilla del curso anterior"
-          description="Si has importado un JSON, conserva la plantilla docente para revisar únicamente cambios de este curso."
-          actions={[
-            {
-              id:'imported-staff',
-              label:'Revisar plantilla importada',
-              description:project.teachers.length?`${project.teachers.length} ${project.teachers.length===1?'docente disponible':'docentes disponibles'}`:'No hay profesorado importado',
-              disabled:project.teachers.length===0,
-              onApply:applyImportedTemplate,
-            },
-          ]}
-        />
-      </aside>
-    </section>
+    </div>}
 
     {templateMessage&&<div className="template-result"><CheckCircle2 size={16}/><span>{templateMessage}</span></div>}
 
     <section className="groups-table-card">
       <div className="groups-table-heading">
         <div><span className="panel-kicker">Plantilla del curso</span><h2>Profesorado</h2></div>
-        <button className="btn ghost-inline" onClick={()=>{reset();window.scrollTo({top:0,behavior:'smooth'})}}><Plus size={16}/> Nuevo docente</button>
+        <button className="btn ghost-inline" onClick={openCreate}><Plus size={16}/> Añadir docente</button>
       </div>
       {teachers.length===0
         ? <div className="groups-empty"><UserRoundCog size={28}/><strong>No hay docentes todavía</strong><p>Añádelos manualmente o importa el JSON del curso anterior.</p></div>
