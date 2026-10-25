@@ -29,6 +29,10 @@ interface DedicationDraft {
   weeklyPeriods:string
   weeklyMinutes:string
   notes:string
+  source:'manual'|'normative'
+  status:'planned'|'applicable'
+  affectsTeachingLoad:boolean
+  reference:string
 }
 
 const emptyDedication:DedicationDraft={
@@ -37,6 +41,10 @@ const emptyDedication:DedicationDraft={
   weeklyPeriods:'',
   weeklyMinutes:'',
   notes:'',
+  source:'manual',
+  status:'planned',
+  affectsTeachingLoad:false,
+  reference:'',
 }
 
 const emptyDraft:Draft={
@@ -132,6 +140,10 @@ export function StaffPage({
       weeklyPeriods:dedicationDraft.weeklyPeriods===''?null:Number(dedicationDraft.weeklyPeriods),
       weeklyMinutes:dedicationDraft.weeklyMinutes===''?null:Number(dedicationDraft.weeklyMinutes),
       notes:dedicationDraft.notes.trim(),
+      source:dedicationDraft.source,
+      status:dedicationDraft.status,
+      affectsTeachingLoad:dedicationDraft.affectsTeachingLoad,
+      reference:dedicationDraft.reference.trim(),
     }
     setDraft(current=>({...current,dedications:[...current.dedications,dedication]}))
     setDedicationDraft(emptyDedication)
@@ -332,7 +344,7 @@ export function StaffPage({
 
         <div className={'staff-dependent-section'+(!hasSpecialties?' disabled':'')}>
           <div className="staff-subsection-heading">
-            <div><span className="panel-kicker">Dedicaciones</span><h3>Cargos, coordinaciones y reducciones</h3><p>Registra cada dedicación con su carga semanal. Ej.: Dirección · 14 periodos, REBEX · 2 periodos, reducción &gt;55 · 2 periodos.</p></div>
+            <div><span className="panel-kicker">Dedicaciones</span><h3>Cargos, coordinaciones y reducciones</h3><p>Registra cada dedicación con su carga semanal e indica si descuenta docencia. Para reducciones normativas expresadas en horas, usa minutos para que el motor pueda aplicarlas exactamente.</p></div>
           </div>
           <div className="form-grid three staff-dedication-grid">
             <Field label="Tipo">
@@ -352,13 +364,32 @@ export function StaffPage({
             <Field label="Observación">
               <input disabled={!hasSpecialties} value={dedicationDraft.notes} onChange={e=>setDedicationDraft({...dedicationDraft,notes:e.target.value})} placeholder="Opcional"/>
             </Field>
+            <Field label="Origen">
+              <select disabled={!hasSpecialties} value={dedicationDraft.source} onChange={e=>setDedicationDraft({...dedicationDraft,source:e.target.value as 'manual'|'normative'})}>
+                <option value="manual">Manual / centro</option>
+                <option value="normative">Normativa</option>
+              </select>
+            </Field>
+            <Field label="Estado">
+              <select disabled={!hasSpecialties} value={dedicationDraft.status} onChange={e=>setDedicationDraft({...dedicationDraft,status:e.target.value as 'planned'|'applicable'})}>
+                <option value="planned">Registrada / pendiente</option>
+                <option value="applicable">Aplicable al horario</option>
+              </select>
+            </Field>
+            <Field label="Referencia normativa">
+              <input disabled={!hasSpecialties||dedicationDraft.source!=='normative'} value={dedicationDraft.reference} onChange={e=>setDedicationDraft({...dedicationDraft,reference:e.target.value})} placeholder="Ej. Orden 29/08/2024 · art. 32"/>
+            </Field>
+            <label className="staff-dedication-toggle">
+              <input disabled={!hasSpecialties} type="checkbox" checked={dedicationDraft.affectsTeachingLoad} onChange={e=>setDedicationDraft({...dedicationDraft,affectsTeachingLoad:e.target.checked})}/>
+              <span><strong>Descuenta docencia</strong><small>Reduce la carga lectiva efectiva cuando la dedicación esté marcada como Aplicable.</small></span>
+            </label>
             <div className="staff-dedication-action">
               <button type="button" className="btn ghost-inline" disabled={!dedicationReady} onClick={addDedication}><Plus size={15}/> Añadir dedicación</button>
             </div>
           </div>
           {draft.dedications.length>0&&<div className="staff-dedication-list">
             {draft.dedications.map(item=><article key={item.id}>
-              <div><strong>{item.label}</strong><span>{dedicationLabels[item.type]} · {item.weeklyPeriods?`${item.weeklyPeriods} periodos`:item.weeklyMinutes?formatMinutes(item.weeklyMinutes):'Sin carga'}{item.notes?` · ${item.notes}`:''}</span></div>
+              <div><strong>{item.label}</strong><span>{dedicationLabels[item.type]} · {item.weeklyPeriods?`${item.weeklyPeriods} periodos`:item.weeklyMinutes?formatMinutes(item.weeklyMinutes):'Sin carga'} · {item.source==='normative'?'Normativa':'Manual'} · {item.status==='applicable'?'Aplicable':'Pendiente'}{item.affectsTeachingLoad?' · Descuenta docencia':''}{item.reference?` · ${item.reference}`:''}{item.notes?` · ${item.notes}`:''}</span></div>
               <button type="button" className="row-delete" onClick={()=>removeDedication(item.id)}><Trash2 size={14}/></button>
             </article>)}
           </div>}
