@@ -84,6 +84,7 @@ export interface StudyPlanEntry {
   teacherId: string | null
   fixedSessionMinutes: number | null
   notes: string
+  pendingOrganization?: boolean
   active: boolean
 }
 
