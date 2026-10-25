@@ -1619,3 +1619,21 @@ button.btn:disabled:hover{
 @media(max-width:650px){.staff-modal-backdrop{padding:10px}.staff-teacher-modal{max-height:calc(100vh - 10px);border-radius:16px}.staff-modal-body{padding:14px}}
 
 @media(max-width:780px){.structure-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.staff-info-grid{grid-template-columns:1fr}}
+
+
+/* === Shared wizard information hierarchy === */
+.section-prevalidation-card{width:100%;padding:16px 18px}
+.section-template-full{width:100%}
+.section-info-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.section-form-modal-backdrop{padding:16px}
+.section-form-modal{width:min(1180px,calc(100vw - 32px));max-height:calc(100vh - 32px)}
+.section-form-modal.rule-editor-modal{width:min(1320px,calc(100vw - 32px))}
+.section-form-modal .app-modal-body{padding:18px;overflow:auto}
+.groups-table-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.center-data-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--border);border-top:1px solid var(--border)}
+.center-data-grid>div{min-width:0;padding:13px 15px;background:var(--surface)}
+.center-data-grid span,.center-data-grid strong{display:block}
+.center-data-grid span{font-size:8.5px;color:var(--muted);margin-bottom:4px}
+.center-data-grid strong{font-size:10.5px;overflow-wrap:anywhere}
+@media(max-width:900px){.section-info-grid{grid-template-columns:1fr}.center-data-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.section-form-modal,.section-form-modal.rule-editor-modal{width:100%;max-height:calc(100vh - 20px)}}
+@media(max-width:650px){.section-form-modal-backdrop{padding:10px}.section-form-modal,.section-form-modal.rule-editor-modal{max-height:calc(100vh - 10px);border-radius:16px}.center-data-grid{grid-template-columns:1fr}}
