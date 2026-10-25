@@ -142,20 +142,28 @@ export function StaffPage({
       setError('Indica al menos una especialidad.')
       return
     }
+    const teacherId=editingId??uid()
     const teacher:Teacher={
-      id:editingId??uid(),
+      id:teacherId,
       name:draft.name.trim(),
       status:draft.status,
       employmentType:draft.employmentType,
       specialties,
       roles:parseList(draft.roles),
       weeklyTeachingMinutes:draft.weeklyTeachingMinutes===''?null:Math.max(0,Number(draft.weeklyTeachingMinutes)),
+      dedications:draft.dedications,
       active:true,
     }
-    const next=editingId
+    const nextTeachers=editingId
       ? teachers.map(item=>item.id===editingId?teacher:item)
       : [...teachers,teacher]
-    persist(next)
+    const selectedTutorGroups=new Set(draft.tutorGroupIds)
+    const nextGroups=project.groups.map(group=>{
+      if(selectedTutorGroups.has(group.id))return {...group,tutorTeacherId:teacherId}
+      if(group.tutorTeacherId===teacherId)return {...group,tutorTeacherId:null}
+      return group
+    })
+    persist(nextTeachers,nextGroups)
     reset()
   }
 
@@ -168,6 +176,8 @@ export function StaffPage({
       specialties:teacher.specialties.join(', '),
       roles:teacher.roles.join(', '),
       weeklyTeachingMinutes:teacher.weeklyTeachingMinutes===null?'':String(teacher.weeklyTeachingMinutes),
+      tutorGroupIds:project.groups.filter(group=>group.tutorTeacherId===teacher.id).map(group=>group.id),
+      dedications:teacher.dedications??[],
     })
     setError('')
     window.scrollTo({top:0,behavior:'smooth'})
