@@ -843,7 +843,8 @@ function RuleTargetFields({
       return activeAssignments.some(item=>selectedTeachers.includes(item.teacherId)&&item.groupId===group.id)
     }
     if(draft.scope==='subject'&&selectedSubjects.length){
-      return activeAssignments.some(item=>selectedSubjects.includes(item.subjectId)&&item.groupId===group.id)
+      return activeAssignments.some(item=>selectedSubjects.includes(item.subjectId)&&item.groupId===group.id) ||
+        project.studyPlan.some(item=>item.active&&selectedSubjects.includes(item.subjectId)&&item.groupId===group.id)
     }
     return true
   })
@@ -902,12 +903,12 @@ function RuleTargetFields({
     }
     if(field==='groupId'){
       next.groupIds=[]
-      next.subjectId='';next.subjectIds=[]
+      if(draft.scope!=='subject'){next.subjectId='';next.subjectIds=[]}
       if(draft.scope==='group'||draft.scope==='assignment'){next.teacherId='';next.teacherIds=[]}
     }
     if(field==='subjectId'){
       next.subjectIds=[]
-      if(draft.scope==='subject'){next.groupId='';next.groupIds=[];next.teacherId='';next.teacherIds=[]}
+      if(draft.scope==='subject'){next.teacherId='';next.teacherIds=[]}
       if(draft.scope==='group'||draft.scope==='assignment'){next.teacherId='';next.teacherIds=[]}
     }
     if(field==='day'){next.days=[];if(draft.conditionKind==='fixed_slot'){next.sessionId='';next.sessionIds=[]}}
@@ -939,8 +940,10 @@ function RuleTargetFields({
     if(field==='groupId'){
       next.groupId=''
       next.groupIds=values
-      next.subjectId=''
-      next.subjectIds=[]
+      if(draft.scope!=='subject'){
+        next.subjectId=''
+        next.subjectIds=[]
+      }
 
       const compatibleSubjects=project.subjects.filter(subject=>{
         if(!subject.active)return false
@@ -957,7 +960,7 @@ function RuleTargetFields({
         map.set(key,[...(map.get(key)??[]),subject.id])
         return map
       },new Map<string,string[]>())
-      if(values.length>0&&compatibleSubjectGroups.size===1){
+      if(draft.scope!=='subject'&&values.length>0&&compatibleSubjectGroups.size===1){
         next.subjectIds=[...compatibleSubjectGroups.values()][0]
       }
 
@@ -971,8 +974,6 @@ function RuleTargetFields({
       next.subjectId=''
       next.subjectIds=values
       if(draft.scope==='subject'){
-        next.groupId=''
-        next.groupIds=[]
         next.teacherId=''
         next.teacherIds=[]
       }
