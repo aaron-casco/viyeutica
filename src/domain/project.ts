@@ -99,6 +99,17 @@ export interface NormativeSource {
   ruleCount: number
 }
 
+export type TeacherDedicationType = 'management' | 'coordination' | 'reduction' | 'support' | 'other'
+
+export interface TeacherDedication {
+  id: string
+  type: TeacherDedicationType
+  label: string
+  weeklyPeriods: number | null
+  weeklyMinutes: number | null
+  notes: string
+}
+
 export interface Teacher {
   id: string
   name: string
@@ -107,6 +118,7 @@ export interface Teacher {
   specialties: string[]
   roles: string[]
   weeklyTeachingMinutes: number | null
+  dedications?: TeacherDedication[]
   active: boolean
 }
 
@@ -373,7 +385,16 @@ export function validateStaff(project: ViyeuticaProject) {
     if (!teacher.name.trim()) errors.push('Todos los docentes necesitan un nombre.')
     if (!teacher.specialties.length) errors.push(`El docente "${teacher.name || 'sin nombre'}" no tiene especialidad.`)
     if (teacher.weeklyTeachingMinutes !== null && teacher.weeklyTeachingMinutes < 0) {
-      errors.push(`La carga lectiva de "${teacher.name}" no es válida.`)
+      errors.push(`La carga lectiva objetivo/máxima de "${teacher.name}" no es válida.`)
+    }
+    for (const dedication of teacher.dedications ?? []) {
+      if (!dedication.label.trim()) errors.push(`Existe una dedicación sin nombre en "${teacher.name}".`)
+      if ((dedication.weeklyPeriods ?? 0) < 0 || (dedication.weeklyMinutes ?? 0) < 0) {
+        errors.push(`Existe una dedicación con carga no válida en "${teacher.name}".`)
+      }
+      if ((dedication.weeklyPeriods ?? 0) <= 0 && (dedication.weeklyMinutes ?? 0) <= 0) {
+        errors.push(`La dedicación "${dedication.label || 'sin nombre'}" de "${teacher.name}" debe indicar periodos o minutos semanales.`)
+      }
     }
   }
 
