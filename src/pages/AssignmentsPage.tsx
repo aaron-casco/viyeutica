@@ -541,66 +541,71 @@ export function AssignmentsPage({
       <form className="app-modal section-form-modal" onSubmit={submitAvailability} role="dialog" aria-modal="true" aria-label="Añadir restricciones de disponibilidad">
         <div className="app-modal-header"><div><CalendarClock size={20}/><h2>Añadir restricciones</h2></div></div>
         <div className="app-modal-body">
-          <div className="availability-form availability-form-multiple">
-            <MultiCheckSelect label="Docentes" placeholder="Selecciona docentes..." searchable options={activeTeachers.map(teacher=>({value:teacher.id,label:teacher.name}))} values={availabilityDraft.teacherIds} onChange={teacherIds=>setAvailabilityDraft({...availabilityDraft,teacherIds})}/>
-            <div className="availability-days-field">
-              <span>Días</span>
-              <div className="availability-days-grid">
-                {project.schedule.activeDays.map(day=>{
-                  const checked=availabilityDraft.days.includes(day)
-                  return <label key={day} className={'availability-day-option '+(checked?'selected':'')}>
-                    <strong>{day}</strong>
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      aria-label={dayLabels[day]}
-                      onChange={()=>{
-                        const days=checked
-                          ? availabilityDraft.days.filter(value=>value!==day)
-                          : [...availabilityDraft.days,day]
-                        setAvailabilityDraft({...availabilityDraft,days})
-                      }}
-                    />
-                  </label>
-                })}
+          <div className="availability-form">
+            <div className="availability-top-grid">
+              <MultiCheckSelect label="Docentes" placeholder="Selecciona docentes..." searchable options={activeTeachers.map(teacher=>({value:teacher.id,label:teacher.name}))} values={availabilityDraft.teacherIds} onChange={teacherIds=>setAvailabilityDraft({...availabilityDraft,teacherIds})}/>
+              <div className="availability-days-field">
+                <span>Días</span>
+                <div className="availability-days-box">
+                  {project.schedule.activeDays.map(day=>{
+                    const checked=availabilityDraft.days.includes(day)
+                    return <label key={day} className={'availability-day-option '+(checked?'selected':'')}>
+                      <strong>{day}</strong>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        aria-label={dayLabels[day]}
+                        onChange={()=>{
+                          const days=checked
+                            ? availabilityDraft.days.filter(value=>value!==day)
+                            : [...availabilityDraft.days,day]
+                          setAvailabilityDraft({...availabilityDraft,days})
+                        }}
+                      />
+                    </label>
+                  })}
+                </div>
               </div>
+              <MultiCheckSelect label="Sesiones" placeholder="Selecciona sesiones..." allValue="__all__" options={[{value:'__all__',label:'Todas las sesiones'},...project.schedule.blocks.filter(block=>block.active&&block.type==='teaching').map(block=>({value:block.id,label:block.label+' · '+block.start+'-'+block.end}))]} values={availabilityDraft.sessions} onChange={sessions=>setAvailabilityDraft({...availabilityDraft,sessions})}/>
             </div>
-            <MultiCheckSelect label="Sesiones" placeholder="Selecciona sesiones..." allValue="__all__" options={[{value:'__all__',label:'Todas las sesiones'},...project.schedule.blocks.filter(block=>block.active&&block.type==='teaching').map(block=>({value:block.id,label:block.label+' · '+block.start+'-'+block.end}))]} values={availabilityDraft.sessions} onChange={sessions=>setAvailabilityDraft({...availabilityDraft,sessions})}/>
-            <label className="availability-single-field"><span>Estado</span><select value={availabilityDraft.status} onChange={e=>setAvailabilityDraft({...availabilityDraft,status:e.target.value as AvailabilityStatus})}>{(Object.entries(availabilityLabels) as [AvailabilityStatus,string][]).map(([value,label])=><option value={value} key={value}>{label}</option>)}</select></label>
-            <label className="availability-single-field availability-detail-field availability-autocomplete">
-              <span>Motivo / detalle</span>
-              <input
-                value={availabilityDraft.detail}
-                onChange={e=>{
-                  const value=e.target.value
-                  setAvailabilityDraft({...availabilityDraft,detail:value})
-                  const normalized=value.trim().toLocaleLowerCase('es')
-                  const match=normalized.length>=3
-                    ? availabilityReasons.find(reason=>reason.toLocaleLowerCase('es').startsWith(normalized)&&reason.toLocaleLowerCase('es')!==normalized)
-                    : undefined
-                  setAvailabilitySuggestion(match??'')
-                }}
-                onKeyDown={e=>{
-                  if(e.key==='Tab'&&availabilitySuggestion){
-                    e.preventDefault()
+
+            <div className="availability-bottom-grid">
+              <label className="availability-single-field"><span>Estado</span><select value={availabilityDraft.status} onChange={e=>setAvailabilityDraft({...availabilityDraft,status:e.target.value as AvailabilityStatus})}>{(Object.entries(availabilityLabels) as [AvailabilityStatus,string][]).map(([value,label])=><option value={value} key={value}>{label}</option>)}</select></label>
+              <label className="availability-single-field availability-detail-field availability-autocomplete">
+                <span>Motivo / detalle</span>
+                <input
+                  value={availabilityDraft.detail}
+                  onChange={e=>{
+                    const value=e.target.value
+                    setAvailabilityDraft({...availabilityDraft,detail:value})
+                    const normalized=value.trim().toLocaleLowerCase('es')
+                    const match=normalized.length>=3
+                      ? availabilityReasons.find(reason=>reason.toLocaleLowerCase('es').startsWith(normalized)&&reason.toLocaleLowerCase('es')!==normalized)
+                      : undefined
+                    setAvailabilitySuggestion(match??'')
+                  }}
+                  onKeyDown={e=>{
+                    if(e.key==='Tab'&&availabilitySuggestion){
+                      e.preventDefault()
+                      setAvailabilityDraft({...availabilityDraft,detail:availabilitySuggestion})
+                      setAvailabilitySuggestion('')
+                    }
+                  }}
+                  onBlur={()=>window.setTimeout(()=>setAvailabilitySuggestion(''),120)}
+                  placeholder="Opcional"
+                  autoComplete="off"
+                />
+                {availabilitySuggestion&&<button
+                  type="button"
+                  className="availability-suggestion"
+                  onMouseDown={e=>e.preventDefault()}
+                  onClick={()=>{
                     setAvailabilityDraft({...availabilityDraft,detail:availabilitySuggestion})
                     setAvailabilitySuggestion('')
-                  }
-                }}
-                onBlur={()=>window.setTimeout(()=>setAvailabilitySuggestion(''),120)}
-                placeholder="Opcional"
-                autoComplete="off"
-              />
-              {availabilitySuggestion&&<button
-                type="button"
-                className="availability-suggestion"
-                onMouseDown={e=>e.preventDefault()}
-                onClick={()=>{
-                  setAvailabilityDraft({...availabilityDraft,detail:availabilitySuggestion})
-                  setAvailabilitySuggestion('')
-                }}
-              ><span>{availabilitySuggestion}</span><small>Tab para completar</small></button>}
-            </label>
+                  }}
+                ><span>{availabilitySuggestion}</span><small>Tab para completar</small></button>}
+              </label>
+            </div>
           </div>
           <div className={'form-guide '+(availabilityReady?'complete':'partial')}><strong>{availabilityReady?'Restricción lista':'Siguiente paso'}</strong><span>{availabilityGuide}</span></div>
           {availabilityError&&<div className="inline-error">{availabilityError}</div>}
