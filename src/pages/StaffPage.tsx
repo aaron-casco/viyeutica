@@ -1,9 +1,9 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import {
-  BriefcaseBusiness, CheckCircle2, Clock3, GraduationCap, Pencil, Plus,
+  BriefcaseBusiness, CheckCircle2, ChevronDown, Clock3, GraduationCap, Pencil, Plus,
   Save, Trash2, UserRoundCog, Users,
 } from 'lucide-react'
-import type { Teacher, ViyeuticaProject } from '../domain/project'
+import type { Teacher, TeacherDedication, TeacherDedicationType, ViyeuticaProject } from '../domain/project'
 import { isStudyPlanComplete, validateStaff } from '../domain/project'
 import { saveProject } from '../store/projectStorage'
 import { WizardStepper } from '../components/WizardStepper'
@@ -19,6 +19,24 @@ interface Draft {
   specialties:string
   roles:string
   weeklyTeachingMinutes:string
+  tutorGroupIds:string[]
+  dedications:TeacherDedication[]
+}
+
+interface DedicationDraft {
+  type:TeacherDedicationType
+  label:string
+  weeklyPeriods:string
+  weeklyMinutes:string
+  notes:string
+}
+
+const emptyDedication:DedicationDraft={
+  type:'management',
+  label:'',
+  weeklyPeriods:'',
+  weeklyMinutes:'',
+  notes:'',
 }
 
 const emptyDraft:Draft={
@@ -28,6 +46,8 @@ const emptyDraft:Draft={
   specialties:'',
   roles:'',
   weeklyTeachingMinutes:'',
+  tutorGroupIds:[],
+  dedications:[],
 }
 
 const employmentLabels:Record<EmploymentType,string>={
@@ -35,6 +55,14 @@ const employmentLabels:Record<EmploymentType,string>={
   partial:'Jornada parcial',
   itinerant:'Itinerante',
   other:'Otra',
+}
+
+const dedicationLabels:Record<TeacherDedicationType,string>={
+  management:'Cargo directivo',
+  coordination:'Coordinación',
+  reduction:'Reducción',
+  support:'Apoyo / programa',
+  other:'Otra dedicación',
 }
 
 const uid=()=> 'teacher_'+crypto.randomUUID()
@@ -54,6 +82,7 @@ export function StaffPage({
   const [editingId,setEditingId]=useState<string|null>(null)
   const [error,setError]=useState('')
   const [templateMessage,setTemplateMessage]=useState('')
+  const [dedicationDraft,setDedicationDraft]=useState<DedicationDraft>(emptyDedication)
 
   const teachers=project.teachers
   const activeTeachers=teachers.filter(teacher=>teacher.active)
@@ -61,17 +90,45 @@ export function StaffPage({
   const pending=activeTeachers.filter(teacher=>teacher.status==='to_determine').length
   const itinerant=activeTeachers.filter(teacher=>teacher.employmentType==='itinerant').length
   const validation=useMemo(()=>validateStaff(project),[project])
-  const teacherReady=Boolean(draft.name.trim()&&parseList(draft.specialties).length)
-  const teacherGuide=!draft.name.trim()?'Indica el nombre del docente o un identificador provisional.'
-    :!parseList(draft.specialties).length?'Indica al menos una especialidad.'
-    :'El docente tiene los datos mínimos necesarios. Ya puedes añadirlo.'
+  const hasName=Boolean(draft.name.trim())
+  const hasSpecialties=parseList(draft.specialties).length>0
+  const teacherReady=Boolean(hasName&&hasSpecialties)
+  const dedicationPeriods=dedicationDraft.weeklyPeriods===''?0:Number(dedicationDraft.weeklyPeriods)
+  const dedicationMinutes=dedicationDraft.weeklyMinutes===''?0:Number(dedicationDraft.weeklyMinutes)
+  const dedicationReady=Boolean(
+    hasSpecialties &&
+    dedicationDraft.label.trim() &&
+    ((Number.isFinite(dedicationPeriods)&&dedicationPeriods>0)||(Number.isFinite(dedicationMinutes)&&dedicationMinutes>0))
+  )
+  const teacherGuide=!hasName?'Indica el nombre del docente o un identificador provisional.'
+    :!hasSpecialties?'Indica al menos una especialidad. Después podrás completar tutorías, carga objetivo, cargos y dedicaciones.'
+    :'Datos mínimos completos. Puedes guardar el docente o completar, si corresponde, tutorías, carga objetivo, cargos y dedicaciones.'
 
-  const persist=(next:Teacher[])=>saveProject({...project,teachers:next})
+  const persist=(nextTeachers:Teacher[],nextGroups=project.groups)=>saveProject({...project,teachers:nextTeachers,groups:nextGroups})
 
   const reset=()=>{
     setDraft(emptyDraft)
+    setDedicationDraft(emptyDedication)
     setEditingId(null)
     setError('')
+  }
+
+  const addDedication=()=>{
+    if(!dedicationReady)return
+    const dedication:TeacherDedication={
+      id:'ded_'+crypto.randomUUID(),
+      type:dedicationDraft.type,
+      label:dedicationDraft.label.trim(),
+      weeklyPeriods:dedicationDraft.weeklyPeriods===''?null:Number(dedicationDraft.weeklyPeriods),
+      weeklyMinutes:dedicationDraft.weeklyMinutes===''?null:Number(dedicationDraft.weeklyMinutes),
+      notes:dedicationDraft.notes.trim(),
+    }
+    setDraft(current=>({...current,dedications:[...current.dedications,dedication]}))
+    setDedicationDraft(emptyDedication)
+  }
+
+  const removeDedication=(id:string)=>{
+    setDraft(current=>({...current,dedications:current.dedications.filter(item=>item.id!==id)}))
   }
 
   const submit=(event:FormEvent)=>{
