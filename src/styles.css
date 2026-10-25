@@ -1671,3 +1671,9 @@ button.btn:disabled:hover{
 .schedule-secondary-column{min-width:0}
 .schedule-secondary-column>.schedule-config-card,.schedule-secondary-column>.section-template-full{height:100%}
 @media(max-width:780px){.schedule-secondary-grid{grid-template-columns:1fr}}
+
+.bulk-assignment-preview{margin-top:14px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--field-bg,#fff)}
+.bulk-assignment-preview strong,.bulk-assignment-preview p{display:block}
+.bulk-assignment-preview strong{font-size:10.5px}
+.bulk-assignment-preview p{margin:4px 0 0;color:var(--muted);font-size:9px;line-height:1.5}
+[data-theme="dark"] .bulk-assignment-preview{background:var(--field-bg)}
