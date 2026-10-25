@@ -1677,3 +1677,11 @@ button.btn:disabled:hover{
 .bulk-assignment-preview strong{font-size:10.5px}
 .bulk-assignment-preview p{margin:4px 0 0;color:var(--muted);font-size:9px;line-height:1.5}
 [data-theme="dark"] .bulk-assignment-preview{background:var(--field-bg)}
+
+.availability-autocomplete{position:relative}
+.availability-suggestion{position:absolute;left:0;right:0;top:100%;z-index:8;display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:4px;padding:9px 11px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:inherit;box-shadow:var(--shadow);text-align:left;cursor:pointer}
+.availability-suggestion span{font-size:10px;font-weight:750}
+.availability-suggestion small{font-size:8.5px;color:var(--muted);white-space:nowrap}
+.availability-suggestion:hover{border-color:#9bc879;background:#f7fbf4}
+[data-theme="dark"] .availability-suggestion{background:#101925}
+[data-theme="dark"] .availability-suggestion:hover{background:#172619;border-color:#426a32}
