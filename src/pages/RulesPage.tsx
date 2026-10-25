@@ -654,10 +654,16 @@ export function RulesPage({
       <Summary label="Normativa / importadas" value={`${normativeCount}/${importedCount}`} detail="por procedencia"/>
     </section>
 
-    <article className={'aside-card validation section-prevalidation-card '+(validation.length===0&&activeRules.length?'ready':'')}>
-      <span className="panel-kicker">Prevalidación</span>
-      <strong>{validation.length===0&&activeRules.length?'Reglas preparadas':validation.length?`${validation.length} incidencias`:'Sin reglas'}</strong>
-      <p>{validation[0]??'Las reglas activas tienen una estructura válida.'}</p>
+    <article className={'aside-card validation section-prevalidation-card '+(validation.length?'error':activeRules.length?'ready':'incomplete')}>
+      <span className="panel-kicker">ESTADO:</span>
+      <strong>{validation.length?'Sección Reglas con errores':activeRules.length?'Sección Reglas válida':'Sección Reglas incompleta'}</strong>
+      <p>{validation.length
+        ? `${validation[0]} Edita la regla afectada y corrige su condición, ámbito o prioridad antes de generar horarios.`
+        : activeRules.length
+          ? `${activeRules.length} reglas activas · ${hardCount} HARD · ${softCount} SOFT · ${normativeCount} normativas. Todas las reglas activas tienen una estructura válida.`
+          : 'Todavía no hay reglas activas. Añade las restricciones obligatorias y preferencias que debe utilizar el generador.'}</p>
+      {validation.length>0&&<button type="button" className="section-status-action" onClick={()=>document.querySelector('.groups-table-card')?.scrollIntoView({behavior:'smooth',block:'start'})}>Revisar reglas</button>}
+      {!validation.length&&!activeRules.length&&<button type="button" className="section-status-action" onClick={openCreate}>Añadir regla</button>}
     </article>
 
     {ruleModalOpen&&<div className="modal-backdrop section-form-modal-backdrop">
