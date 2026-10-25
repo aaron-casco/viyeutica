@@ -80,6 +80,9 @@ export function AssignmentsPage({
   const [availabilitySuggestion,setAvailabilitySuggestion]=useState('')
   const [availabilityExpanded,setAvailabilityExpanded]=useState(true)
   const [availabilityTeacherFilter,setAvailabilityTeacherFilter]=useState<'all'|string>('all')
+  const [assignmentsExpanded,setAssignmentsExpanded]=useState(true)
+  const [assignmentGroupFilter,setAssignmentGroupFilter]=useState<'all'|string>('all')
+  const [assignmentTeacherFilter,setAssignmentTeacherFilter]=useState<'all'|string>('all')
 
   const activeGroups=project.groups.filter(group=>group.active)
   const activeSubjects=project.subjects.filter(subject=>subject.active)
@@ -106,6 +109,12 @@ export function AssignmentsPage({
   )).sort((a,b)=>a.localeCompare(b,'es',{sensitivity:'base'}))
   const availabilityTeacherIds=Array.from(new Set(project.teacherAvailability.map(item=>item.teacherId)))
   const visibleAvailability=project.teacherAvailability.filter(item=>availabilityTeacherFilter==='all'||item.teacherId===availabilityTeacherFilter)
+  const assignmentGroupIds=Array.from(new Set(project.assignments.map(item=>item.groupId)))
+  const assignmentTeacherIds=Array.from(new Set(project.assignments.map(item=>item.teacherId)))
+  const visibleAssignments=project.assignments.filter(item=>
+    (assignmentGroupFilter==='all'||item.groupId===assignmentGroupFilter)&&
+    (assignmentTeacherFilter==='all'||item.teacherId===assignmentTeacherFilter)
+  )
   const availabilityGuide=!availabilityDraft.teacherIds.length?'Selecciona al menos un docente.'
     :!availabilityDraft.days.length?'Selecciona al menos un día.'
     :!availabilityDraft.sessions.length?'Selecciona al menos una sesión.'
@@ -523,7 +532,28 @@ export function AssignmentsPage({
         <div className="app-modal-body">
           <div className="availability-form availability-form-multiple">
             <MultiCheckSelect label="Docentes" placeholder="Selecciona docentes..." searchable options={activeTeachers.map(teacher=>({value:teacher.id,label:teacher.name}))} values={availabilityDraft.teacherIds} onChange={teacherIds=>setAvailabilityDraft({...availabilityDraft,teacherIds})}/>
-            <MultiCheckSelect label="Días" placeholder="Selecciona días..." options={project.schedule.activeDays.map(day=>({value:day,label:dayLabels[day]}))} values={availabilityDraft.days} onChange={values=>setAvailabilityDraft({...availabilityDraft,days:values as Weekday[]})}/>
+            <div className="availability-days-field">
+              <span>Días</span>
+              <div className="availability-days-grid">
+                {project.schedule.activeDays.map(day=>{
+                  const checked=availabilityDraft.days.includes(day)
+                  return <label key={day} className={'availability-day-option '+(checked?'selected':'')}>
+                    <strong>{day}</strong>
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      aria-label={dayLabels[day]}
+                      onChange={()=>{
+                        const days=checked
+                          ? availabilityDraft.days.filter(value=>value!==day)
+                          : [...availabilityDraft.days,day]
+                        setAvailabilityDraft({...availabilityDraft,days})
+                      }}
+                    />
+                  </label>
+                })}
+              </div>
+            </div>
             <MultiCheckSelect label="Sesiones" placeholder="Selecciona sesiones..." allValue="__all__" options={[{value:'__all__',label:'Todas las sesiones'},...project.schedule.blocks.filter(block=>block.active&&block.type==='teaching').map(block=>({value:block.id,label:block.label+' · '+block.start+'-'+block.end}))]} values={availabilityDraft.sessions} onChange={sessions=>setAvailabilityDraft({...availabilityDraft,sessions})}/>
             <label className="availability-single-field"><span>Estado</span><select value={availabilityDraft.status} onChange={e=>setAvailabilityDraft({...availabilityDraft,status:e.target.value as AvailabilityStatus})}>{(Object.entries(availabilityLabels) as [AvailabilityStatus,string][]).map(([value,label])=><option value={value} key={value}>{label}</option>)}</select></label>
             <label className="availability-single-field availability-detail-field availability-autocomplete">
@@ -570,13 +600,53 @@ export function AssignmentsPage({
 
     {templateMessage&&<div className="template-result"><CheckCircle2 size={16}/><span>{templateMessage}</span></div>}
 
-    <section className="groups-table-card">
-      <div className="groups-table-heading"><div><span className="panel-kicker">Matriz docente</span><h2>Asignaciones configuradas</h2></div><div className="groups-table-actions"><button className="btn ghost-inline" onClick={()=>{setBulkSubjectId('');setBulkTeacherId('');setBulkModalOpen(true)}}><UsersRound size={16}/> Asignar materia a docente</button><button className="btn ghost-inline" onClick={openCreate}><Plus size={16}/> Añadir asignación</button></div></div>
-      {project.assignments.length===0
-        ? <div className="groups-empty"><UsersRound size={28}/><strong>No hay asignaciones todavía</strong><p>Asigna profesorado manualmente, importa el JSON anterior o completa los casos inequívocos.</p></div>
-        : <div className="groups-table-wrap"><table className="groups-table assignments-table">
+    <section className={'groups-table-card assignments-matrix-card '+(assignmentsExpanded?'is-expanded':'is-collapsed')}>
+      <div className="groups-table-heading assignments-matrix-heading">
+        <button
+          type="button"
+          className="availability-collapse-toggle"
+          onClick={()=>setAssignmentsExpanded(value=>!value)}
+          aria-expanded={assignmentsExpanded}
+          aria-label={assignmentsExpanded?'Plegar matriz docente':'Desplegar matriz docente'}
+        ><ChevronDown size={17}/></button>
+        <div className="availability-heading-copy">
+          <span className="panel-kicker">Matriz docente</span>
+          <h2>Asignaciones configuradas <span className="availability-count">{project.assignments.length}</span></h2>
+        </div>
+        <div className="groups-table-actions assignments-matrix-actions"><button className="btn ghost-inline" onClick={()=>{setBulkSubjectId('');setBulkTeacherId('');setBulkModalOpen(true)}}><UsersRound size={16}/> Asignar materia a docente</button><button className="btn ghost-inline" onClick={openCreate}><Plus size={16}/> Añadir asignación</button></div>
+      </div>
+
+      {assignmentsExpanded&&<div className="assignments-matrix-content">
+        {project.assignments.length>0&&<div className="assignment-filter-stack">
+          <div className="assignment-filter-row">
+            <span>Grupos</span>
+            <div className="list-filter-tags">
+              <button type="button" className={assignmentGroupFilter==='all'?'active':''} onClick={()=>setAssignmentGroupFilter('all')}>Todos</button>
+              {assignmentGroupIds.map(groupId=>{
+                const group=project.groups.find(item=>item.id===groupId)
+                return <button type="button" key={groupId} className={assignmentGroupFilter===groupId?'active':''} onClick={()=>setAssignmentGroupFilter(groupId)}>{group?.name??'Grupo eliminado'}</button>
+              })}
+            </div>
+          </div>
+          <div className="assignment-filter-row">
+            <span>Docentes</span>
+            <div className="list-filter-tags">
+              <button type="button" className={assignmentTeacherFilter==='all'?'active':''} onClick={()=>setAssignmentTeacherFilter('all')}>Todos</button>
+              {assignmentTeacherIds.map(teacherId=>{
+                const teacher=project.teachers.find(item=>item.id===teacherId)
+                return <button type="button" key={teacherId} className={assignmentTeacherFilter===teacherId?'active':''} onClick={()=>setAssignmentTeacherFilter(teacherId)}>{teacher?.name??'Docente eliminado'}</button>
+              })}
+            </div>
+          </div>
+        </div>}
+
+        {project.assignments.length===0
+          ? <div className="groups-empty"><UsersRound size={28}/><strong>No hay asignaciones todavía</strong><p>Asigna profesorado manualmente, importa el JSON anterior o completa los casos inequívocos.</p></div>
+          : visibleAssignments.length===0
+            ? <div className="groups-empty"><UsersRound size={28}/><strong>No hay asignaciones con estos filtros</strong><p>Cambia el grupo o docente seleccionado para mostrar resultados.</p></div>
+            : <div className="groups-table-wrap"><table className="groups-table assignments-table">
           <thead><tr><th>Grupo</th><th>Materia</th><th>Docente</th><th>Intervención</th><th>Ses./sem.</th><th>Min/sem.</th><th>Origen</th><th>Estado</th><th/></tr></thead>
-          <tbody>{project.assignments.map(assignment=>{
+          <tbody>{visibleAssignments.map(assignment=>{
             const group=project.groups.find(item=>item.id===assignment.groupId)
             const subject=project.subjects.find(item=>item.id===assignment.subjectId)
             const teacher=project.teachers.find(item=>item.id===assignment.teacherId)
@@ -593,6 +663,7 @@ export function AssignmentsPage({
             </tr>
           })}</tbody>
         </table></div>}
+      </div>}
     </section>
 
     <section className={'availability-card '+(availabilityExpanded?'is-expanded':'is-collapsed')}>
