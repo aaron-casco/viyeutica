@@ -42,6 +42,7 @@ export interface SchoolGroup {
   linkedGroupIds: string[]
   tutorTeacherId: string | null
   notes: string
+  pendingOrganization?: boolean
   active: boolean
 }
 
@@ -433,8 +434,9 @@ export function validateAssignments(project: ViyeuticaProject) {
 
   const activeStudyEntries = project.studyPlan.filter(entry => entry.active)
   for (const entry of activeStudyEntries) {
-    if (!activeAssignments.some(assignment => assignment.groupId === entry.groupId && assignment.subjectId === entry.subjectId)) {
-      errors.push('Hay cargas del plan de estudios sin profesorado asignado.')
+    const assigned=activeAssignments.some(assignment => assignment.groupId === entry.groupId && assignment.subjectId === entry.subjectId)
+    if (!assigned && !entry.pendingOrganization) {
+      errors.push('Hay cargas del plan de estudios sin profesorado asignado ni marcadas como pendientes de organizar.')
       break
     }
   }
@@ -618,6 +620,16 @@ export function runPrevalidation(project: ViyeuticaProject): PrevalidationIssue[
   for (const message of validateStudyPlan(project)) push('error','Plan de estudios','PLAN_ESTUDIOS',message)
   for (const message of validateStaff(project)) push('error','Profesorado','PROFESORADO',message)
   for (const message of validateAssignments(project)) push('error','Asignaciones','ASIGNACIONES',message)
+  const pendingOrganizationEntries=project.studyPlan.filter(entry=>entry.active&&entry.pendingOrganization)
+  if(pendingOrganizationEntries.length){
+    push(
+      'warning',
+      'Asignaciones',
+      'ASIGNACIONES_PENDIENTES_ORGANIZAR',
+      `${pendingOrganizationEntries.length} ${pendingOrganizationEntries.length===1?'carga está':'cargas están'} marcada${pendingOrganizationEntries.length===1?'':'s'} como pendiente${pendingOrganizationEntries.length===1?'':'s'} de organizar.`,
+      'Estas cargas han sido revisadas y no bloquean Reglas, pero todavía deberán resolverse antes de cerrar el horario.'
+    )
+  }
   for (const message of validateRules(project)) push('error','Reglas','REGLAS',message)
 
   const activeTeachers = project.teachers.filter(t=>t.active)
