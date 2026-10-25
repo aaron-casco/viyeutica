@@ -1783,16 +1783,20 @@ button.btn:disabled:hover{
 .rules-filter-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 16px 12px;border-bottom:1px solid var(--border);background:var(--surface)}
 .rule-origin-filter{display:flex;gap:6px;flex-wrap:wrap}
 .rule-origin-filter button{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--muted);padding:6px 10px;font-size:8.8px;font-weight:800;cursor:pointer}
-.rule-origin-filter button i{display:block;width:8px;height:8px;border-radius:999px}
+.rule-origin-filter button i{display:block;width:8px;height:8px;border-radius:999px;flex:0 0 auto}
+.rule-origin-filter button.engine{border-color:#4f86bd;color:#315f8e}
+.rule-origin-filter button.normative{border-color:#7b61a8;color:#654792}
+.rule-origin-filter button.manual{border-color:#d49a31;color:#8c621d}
+.rule-origin-filter button.imported{border-color:#6f7c88;color:#59636b}
 .rule-origin-filter button.engine i{background:#4f86bd}
 .rule-origin-filter button.normative i{background:#7b61a8}
 .rule-origin-filter button.manual i{background:#d49a31}
 .rule-origin-filter button.imported i{background:#6f7c88}
 .rule-origin-filter button.active.all{background:#eef3f8;color:var(--navy2);border-color:#a8bfd7}
-.rule-origin-filter button.active.engine{background:#eaf2fb;color:#315f8e;border-color:#bfd4ea}
-.rule-origin-filter button.active.normative{background:#efe8fa;color:#654792;border-color:#d6c5ed}
-.rule-origin-filter button.active.manual{background:#fff1d6;color:#8c621d;border-color:#ebd09a}
-.rule-origin-filter button.active.imported{background:#edf0f2;color:#59636b;border-color:#c8d0d6}
+.rule-origin-filter button.active.engine{background:#eaf2fb}
+.rule-origin-filter button.active.normative{background:#efe8fa}
+.rule-origin-filter button.active.manual{background:#fff1d6}
+.rule-origin-filter button.active.imported{background:#edf0f2}
 .rule-origin-engine{border-left:4px solid #4f86bd;background:#f7fbff}
 .rule-origin-normative{border-left:4px solid #7b61a8;background:#fbf8ff}
 .rule-origin-manual{border-left:4px solid #d49a31;background:#fffaf0}
@@ -1807,9 +1811,13 @@ button.btn:disabled:hover{
 [data-theme="dark"] .rule-origin-normative{background:#20182b}
 [data-theme="dark"] .rule-origin-manual{background:#2a2113}
 [data-theme="dark"] .rule-origin-imported{background:#181b1e}
+[data-theme="dark"] .rule-origin-filter button.engine{border-color:#4f86bd;color:#8db9e5}
+[data-theme="dark"] .rule-origin-filter button.normative{border-color:#7b61a8;color:#c7abe9}
+[data-theme="dark"] .rule-origin-filter button.manual{border-color:#d49a31;color:#e5bd6b}
+[data-theme="dark"] .rule-origin-filter button.imported{border-color:#6f7c88;color:#b7c0c8}
 [data-theme="dark"] .rule-origin-filter button.active.all{background:#1b2838;border-color:#45617e;color:#aebbd0}
-[data-theme="dark"] .rule-origin-filter button.active.engine{background:#152338;color:#8db9e5;border-color:#2e4b6c}
-[data-theme="dark"] .rule-origin-filter button.active.normative{background:#302340;color:#c7abe9;border-color:#57406f}
-[data-theme="dark"] .rule-origin-filter button.active.manual{background:#342713;color:#e5bd6b;border-color:#62491f}
-[data-theme="dark"] .rule-origin-filter button.active.imported{background:#24292d;color:#b7c0c8;border-color:#495158}
+[data-theme="dark"] .rule-origin-filter button.active.engine{background:#152338}
+[data-theme="dark"] .rule-origin-filter button.active.normative{background:#302340}
+[data-theme="dark"] .rule-origin-filter button.active.manual{background:#342713}
+[data-theme="dark"] .rule-origin-filter button.active.imported{background:#24292d}
 [data-theme="dark"] .rule-type-badge.normative,[data-theme="dark"] .origin-tag.normative{background:#302340;color:#c7abe9;border-color:#57406f}
