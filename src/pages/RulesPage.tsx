@@ -667,10 +667,17 @@ export function RulesPage({
         </div></div>
       </div>
 
-      {(visible.length===0&&filter!=='all')
-        ? <div className="groups-empty"><ShieldAlert size={28}/><strong>No hay reglas configurables en esta vista</strong><p>Las reglas del motor y normativas se muestran en la vista Todas.</p></div>
+      <div className="rule-origin-legend" aria-label="Leyenda de procedencia de las reglas">
+        <span className="engine"><i/>Motor</span>
+        <span className="normative"><i/>Normativa</span>
+        <span className="manual"><i/>Manual</span>
+        <span className="imported"><i/>Importada</span>
+      </div>
+
+      {(visible.length===0&&filter==='SOFT')
+        ? <div className="groups-empty"><ShieldAlert size={28}/><strong>No hay reglas SOFT configuradas</strong><p>Añade una preferencia o cambia el filtro para ver las reglas obligatorias.</p></div>
         : <div className="rules-list">
-            {filter==='all'&&engineRules.map(rule=><article className="rule-card hard rule-origin-engine" key={rule.id}>
+            {(filter==='all'||filter==='HARD')&&engineRules.map(rule=><article className="rule-card hard rule-origin-engine" key={rule.id}>
               <div className="rule-type-badge engine">MOTOR</div>
               <div className="rule-card-main">
                 <div className="rule-title-row"><strong>{rule.title}</strong><span>HARD</span><span className="origin-tag engine">Motor</span></div>
@@ -678,7 +685,7 @@ export function RulesPage({
               </div>
               <div className="engine-rule-lock"><ShieldCheck size={17}/><span>Siempre activa</span></div>
             </article>)}
-            {filter==='all'&&normativeDedications.map(({teacher,item})=><article className="rule-card hard rule-origin-normative" key={'norm-ded-'+teacher.id+'-'+item.id}>
+            {(filter==='all'||filter==='HARD')&&normativeDedications.map(({teacher,item})=><article className="rule-card hard rule-origin-normative" key={'norm-ded-'+teacher.id+'-'+item.id}>
               <div className="rule-type-badge normative">NORMA</div>
               <div className="rule-card-main">
                 <div className="rule-title-row"><strong>{item.label}</strong><span>HARD</span><span className="origin-tag normative">Normativa</span></div>
@@ -717,8 +724,6 @@ export function RulesPage({
     </div>
     {templateMessage&&<div className="template-result"><CheckCircle2 size={16}/><span>{templateMessage}</span></div>}
 
-    <NormativeTraceabilityPanel project={project}/>
-  
   </div>
 }
 
