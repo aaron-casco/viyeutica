@@ -56,6 +56,13 @@ export function PrevalidationPage({
 
     <WizardStepper currentStep={8} project={project} navigate={navigate}/>
 
+    <section className="structure-summary">
+      <Summary label="Errores" value={String(errors.length)} detail="bloquean generación"/>
+      <Summary label="Advertencias" value={String(warnings.length)} detail="requieren revisión"/>
+      <Summary label="Información" value={String(infos.length)} detail="observaciones"/>
+      <Summary label="Reglas activas" value={String(project.rules.filter(rule=>rule.active).length)} detail="HARD + SOFT"/>
+    </section>
+
     <section className="prevalidation-hero">
       <div className={'prevalidation-status '+(ready?'ready':'blocked')}>
         {ready?<CheckCircle2 size={34}/>:<CircleAlert size={34}/>}
@@ -70,13 +77,6 @@ export function PrevalidationPage({
         </div>
       </div>
       <button className="btn ghost-inline" onClick={()=>setVersion(value=>value+1)}><RefreshCcw size={15}/> Volver a comprobar</button>
-    </section>
-
-    <section className="structure-summary">
-      <Summary label="Errores" value={String(errors.length)} detail="bloquean generación"/>
-      <Summary label="Advertencias" value={String(warnings.length)} detail="requieren revisión"/>
-      <Summary label="Información" value={String(infos.length)} detail="observaciones"/>
-      <Summary label="Reglas activas" value={String(project.rules.filter(rule=>rule.active).length)} detail="HARD + SOFT"/>
     </section>
 
     <section className="prevalidation-sections">
