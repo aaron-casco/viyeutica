@@ -1774,3 +1774,23 @@ button.btn:disabled:hover{
 .engine-rule-lock svg{color:var(--green)}
 [data-theme="dark"] .engine-rule-count,[data-theme="dark"] .rule-type-badge.engine{background:#152338;color:#8db9e5;border-color:#2e4b6c}
 @media(max-width:760px){.engine-rule-lock{grid-column:1/-1;justify-self:start}}
+
+.staff-dedication-toggle{display:flex;align-items:flex-start;gap:9px;padding:9px 10px;border:1px solid var(--border);border-radius:10px;background:var(--surface);min-height:42px}
+.staff-dedication-toggle input{margin-top:2px}
+.staff-dedication-toggle span{display:grid;gap:2px}
+.staff-dedication-toggle strong{font-size:9.5px}
+.staff-dedication-toggle small{font-size:8.5px;color:var(--muted);line-height:1.35}
+.rule-origin-engine{border-left:4px solid #4f86bd;background:#f7fbff}
+.rule-origin-normative{border-left:4px solid #7b61a8;background:#fbf8ff}
+.rule-origin-manual{border-left:4px solid #d49a31}
+.rule-origin-imported{border-left:4px solid #6f7c88;background:#fafbfc}
+.rule-type-badge.normative{background:#efe8fa;color:#654792;border-color:#d6c5ed}
+.origin-tag{font-weight:900}
+.origin-tag.engine{background:#eaf2fb;color:#315f8e}
+.origin-tag.normative{background:#efe8fa;color:#654792}
+.origin-tag.manual{background:#fff1d6;color:#8c621d}
+.origin-tag.imported{background:#edf0f2;color:#59636b}
+[data-theme="dark"] .rule-origin-engine{background:#111d2a}
+[data-theme="dark"] .rule-origin-normative{background:#20182b}
+[data-theme="dark"] .rule-origin-imported{background:#181b1e}
+[data-theme="dark"] .rule-type-badge.normative,[data-theme="dark"] .origin-tag.normative{background:#302340;color:#c7abe9;border-color:#57406f}
