@@ -199,9 +199,13 @@ export function AssignmentsPage({
   }
 
   const assignmentTeachers=compatibleTeachers(draft.subjectId)
+  const selectedAssignmentTeacher=activeTeachers.find(teacher=>teacher.id===draft.teacherId)
+  const visibleAssignmentTeachers=selectedAssignmentTeacher&&!assignmentTeachers.some(teacher=>teacher.id===selectedAssignmentTeacher.id)
+    ? [selectedAssignmentTeacher,...assignmentTeachers]
+    : assignmentTeachers
   const hasSpecialtyFilter=draft.subjectId&&assignmentTeachers.length<activeTeachers.length
   const otherAssignmentTeachers=hasSpecialtyFilter
-    ? activeTeachers.filter(teacher=>!assignmentTeachers.some(item=>item.id===teacher.id))
+    ? activeTeachers.filter(teacher=>!visibleAssignmentTeachers.some(item=>item.id===teacher.id))
     : []
 
 
@@ -244,6 +248,51 @@ export function AssignmentsPage({
     setBulkModalOpen(false)
     setBulkSubjectId('')
     setBulkTeacherId('')
+  }
+
+  const pendingAssignmentDraft=(entry:typeof project.studyPlan[number])=>{
+    const teacherId=defaultTeacherForAssignment(entry.groupId,entry.subjectId)
+    return {
+      groupId:entry.groupId,
+      subjectId:entry.subjectId,
+      teacherId,
+      assignmentType:'main' as AssignmentType,
+      weeklySessions:entry.weeklySessions>0?String(entry.weeklySessions):'',
+      weeklyMinutes:(entry.weeklyMinutes??0)>0?String(entry.weeklyMinutes):'',
+    }
+  }
+
+  const pendingAssignmentReady=(entry:typeof project.studyPlan[number])=>{
+    const resolved=pendingAssignmentDraft(entry)
+    return Boolean(
+      resolved.groupId&&resolved.subjectId&&resolved.teacherId&&
+      ((Number(resolved.weeklySessions)||0)>0||(Number(resolved.weeklyMinutes)||0)>0)
+    )
+  }
+
+  const editPendingAssignment=(entry:typeof project.studyPlan[number])=>{
+    setDraft(pendingAssignmentDraft(entry))
+    setEditingId(null)
+    setShowOtherTeachers(false)
+    setError('')
+    setAssignmentModalOpen(true)
+  }
+
+  const addPendingAssignment=(entry:typeof project.studyPlan[number])=>{
+    const resolved=pendingAssignmentDraft(entry)
+    if(!pendingAssignmentReady(entry))return
+    const assignment:TeachingAssignment={
+      id:uid('asg'),
+      groupId:resolved.groupId,
+      subjectId:resolved.subjectId,
+      teacherId:resolved.teacherId,
+      assignmentType:'main',
+      weeklySessions:resolved.weeklySessions?Number(resolved.weeklySessions):null,
+      weeklyMinutes:resolved.weeklyMinutes?Number(resolved.weeklyMinutes):null,
+      active:true,
+      source:'manual',
+    }
+    persistAssignments([...project.assignments,assignment])
   }
 
   const persistAssignments=(assignments:TeachingAssignment[])=>saveProject({...project,assignments})
@@ -505,24 +554,19 @@ export function AssignmentsPage({
         {uncoveredStudyEntries.map(entry=>{
           const group=project.groups.find(item=>item.id===entry.groupId)
           const subject=project.subjects.find(item=>item.id===entry.subjectId)
-          return <button
-            key={entry.id}
-            type="button"
-            onClick={()=>{
-              setDraft({
-                groupId:entry.groupId,
-                subjectId:entry.subjectId,
-                teacherId:'',
-                assignmentType:'main',
-                weeklySessions:entry.weeklySessions>0?String(entry.weeklySessions):'',
-                weeklyMinutes:(entry.weeklyMinutes??0)>0?String(entry.weeklyMinutes):'',
-              })
-              setAssignmentModalOpen(true)
-            }}
-          >
-            <span><strong>{group?.name??'Grupo'}</strong> · {subject?.name??'Materia'}</span>
-            <small>{entry.weeklySessions>0?`${entry.weeklySessions} ses./sem.`:''}{entry.weeklyMinutes?`${entry.weeklySessions>0?' · ':''}${entry.weeklyMinutes} min/sem.`:''} · Pulsa para completar</small>
-          </button>
+          const resolved=pendingAssignmentDraft(entry)
+          const teacher=project.teachers.find(item=>item.id===resolved.teacherId)
+          const ready=pendingAssignmentReady(entry)
+          return <article key={entry.id} className="assignment-missing-item">
+            <div className="assignment-missing-copy">
+              <span><strong>{group?.name??'Grupo'}</strong> · {subject?.name??'Materia'}</span>
+              <small>{entry.weeklySessions>0?`${entry.weeklySessions} ses./sem.`:''}{entry.weeklyMinutes?`${entry.weeklySessions>0?' · ':''}${entry.weeklyMinutes} min/sem.`:''}{teacher?` · ${teacher.name}`:''}</small>
+            </div>
+            <div className="assignment-missing-actions">
+              <button type="button" className="btn ghost-inline" onClick={()=>editPendingAssignment(entry)}>Editar</button>
+              <button type="button" className="btn primary" disabled={!ready} title={ready?'Crear asignación con los datos resueltos':'Faltan datos por resolver'} onClick={()=>addPendingAssignment(entry)}>Añadir</button>
+            </div>
+          </article>
         })}
       </div>}
     </section>}
@@ -547,7 +591,7 @@ export function AssignmentsPage({
           <div className="form-grid two">
             <Field label="Grupo" required><select value={draft.groupId} onChange={e=>setDraft({...draft,groupId:e.target.value,subjectId:'',weeklySessions:'',weeklyMinutes:''})}><option value="">Selecciona...</option>{activeGroups.map(group=>{const complete=groupMainComplete(group.id)&&draft.assignmentType==='main';return <option key={group.id} value={group.id} disabled={complete}>{group.name}{complete?' · completo':''}</option>})}</select></Field>
             <Field label="Materia" required><select value={draft.subjectId} disabled={!draft.groupId} onChange={e=>{const subjectId=e.target.value;const load=studyPlanLoad(draft.groupId,subjectId);const teacherId=defaultTeacherForAssignment(draft.groupId,subjectId);setShowOtherTeachers(false);setDraft({...draft,subjectId,teacherId,...load})}}> <option value="">Selecciona...</option>{groupSubjects(draft.groupId).map(subject=>{const assigned=assignmentExists(draft.groupId,subject.id,draft.assignmentType);return <option key={subject.id} value={subject.id} disabled={assigned}>{subject.name}{assigned?' · ya asignada':''}</option>})}</select></Field>
-            <Field label="Docente" required><select value={draft.teacherId} disabled={!draft.subjectId} onChange={e=>{const value=e.target.value;if(value==='__others__'){setShowOtherTeachers(true);setDraft({...draft,teacherId:''});return}setDraft({...draft,teacherId:value})}}><option value="">Selecciona...</option>{assignmentTeachers.map(teacher=><option key={teacher.id} value={teacher.id}>{teacher.name}</option>)}{hasSpecialtyFilter&&!showOtherTeachers&&otherAssignmentTeachers.length>0&&<option value="__others__">Otros…</option>}{showOtherTeachers&&otherAssignmentTeachers.map(teacher=><option key={teacher.id} value={teacher.id}>{teacher.name}</option>)}</select>{showOtherTeachers&&hasSpecialtyFilter&&<button type="button" className="assignment-teacher-filter-reset" onClick={()=>{setShowOtherTeachers(false);setDraft({...draft,teacherId:''})}}>Volver a docentes compatibles</button>}</Field>
+            <Field label="Docente" required><select value={draft.teacherId} disabled={!draft.subjectId} onChange={e=>{const value=e.target.value;if(value==='__others__'){setShowOtherTeachers(true);setDraft({...draft,teacherId:''});return}setDraft({...draft,teacherId:value})}}><option value="">Selecciona...</option>{visibleAssignmentTeachers.map(teacher=><option key={teacher.id} value={teacher.id}>{teacher.name}</option>)}{hasSpecialtyFilter&&!showOtherTeachers&&otherAssignmentTeachers.length>0&&<option value="__others__">Otros…</option>}{showOtherTeachers&&otherAssignmentTeachers.map(teacher=><option key={teacher.id} value={teacher.id}>{teacher.name}</option>)}</select>{showOtherTeachers&&hasSpecialtyFilter&&<button type="button" className="assignment-teacher-filter-reset" onClick={()=>{setShowOtherTeachers(false);setDraft({...draft,teacherId:''})}}>Volver a docentes compatibles</button>}</Field>
             <Field label="Tipo de intervención"><select value={draft.assignmentType} onChange={e=>{setShowOtherTeachers(false);setDraft({...draft,assignmentType:e.target.value as AssignmentType,subjectId:'',teacherId:'',weeklySessions:'',weeklyMinutes:''})}}>{(Object.entries(assignmentTypeLabels) as [AssignmentType,string][]).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></Field>
             <Field label="Sesiones semanales"><input type="number" min="0" step="0.25" value={draft.weeklySessions} onChange={e=>setDraft({...draft,weeklySessions:e.target.value})} placeholder="Opcional"/></Field>
             <Field label="Minutos semanales"><input type="number" min="0" step="5" value={draft.weeklyMinutes} onChange={e=>setDraft({...draft,weeklyMinutes:e.target.value})} placeholder="Opcional"/></Field>
