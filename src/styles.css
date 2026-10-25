@@ -1587,3 +1587,22 @@ button.btn:disabled:hover{
 .copy-plan-card .copy-plan-multicheck .multicheck-trigger{height:40px}
 .multicheck-option.disabled{opacity:.48;cursor:not-allowed}
 .multicheck-option.disabled:hover{background:transparent}
+
+
+.staff-dependent-section{margin-top:18px;padding:16px;border:1px solid var(--border);border-radius:14px;background:var(--surface)}
+.staff-dependent-section.disabled{opacity:.62;background:var(--surface-subtle,#fafbfd)}
+.staff-subsection-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.staff-subsection-heading h3{margin:3px 0 2px;font-size:13px}
+.staff-subsection-heading p{margin:0;color:var(--muted);font-size:9.5px;line-height:1.5}
+.staff-tutor-multicheck{max-width:520px}
+.staff-dedication-grid{align-items:end}
+.staff-dedication-action{display:flex;align-items:flex-end;height:100%}
+.staff-dedication-action .btn{width:100%}
+.staff-dedication-list{display:grid;gap:7px;margin-top:12px}
+.staff-dedication-list article{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 11px;border:1px solid var(--border);border-radius:10px;background:var(--surface)}
+.staff-dedication-list strong,.staff-dedication-list span{display:block}
+.staff-dedication-list strong{font-size:10px}
+.staff-dedication-list span{margin-top:2px;color:var(--muted);font-size:8.8px}
+.staff-row-detail{display:block;margin-top:3px;color:var(--muted);font-size:8px;font-weight:600}
+[data-theme="dark"] .staff-dependent-section.disabled{background:#111923}
+@media(max-width:780px){.staff-dependent-section{padding:13px}.staff-tutor-multicheck{max-width:none}}
