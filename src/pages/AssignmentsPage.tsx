@@ -388,6 +388,13 @@ export function AssignmentsPage({
     project.assignments.map(item=>item.id===id?{...item,active:!item.active}:item),
   )
 
+  const togglePendingOrganization=(entryId:string)=>{
+    saveProject({
+      ...project,
+      studyPlan:project.studyPlan.map(entry=>entry.id===entryId?{...entry,pendingOrganization:!entry.pendingOrganization}:entry),
+    })
+  }
+
   const submitAvailability=(event:FormEvent)=>{
     event.preventDefault()
     if(!availabilityDraft.teacherIds.length||!availabilityDraft.days.length||!availabilityDraft.sessions.length){
@@ -518,8 +525,10 @@ export function AssignmentsPage({
   )
   const activeStudyPlanEntries=project.studyPlan.filter(item=>item.active)
   const coveredStudyEntries=activeStudyPlanEntries.filter(entry=>coveredKeys.has(`${entry.groupId}|${entry.subjectId}`)).length
+  const pendingOrganizationEntries=activeStudyPlanEntries.filter(entry=>!coveredKeys.has(`${entry.groupId}|${entry.subjectId}`)&&entry.pendingOrganization)
+  const uncoveredStudyEntries=activeStudyPlanEntries.filter(entry=>!coveredKeys.has(`${entry.groupId}|${entry.subjectId}`)&&!entry.pendingOrganization)
   const totalStudyEntries=activeStudyPlanEntries.length
-  const uncoveredStudyEntries=activeStudyPlanEntries.filter(entry=>!coveredKeys.has(`${entry.groupId}|${entry.subjectId}`))
+  const reviewedStudyEntries=coveredStudyEntries+pendingOrganizationEntries.length
   const teachersWithAssignments=new Set(activeAssignments.map(item=>item.teacherId)).size
 
   return <div className="wizard-page assignments-page">
@@ -537,12 +546,12 @@ export function AssignmentsPage({
 
     <section className="structure-summary">
       <Summary label="Asignaciones activas" value={String(activeAssignments.length)} detail="docente + grupo + materia"/>
-      <Summary label="Cargas cubiertas" value={`${coveredStudyEntries}/${totalStudyEntries}`} detail="plan de estudios"/>
+      <Summary label="Cargas revisadas" value={`${reviewedStudyEntries}/${totalStudyEntries}`} detail={pendingOrganizationEntries.length?`${coveredStudyEntries} asignadas · ${pendingOrganizationEntries.length} pendientes de organizar`:'plan de estudios'}/>
       <Summary label="Docentes implicados" value={String(teachersWithAssignments)} detail={`de ${activeTeachers.length} activos`}/>
       <Summary label="Restricciones temporales" value={String(project.teacherAvailability.length)} detail="disponibilidad registrada"/>
     </section>
 
-    {uncoveredStudyEntries.length>0&&<section className={'assignment-progress-alert '+(progressExpanded?'is-expanded':'is-collapsed')}>
+    {(uncoveredStudyEntries.length>0||pendingOrganizationEntries.length>0)&&<section className={'assignment-progress-alert '+(progressExpanded?'is-expanded':'is-collapsed')}>
       <div className="assignment-progress-heading">
         <button
           type="button"
@@ -553,8 +562,10 @@ export function AssignmentsPage({
         ><ChevronDown size={17}/></button>
         <div className="assignment-progress-alert-icon"><CheckCircle2 size={18}/></div>
         <div>
-          <strong>Asignaciones todavía en progreso <span className="availability-count">{uncoveredStudyEntries.length}</span></strong>
-          <p>Faltan {uncoveredStudyEntries.length} {uncoveredStudyEntries.length===1?'carga':'cargas'} del Plan de estudios por vincular a profesorado. El paso se marcará como completo cuando todas estén cubiertas.</p>
+          <strong>Asignaciones pendientes <span className="availability-count">{uncoveredStudyEntries.length+pendingOrganizationEntries.length}</span></strong>
+          <p>{uncoveredStudyEntries.length>0
+            ? `${uncoveredStudyEntries.length} ${uncoveredStudyEntries.length===1?'carga por completar':'cargas por completar'}${pendingOrganizationEntries.length?` · ${pendingOrganizationEntries.length} ${pendingOrganizationEntries.length===1?'pendiente':'pendientes'} de organizar`:''}. Reglas se habilitará cuando todas estén asignadas o revisadas como pendientes de organizar.`
+            : `${pendingOrganizationEntries.length} ${pendingOrganizationEntries.length===1?'carga revisada y pendiente':'cargas revisadas y pendientes'} de organizar. Asignaciones ya no bloquea Reglas.`}</p>
         </div>
       </div>
 
@@ -573,6 +584,21 @@ export function AssignmentsPage({
             <div className="assignment-missing-actions">
               <button type="button" className="btn ghost-inline" onClick={()=>editPendingAssignment(entry)}>Editar</button>
               <button type="button" className="btn primary" disabled={!ready} title={ready?'Crear asignación con los datos resueltos':'Faltan datos por resolver'} onClick={()=>addPendingAssignment(entry)}>Añadir</button>
+              <button type="button" className="btn pending-inline" onClick={()=>togglePendingOrganization(entry.id)}>Pendiente de organizar</button>
+            </div>
+          </article>
+        })}
+        {pendingOrganizationEntries.map(entry=>{
+          const group=project.groups.find(item=>item.id===entry.groupId)
+          const subject=project.subjects.find(item=>item.id===entry.subjectId)
+          return <article key={entry.id} className="assignment-missing-item is-pending-organization">
+            <div className="assignment-missing-copy">
+              <span><strong>{group?.name??'Grupo'}</strong> · {subject?.name??'Materia'}</span>
+              <small>{entry.weeklySessions>0?`${entry.weeklySessions} ses./sem.`:''}{entry.weeklyMinutes?`${entry.weeklySessions>0?' · ':''}${entry.weeklyMinutes} min/sem.`:''} · Pendiente de organizar</small>
+            </div>
+            <div className="assignment-missing-actions">
+              <button type="button" className="btn ghost-inline" onClick={()=>editPendingAssignment(entry)}>Editar</button>
+              <button type="button" className="btn pending-inline active" onClick={()=>togglePendingOrganization(entry.id)}>Reabrir</button>
             </div>
           </article>
         })}
@@ -585,7 +611,7 @@ export function AssignmentsPage({
       <p>{validation.length
         ? `${validation[0]} Revisa la asignación o disponibilidad relacionada y corrige el docente, grupo, materia o carga indicada.`
         : activeAssignments.length
-          ? `${activeAssignments.length} asignaciones activas · ${coveredStudyEntries}/${totalStudyEntries} cargas del plan cubiertas · ${teachersWithAssignments} docentes implicados. Las referencias activas son coherentes.`
+          ? `${activeAssignments.length} asignaciones activas · ${coveredStudyEntries} cargas asignadas${pendingOrganizationEntries.length?` · ${pendingOrganizationEntries.length} pendientes de organizar`:''} · ${teachersWithAssignments} docentes implicados. Las cargas pendientes de organizar han sido revisadas y no bloquean el paso siguiente.`
           : 'Todavía no hay asignaciones docentes. Vincula las cargas del Plan de estudios con el profesorado correspondiente.'}</p>
       {validation.length>0&&<button type="button" className="section-status-action" onClick={()=>document.querySelector('.groups-table-card')?.scrollIntoView({behavior:'smooth',block:'start'})}>Revisar asignaciones</button>}
       {!validation.length&&!activeAssignments.length&&<button type="button" className="section-status-action" onClick={openCreate}>Añadir asignación</button>}
