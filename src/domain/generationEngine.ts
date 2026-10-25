@@ -6,6 +6,7 @@ import type {
   ViyeuticaProject,
   Weekday,
 } from './project'
+import { effectiveTeacherTeachingMinutes } from './project'
 import {
   fixedSlotFromRule,
   softRuleFinalCost,
@@ -73,6 +74,16 @@ function hardAllows(project:ViyeuticaProject,assignment:TeachingAssignment,slot:
   if(occupancy.group.has(assignment.groupId+'|'+key)) return false
   if(occupancy.teacher.has(assignment.teacherId+'|'+key)) return false
   if(unavailable(project,assignment.teacherId,slot)) return false
+
+  const teacher=project.teachers.find(item=>item.id===assignment.teacherId&&item.active)
+  const effectiveMaximum=teacher?effectiveTeacherTeachingMinutes(teacher):null
+  if(effectiveMaximum!==null){
+    const durationBySession=new Map(slots.map(item=>[item.sessionId,item.duration]))
+    const alreadyAssigned=entries
+      .filter(entry=>entry.teacherId===assignment.teacherId)
+      .reduce((total,entry)=>total+(durationBySession.get(entry.sessionId)??0),0)
+    if(alreadyAssigned+slot.duration>effectiveMaximum)return false
+  }
 
   const orderBySession=new Map(slots.map(item=>[item.sessionId,item.order]))
   for(const rule of project.rules.filter(r=>r.active&&r.ruleType==='HARD')){
@@ -454,6 +465,15 @@ function generateAttempt(project:ViyeuticaProject,attempt:number){
       if(placed>=needed) break
       const teacherKey=assignment.teacherId+'|'+slot.day+'|'+slot.sessionId
       if(occupancy.teacher.has(teacherKey)||unavailable(project,assignment.teacherId,slot)) continue
+      const supportTeacher=project.teachers.find(item=>item.id===assignment.teacherId&&item.active)
+      const supportMaximum=supportTeacher?effectiveTeacherTeachingMinutes(supportTeacher):null
+      if(supportMaximum!==null){
+        const durationBySession=new Map(slots.map(item=>[item.sessionId,item.duration]))
+        const alreadyAssigned=entries
+          .filter(entry=>entry.teacherId===assignment.teacherId)
+          .reduce((total,entry)=>total+(durationBySession.get(entry.sessionId)??0),0)
+        if(alreadyAssigned+slot.duration>supportMaximum)continue
+      }
       // Para apoyo/codocencia permitimos compartir grupo, pero no docente.
       const entry:GeneratedScheduleEntry={
         id:uid('slot'),assignmentId:assignment.id,groupId:assignment.groupId,
