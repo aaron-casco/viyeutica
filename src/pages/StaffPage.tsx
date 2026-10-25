@@ -260,27 +260,6 @@ export function StaffPage({
         <p>{validation[0]??'Todos los docentes activos tienen al menos una especialidad.'}</p>
       </article>
 
-      <section className="staff-info-grid">
-        <article className="panel compact-info-panel"><BriefcaseBusiness size={22}/><div><strong>Dedicaciones estructuradas</strong><p>Dirección, coordinaciones, reducciones y otros programas guardan ahora su carga semanal en periodos o minutos.</p></div></article>
-        <article className="panel compact-info-panel"><Clock3 size={22}/><div><strong>Carga lectiva</strong><p>El valor manual es el objetivo o máximo. La carga realmente asignada se calculará después a partir de Asignaciones y del horario generado.</p></div></article>
-        <article className="panel compact-info-panel"><GraduationCap size={22}/><div><strong>Tutorías vinculadas</strong><p>La tutoría se guarda directamente en cada grupo. Un grupo ya tutorado por otro docente queda bloqueado en el selector.</p></div></article>
-      </section>
-
-      <div className="staff-template-full">
-        <TemplatePanel
-          title="Plantilla del curso anterior"
-          description="Si has importado un JSON, conserva la plantilla docente para revisar únicamente cambios de este curso."
-          actions={[
-            {
-              id:'imported-staff',
-              label:'Revisar plantilla importada',
-              description:project.teachers.length?`${project.teachers.length} ${project.teachers.length===1?'docente disponible':'docentes disponibles'}`:'No hay profesorado importado',
-              disabled:project.teachers.length===0,
-              onApply:applyImportedTemplate,
-            },
-          ]}
-        />
-      </div>
     </section>
 
     {modalOpen&&<div className="modal-backdrop staff-modal-backdrop" role="presentation">
@@ -420,6 +399,22 @@ export function StaffPage({
           </table>
         </div>}
     </section>
+
+    <div className="staff-template-full">
+        <TemplatePanel
+          title="Plantilla del curso anterior"
+          description="Si has importado un JSON, conserva la plantilla docente para revisar únicamente cambios de este curso."
+          actions={[
+            {
+              id:'imported-staff',
+              label:'Revisar plantilla importada',
+              description:project.teachers.length?`${project.teachers.length} ${project.teachers.length===1?'docente disponible':'docentes disponibles'}`:'No hay profesorado importado',
+              disabled:project.teachers.length===0,
+              onApply:applyImportedTemplate,
+            },
+          ]}
+        />
+      </div>
 
     <section className="staff-info-grid">
       <article className="panel compact-info-panel"><BriefcaseBusiness size={22}/><div><strong>Dedicaciones estructuradas</strong><p>Dirección, coordinaciones, reducciones y otros programas guardan ahora su carga semanal en periodos o minutos.</p></div></article>
