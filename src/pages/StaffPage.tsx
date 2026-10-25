@@ -380,26 +380,100 @@ export function StaffPage({
         ? <div className="groups-empty"><UserRoundCog size={28}/><strong>No hay docentes todavía</strong><p>Añádelos manualmente o importa el JSON del curso anterior.</p></div>
         : <div className="groups-table-wrap">
           <table className="groups-table staff-table">
-            <thead><tr><th>Docente</th><th>Estado</th><th>Jornada</th><th>Especialidades</th><th>Cargos / funciones</th><th>Carga lectiva</th><th>Estado</th><th/></tr></thead>
-            <tbody>{teachers.map(teacher=><tr key={teacher.id} className={!teacher.active?'is-inactive':''}>
-              <td><strong>{teacher.name}</strong></td>
-              <td>{teacher.status==='confirmed'?<span className="tag">Confirmado</span>:<span className="tag amber">Por determinar</span>}</td>
-              <td>{employmentLabels[teacher.employmentType]}</td>
-              <td>{teacher.specialties.length?teacher.specialties.join(', '):'—'}</td>
-              <td>{teacher.roles.length?teacher.roles.join(', '):'—'}</td>
-              <td>{teacher.weeklyTeachingMinutes===null?'—':formatMinutes(teacher.weeklyTeachingMinutes)}</td>
-              <td><button className={'status-toggle '+(teacher.active?'active':'')} onClick={()=>toggleActive(teacher.id)}>{teacher.active?'Activo':'Inactivo'}</button></td>
-              <td><div className="row-actions"><button title="Editar" onClick={()=>edit(teacher)}><Pencil size={15}/></button><button title="Eliminar" className="danger" onClick={()=>remove(teacher.id)}><Trash2 size={15}/></button></div></td>
-            </tr>)}</tbody>
+            <thead><tr><th>Docente</th><th>Estado</th><th>Jornada</th><th>Especialidades</th><th>Tutoría</th><th>Dedicaciones</th><th>Carga objetivo</th><th>Estado</th><th/></tr></thead>
+            <tbody>{teachers.map(teacher=>{
+              const tutorGroups=project.groups.filter(group=>group.tutorTeacherId===teacher.id)
+              const dedications=teacher.dedications??[]
+              return <tr key={teacher.id} className={!teacher.active?'is-inactive':''}>
+                <td><strong>{teacher.name}</strong>{teacher.roles.length>0&&<small className="staff-row-detail">{teacher.roles.join(', ')}</small>}</td>
+                <td>{teacher.status==='confirmed'?<span className="tag">Confirmado</span>:<span className="tag amber">Por determinar</span>}</td>
+                <td>{employmentLabels[teacher.employmentType]}</td>
+                <td>{teacher.specialties.length?teacher.specialties.join(', '):'—'}</td>
+                <td>{tutorGroups.length?tutorGroups.map(group=>group.name).join(', '):'—'}</td>
+                <td>{dedications.length?dedications.map(item=>item.label).join(', '):'—'}</td>
+                <td>{teacher.weeklyTeachingMinutes===null?'—':formatMinutes(teacher.weeklyTeachingMinutes)}</td>
+                <td><button className={'status-toggle '+(teacher.active?'active':'')} onClick={()=>toggleActive(teacher.id)}>{teacher.active?'Activo':'Inactivo'}</button></td>
+                <td><div className="row-actions"><button title="Editar" onClick={()=>edit(teacher)}><Pencil size={15}/></button><button title="Eliminar" className="danger" onClick={()=>remove(teacher.id)}><Trash2 size={15}/></button></div></td>
+              </tr>
+            })}</tbody>
           </table>
         </div>}
     </section>
 
     <section className="staff-info-grid">
-      <article className="panel compact-info-panel"><BriefcaseBusiness size={22}/><div><strong>Cargos y reducciones</strong><p>De momento se registran como funciones del docente. En Reglas y Asignaciones se convertirán en restricciones temporales y reducciones de carga.</p></div></article>
-      <article className="panel compact-info-panel"><Clock3 size={22}/><div><strong>Disponibilidad</strong><p>La disponibilidad detallada por día/sesión se editará en el Paso 6 junto con las asignaciones para evitar duplicar información.</p></div></article>
-      <article className="panel compact-info-panel"><GraduationCap size={22}/><div><strong>Tutorías</strong><p>Las tutorías existentes en el JSON se conservarán; las nuevas se vincularán al configurar las asignaciones.</p></div></article>
+      <article className="panel compact-info-panel"><BriefcaseBusiness size={22}/><div><strong>Dedicaciones estructuradas</strong><p>Dirección, coordinaciones, reducciones y otros programas guardan ahora su carga semanal en periodos o minutos.</p></div></article>
+      <article className="panel compact-info-panel"><Clock3 size={22}/><div><strong>Carga lectiva</strong><p>El valor manual es el objetivo o máximo. La carga realmente asignada se calculará después a partir de Asignaciones y del horario generado.</p></div></article>
+      <article className="panel compact-info-panel"><GraduationCap size={22}/><div><strong>Tutorías vinculadas</strong><p>La tutoría se guarda directamente en cada grupo. Un grupo ya tutorado por otro docente queda bloqueado en el selector.</p></div></article>
     </section>
+  </div>
+}
+
+type StaffMultiCheckOption={value:string;label:string;disabled?:boolean}
+
+function StaffMultiCheck({
+  placeholder,
+  options,
+  values,
+  onChange,
+  disabled=false,
+}:{
+  placeholder:string
+  options:StaffMultiCheckOption[]
+  values:string[]
+  onChange:(values:string[])=>void
+  disabled?:boolean
+}){
+  const [open,setOpen]=useState(false)
+  const rootRef=useRef<HTMLDivElement>(null)
+
+  useEffect(()=>{
+    const closeOutside=(event:PointerEvent)=>{
+      if(open&&rootRef.current&&!rootRef.current.contains(event.target as Node))setOpen(false)
+    }
+    document.addEventListener('pointerdown',closeOutside)
+    return ()=>document.removeEventListener('pointerdown',closeOutside)
+  },[open])
+
+  const toggle=(option:StaffMultiCheckOption)=>{
+    if(option.disabled)return
+    onChange(values.includes(option.value)
+      ? values.filter(value=>value!==option.value)
+      : [...values,option.value])
+  }
+
+  const selectedLabels=values
+    .map(value=>options.find(option=>option.value===value)?.label)
+    .filter(Boolean) as string[]
+  const summary=values.length===0
+    ? placeholder
+    : selectedLabels.length<=2
+      ? selectedLabels.join(', ')
+      : values.length+' seleccionados'
+
+  return <div
+    ref={rootRef}
+    className={'multicheck-field staff-tutor-multicheck'+(disabled?' disabled':'')}
+    onBlur={event=>{
+      const next=event.relatedTarget as Node|null
+      if(!next||!event.currentTarget.contains(next))setOpen(false)
+    }}
+  >
+    <div className={'multicheck-select'+(open?' open':'')}>
+      <button type="button" className="multicheck-trigger" disabled={disabled} aria-expanded={open} onClick={()=>setOpen(current=>!current)}>
+        <span className={values.length?'has-value':'placeholder'}>{summary}</span>
+        <ChevronDown size={16}/>
+      </button>
+      {open&&!disabled&&<div className="multicheck-menu">
+        <div className="multicheck-options">
+          {options.map(option=><label key={option.value} className={'multicheck-option'+(option.disabled?' disabled':'')}>
+            <input type="checkbox" checked={values.includes(option.value)} disabled={option.disabled} onChange={()=>toggle(option)}/>
+            <span>{option.label}</span>
+          </label>)}
+          {!options.length&&<div className="multicheck-empty">No hay grupos activos disponibles</div>}
+        </div>
+        {values.length>0&&<button type="button" className="multicheck-clear" onClick={()=>onChange([])}>Limpiar selección</button>}
+      </div>}
+    </div>
   </div>
 }
 
