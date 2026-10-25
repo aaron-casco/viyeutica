@@ -1736,3 +1736,7 @@ button.btn:disabled:hover{
 .assignment-load-source{grid-column:1/-1;display:flex;align-items:center;gap:7px;margin-top:-2px;padding:8px 10px;border:1px solid #cfe3bf;border-radius:9px;background:#f6fbf2;color:#4d7f2c;font-size:9.5px;font-weight:700;line-height:1.4}
 .assignment-load-source svg{flex:0 0 auto}
 [data-theme="dark"] .assignment-load-source{background:#172619;border-color:#426a32;color:#9edc73}
+
+.assignment-teacher-source{grid-column:1/-1;display:flex;align-items:center;gap:7px;margin-top:-4px;padding:8px 10px;border:1px solid #cbdcf0;border-radius:9px;background:#f6f9fe;color:#355d86;font-size:9.5px;font-weight:700;line-height:1.4}
+.assignment-teacher-source svg{flex:0 0 auto}
+[data-theme="dark"] .assignment-teacher-source{background:#111c2b;border-color:#294a6f;color:#91bde8}
