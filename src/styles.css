@@ -1747,3 +1747,10 @@ button.btn:disabled:hover{
 .assignment-teacher-filter-reset:hover{text-decoration:underline}
 
 @media(max-width:700px){.assignment-missing-item{grid-template-columns:1fr}.assignment-missing-actions{justify-content:flex-start}}
+
+.assignment-missing-item.is-pending-organization{border-style:dashed;background:#fffaf0}
+.assignment-missing-actions .pending-inline{border:1px solid #d8b45b;background:#fff7dc;color:#7a5a12}
+.assignment-missing-actions .pending-inline:hover{border-color:#b78d2c;background:#fff1c4}
+.assignment-missing-actions .pending-inline.active{background:#f6ead0;border-color:#c9a455}
+[data-theme="dark"] .assignment-missing-item.is-pending-organization{background:#282113;border-color:#6a5729}
+[data-theme="dark"] .assignment-missing-actions .pending-inline{background:#312814;border-color:#6b5828;color:#e3c979}
