@@ -402,11 +402,13 @@ button.wizard-step:focus-visible{outline:3px solid rgba(89,180,17,.22);outline-o
 .assignment-progress-alert-icon{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:#fff1b8;color:#8a6a12}
 .assignment-progress-alert strong{font-size:11px}.assignment-progress-alert p{margin:4px 0 9px;color:#745f25;font-size:9.5px;line-height:1.45}
 .assignment-missing-list{display:grid;gap:7px}
-.assignment-missing-list button{text-align:left;border:1px solid #ead899;border-radius:10px;background:#fffdf6;padding:9px 10px;color:inherit;cursor:pointer}
-.assignment-missing-list button:hover{border-color:#caae55;transform:translateY(-1px)}
-.assignment-missing-list span,.assignment-missing-list small{display:block}
-.assignment-missing-list span{font-size:9.5px}.assignment-missing-list small{margin-top:2px;color:#806c36;font-size:8.5px}
-[data-theme="dark"] .assignment-progress-alert{background:#2a2414;border-color:#5d5127}.assignment-progress-alert-icon{background:#3c3316;color:#e2c66b}[data-theme="dark"] .assignment-progress-alert p{color:#d6c784}[data-theme="dark"] .assignment-missing-list button{background:#221f14;border-color:#554b27}[data-theme="dark"] .assignment-missing-list small{color:#c7b778}
+.assignment-missing-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;border:1px solid #ead899;border-radius:10px;background:#fffdf6;padding:9px 10px}
+.assignment-missing-copy span,.assignment-missing-copy small{display:block}
+.assignment-missing-copy span{font-size:9.5px}.assignment-missing-copy small{margin-top:2px;color:#806c36;font-size:8.5px}
+.assignment-missing-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.assignment-missing-actions .btn{min-height:32px;padding:6px 10px}
+.assignment-missing-actions .btn:disabled{opacity:.45;cursor:not-allowed}
+[data-theme="dark"] .assignment-progress-alert{background:#2a2414;border-color:#5d5127}.assignment-progress-alert-icon{background:#3c3316;color:#e2c66b}[data-theme="dark"] .assignment-progress-alert p{color:#d6c784}[data-theme="dark"] .assignment-missing-item{background:#221f14;border-color:#554b27}[data-theme="dark"] .assignment-missing-copy small{color:#c7b778}
 
 
 /* === Visual rule condition builder === */
@@ -1743,3 +1745,5 @@ button.btn:disabled:hover{
 
 .assignment-teacher-filter-reset{margin-top:6px;justify-self:start;border:0;background:transparent;color:var(--navy2);font-size:9px;font-weight:800;cursor:pointer;padding:0}
 .assignment-teacher-filter-reset:hover{text-decoration:underline}
+
+@media(max-width:700px){.assignment-missing-item{grid-template-columns:1fr}.assignment-missing-actions{justify-content:flex-start}}
