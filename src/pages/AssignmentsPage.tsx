@@ -529,7 +529,7 @@ export function AssignmentsPage({
     {templateMessage&&<div className="template-result"><CheckCircle2 size={16}/><span>{templateMessage}</span></div>}
 
     <section className="groups-table-card">
-      <div className="groups-table-heading"><div><span className="panel-kicker">Matriz docente</span><h2>Asignaciones configuradas</h2></div><div className="groups-table-actions"><button className="btn ghost-inline" onClick={()=>{setBulkSubjectId('');setBulkTeacherId('');setBulkModalOpen(true)}}><UsersRound size={16}/> Asignar materia a grupos</button><button className="btn ghost-inline" onClick={openCreate}><Plus size={16}/> Añadir asignación</button></div></div>
+      <div className="groups-table-heading"><div><span className="panel-kicker">Matriz docente</span><h2>Asignaciones configuradas</h2></div><div className="groups-table-actions"><button className="btn ghost-inline" onClick={()=>{setBulkSubjectId('');setBulkTeacherId('');setBulkModalOpen(true)}}><UsersRound size={16}/> Asignar materia a docente</button><button className="btn ghost-inline" onClick={openCreate}><Plus size={16}/> Añadir asignación</button></div></div>
       {project.assignments.length===0
         ? <div className="groups-empty"><UsersRound size={28}/><strong>No hay asignaciones todavía</strong><p>Asigna profesorado manualmente, importa el JSON anterior o completa los casos inequívocos.</p></div>
         : <div className="groups-table-wrap"><table className="groups-table assignments-table">
