@@ -91,7 +91,7 @@ const uid=()=> 'rule_'+crypto.randomUUID()
 type ConditionField='comparison'|'teacherId'|'groupId'|'subjectId'|'stage'|'day'|'sessionId'|'value'
 
 const CONDITION_FIELDS:Record<string,ConditionField[]>={
-  generic:['comparison','teacherId','groupId','subjectId','stage','day','sessionId','value'],
+  generic:[],
   availability:['comparison','teacherId','groupId','subjectId','day','sessionId'],
   daily_limit:['comparison','teacherId','groupId','subjectId','value'],
   consecutive_limit:['comparison','teacherId','groupId','subjectId','value'],
@@ -646,6 +646,19 @@ export function RulesPage({
     <WizardStepper currentStep={7} project={project} navigate={navigate}/>
 
     {auditFocus&&<section className="template-result audit-context-banner"><CheckCircle2 size={16}/><span>{auditFocus}</span></section>}
+
+    <section className="rule-engine-safeguards">
+      <div>
+        <span className="panel-kicker">PROTECCIONES DEL MOTOR</span>
+        <strong>Restricciones estructurales aplicadas automáticamente</strong>
+        <p>No es necesario crearlas como reglas manuales: el generador las comprueba siempre al colocar cada sesión.</p>
+      </div>
+      <div className="rule-engine-safeguard-list">
+        <span><CheckCircle2 size={14}/> Sin solape de profesorado</span>
+        <span><CheckCircle2 size={14}/> Sin solape de grupos</span>
+        <span><CheckCircle2 size={14}/> Respeto de indisponibilidades y desplazamientos</span>
+      </div>
+    </section>
 
     <section className="structure-summary">
       <Summary label="Reglas activas" value={String(activeRules.length)} detail="total aplicable"/>
@@ -1232,16 +1245,16 @@ function RuleConditionGuide({draft,project}:{draft:Draft;project:ViyeuticaProjec
       title=`Selecciona el ámbito para ${condition}`
       message='El ámbito determina sobre qué elemento se aplicará y cómo se contará la regla.'
     }else if(draft.conditionKind==='generic'&&draft.scope==='teacher'&&teachers.length===0){
-      title='Regla general para todo el profesorado'
-      message='No necesitas seleccionar Profesor/a. Al dejarlo vacío, la regla se aplicará a todo el profesorado activo.'
+      title='Condición general descriptiva para todo el profesorado'
+      message='No necesita Profesor/a, Comparación ni Valor. Úsala solo para documentar una condición general; las restricciones estructurales del generador se aplican automáticamente.'
       tone='complete'
     }else if(draft.conditionKind==='generic'&&draft.scope==='group'&&groups.length===0){
-      title='Regla general para todos los grupos'
-      message='No necesitas seleccionar Grupo. Al dejarlo vacío, la regla se aplicará a todos los grupos activos.'
+      title='Condición general descriptiva para todos los grupos'
+      message='No necesita Grupo, Comparación ni Valor. Úsala solo para documentar una condición general; las restricciones estructurales del generador se aplican automáticamente.'
       tone='complete'
     }else if(draft.conditionKind==='generic'&&draft.scope==='subject'&&subjects.length===0){
-      title='Regla general para todas las materias'
-      message='No necesitas seleccionar Materia. Al dejarlo vacío, la regla se aplicará a todas las materias activas.'
+      title='Condición general descriptiva para todas las materias'
+      message='No necesita Materia, Comparación ni Valor. Úsala solo para documentar una condición general.'
       tone='complete'
     }else if(draft.scope==='teacher'&&teachers.length===0&&conditionUses(draft.conditionKind,'teacherId')){
       title=`Selecciona Profesor/a para ${condition}`
