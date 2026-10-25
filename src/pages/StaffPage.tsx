@@ -254,12 +254,19 @@ export function StaffPage({
     </section>
 
     <section className="staff-main-tools">
-      <aside className="wizard-aside staff-main-aside">
-        <article className={'aside-card validation '+(validation.length===0&&activeTeachers.length?'ready':'')}>
-          <span className="panel-kicker">Prevalidación</span>
-          <strong>{validation.length===0&&activeTeachers.length?'Plantilla válida':validation.length?`${validation.length} ${validation.length===1?'incidencia':'incidencias'}`:'Sin profesorado'}</strong>
-          <p>{validation[0]??'Todos los docentes activos tienen al menos una especialidad.'}</p>
-        </article>
+      <article className={'aside-card validation staff-prevalidation-card '+(validation.length===0&&activeTeachers.length?'ready':'')}>
+        <span className="panel-kicker">Prevalidación</span>
+        <strong>{validation.length===0&&activeTeachers.length?'Plantilla válida':validation.length?`${validation.length} ${validation.length===1?'incidencia':'incidencias'}`:'Sin profesorado'}</strong>
+        <p>{validation[0]??'Todos los docentes activos tienen al menos una especialidad.'}</p>
+      </article>
+
+      <section className="staff-info-grid">
+        <article className="panel compact-info-panel"><BriefcaseBusiness size={22}/><div><strong>Dedicaciones estructuradas</strong><p>Dirección, coordinaciones, reducciones y otros programas guardan ahora su carga semanal en periodos o minutos.</p></div></article>
+        <article className="panel compact-info-panel"><Clock3 size={22}/><div><strong>Carga lectiva</strong><p>El valor manual es el objetivo o máximo. La carga realmente asignada se calculará después a partir de Asignaciones y del horario generado.</p></div></article>
+        <article className="panel compact-info-panel"><GraduationCap size={22}/><div><strong>Tutorías vinculadas</strong><p>La tutoría se guarda directamente en cada grupo. Un grupo ya tutorado por otro docente queda bloqueado en el selector.</p></div></article>
+      </section>
+
+      <div className="staff-template-full">
         <TemplatePanel
           title="Plantilla del curso anterior"
           description="Si has importado un JSON, conserva la plantilla docente para revisar únicamente cambios de este curso."
@@ -273,7 +280,7 @@ export function StaffPage({
             },
           ]}
         />
-      </aside>
+      </div>
     </section>
 
     {modalOpen&&<div className="modal-backdrop staff-modal-backdrop" role="presentation">
