@@ -254,10 +254,16 @@ export function StaffPage({
     </section>
 
     <section className="staff-main-tools">
-      <article className={'aside-card validation staff-prevalidation-card '+(validation.length===0&&activeTeachers.length?'ready':'')}>
-        <span className="panel-kicker">Prevalidación</span>
-        <strong>{validation.length===0&&activeTeachers.length?'Plantilla válida':validation.length?`${validation.length} ${validation.length===1?'incidencia':'incidencias'}`:'Sin profesorado'}</strong>
-        <p>{validation[0]??'Todos los docentes activos tienen al menos una especialidad.'}</p>
+      <article className={'aside-card validation section-prevalidation-card '+(validation.length?'error':activeTeachers.length?'ready':'incomplete')}>
+        <span className="panel-kicker">ESTADO:</span>
+        <strong>{validation.length?'Sección Profesorado con errores':activeTeachers.length?'Sección Profesorado válida':'Sección Profesorado incompleta'}</strong>
+        <p>{validation.length
+          ? `${validation[0]} Edita el docente afectado y completa o corrige sus datos antes de continuar.`
+          : activeTeachers.length
+            ? `${activeTeachers.length} docentes activos · ${confirmed} confirmados · ${pending} por determinar · ${itinerant} itinerantes. Todos los docentes activos tienen al menos una especialidad válida.`
+            : 'Todavía no hay profesorado activo. Añade al menos un docente con nombre y especialidad para poder continuar.'}</p>
+        {validation.length>0&&<button type="button" className="section-status-action" onClick={()=>document.querySelector('.groups-table-card')?.scrollIntoView({behavior:'smooth',block:'start'})}>Revisar profesorado</button>}
+        {!validation.length&&!activeTeachers.length&&<button type="button" className="section-status-action" onClick={openCreate}>Añadir docente</button>}
       </article>
 
     </section>
