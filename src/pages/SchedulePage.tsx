@@ -10,6 +10,7 @@ import {
   timeBlockDuration,
   validateSchedule,
   type EducationStage,
+  type ScheduleMode,
   type TimeBlock,
   type TimeBlockType,
   type ViyeuticaProject,
