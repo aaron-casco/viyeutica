@@ -54,6 +54,7 @@ export function GroupsPage({
   const [editingId,setEditingId] = useState<string | null>(null)
   const [error,setError] = useState('')
   const [stageFilter,setStageFilter] = useState<'all'|EducationStage>('all')
+  const [modalOpen,setModalOpen] = useState(false)
   const groups = project.groups ?? []
   const allowedStages = project.center.stages
 
@@ -73,6 +74,14 @@ export function GroupsPage({
     setDraft(emptyDraft)
     setEditingId(null)
     setError('')
+    setModalOpen(false)
+  }
+
+  const openCreate = () => {
+    setDraft(emptyDraft)
+    setEditingId(null)
+    setError('')
+    setModalOpen(true)
   }
 
   const persistGroups = (next: SchoolGroup[]) => {
@@ -133,7 +142,7 @@ export function GroupsPage({
       notes:group.notes,
     })
     setError('')
-    window.scrollTo({top:0,behavior:'smooth'})
+    setModalOpen(true)
   }
 
   const remove = (id:string) => {
@@ -199,80 +208,40 @@ export function GroupsPage({
       <Summary label="Alumnado" value={studentTotal ? String(studentTotal) : '—'} detail="total agregado informado"/>
     </section>
 
-    <section className="groups-layout">
-      <form className="form-card compact-form-card" onSubmit={submit}>
-        <div className="form-card-heading">
-          <div className="form-card-number">02</div>
-          <div>
-            <span className="panel-kicker">{editingId?'Edición':'Nueva unidad'}</span>
-            <h2>{editingId?'Editar grupo':'Añadir grupo'}</h2>
-            <p>Los tutores se asignarán cuando exista la plantilla docente en el paso 5.</p>
-          </div>
-        </div>
+    <article className={'aside-card validation section-prevalidation-card '+(complete?'ready':'')}>
+      <span className="panel-kicker">Prevalidación</span>
+      <strong>{complete?'Estructura válida':'Estructura incompleta'}</strong>
+      <p>{complete?'Todas las etapas seleccionadas tienen al menos un grupo activo.':'Crea al menos un grupo en cada etapa seleccionada.'}</p>
+    </article>
 
-        <div className="form-grid two">
-          <Field label="Etapa" required>
-            <select value={draft.stage} onChange={e => setDraft({...draft,stage:e.target.value as EducationStage,level:''})}>
-              <option value="">Selecciona...</option>
-              {allowedStages.map(stage => <option key={stage} value={stage}>{stage}</option>)}
-            </select>
-          </Field>
-          <Field label="Nivel" required>
-            <select value={draft.level} disabled={!draft.stage} onChange={e => setDraft({...draft,level:e.target.value})}>
-              <option value="">{draft.stage?'Selecciona...':'Selecciona primero la etapa'}</option>
-              {levels.map(level => <option key={level} value={level}>{level}</option>)}
-            </select>
-          </Field>
-          <Field label="Línea / grupo" required>
-            <input value={draft.line} maxLength={8} onChange={e => setDraft({...draft,line:e.target.value})} placeholder="A"/>
-          </Field>
-          <Field label="Número de alumnos">
-            <input type="number" min="0" max="99" value={draft.students} onChange={e => setDraft({...draft,students:e.target.value})} placeholder="Opcional"/>
-          </Field>
-          <Field label="Aula ordinaria">
-            <input value={draft.classroom} onChange={e => setDraft({...draft,classroom:e.target.value})} placeholder="Ej. Aula 1º A"/>
-          </Field>
-          <label className="checkbox-field">
-            <input type="checkbox" checked={draft.combined} onChange={e => setDraft({...draft,combined:e.target.checked})}/>
-            <span><strong>Grupo combinado</strong><small>Unidad que agrupa alumnado de más de un nivel.</small></span>
-          </label>
-        </div>
-        <label className="form-field notes-field">
-          <span>Observaciones</span>
-          <textarea value={draft.notes} onChange={e => setDraft({...draft,notes:e.target.value})} placeholder="Información útil para la planificación..."/>
-        </label>
-        {error && <div className="inline-error">{error}</div>}
-        <div className={'form-guide '+(groupReady?'complete':'partial')}><strong>{groupReady?'Grupo listo':'Siguiente paso'}</strong><span>{groupGuide}</span></div>
-
-        <div className="form-actions">
-          <button type="button" className="btn secondary-light" onClick={() => navigate('/configuracion')}><ArrowLeft size={16}/> Paso anterior</button>
-          <div className="form-actions-right">
-            {editingId && <button type="button" className="btn ghost-inline" onClick={resetDraft}>Cancelar</button>}
-            <button type="submit" className="btn primary" disabled={!groupReady}><Save size={16}/>{editingId?'Guardar cambios':'Añadir grupo'}</button>
+    {modalOpen&&<div className="modal-backdrop section-form-modal-backdrop">
+      <form className="app-modal section-form-modal" onSubmit={submit} role="dialog" aria-modal="true" aria-label={editingId?'Editar grupo':'Añadir grupo'}>
+        <div className="app-modal-header"><div><LayoutGrid size={20}/><h2>{editingId?'Editar grupo':'Añadir grupo'}</h2></div></div>
+        <div className="app-modal-body">
+          <div className="form-card-heading">
+            <div className="form-card-number">02</div>
+            <div><span className="panel-kicker">{editingId?'Edición':'Nueva unidad'}</span><h2>{editingId?'Editar grupo':'Añadir grupo'}</h2><p>Los tutores se asignarán cuando exista la plantilla docente en el paso 5.</p></div>
           </div>
+          <div className="form-grid two">
+            <Field label="Etapa" required><select value={draft.stage} onChange={e => setDraft({...draft,stage:e.target.value as EducationStage,level:''})}><option value="">Selecciona...</option>{allowedStages.map(stage => <option key={stage} value={stage}>{stage}</option>)}</select></Field>
+            <Field label="Nivel" required><select value={draft.level} disabled={!draft.stage} onChange={e => setDraft({...draft,level:e.target.value})}><option value="">{draft.stage?'Selecciona...':'Selecciona primero la etapa'}</option>{levels.map(level => <option key={level} value={level}>{level}</option>)}</select></Field>
+            <Field label="Línea / grupo" required><input value={draft.line} maxLength={8} onChange={e => setDraft({...draft,line:e.target.value})} placeholder="A"/></Field>
+            <Field label="Número de alumnos"><input type="number" min="0" max="99" value={draft.students} onChange={e => setDraft({...draft,students:e.target.value})} placeholder="Opcional"/></Field>
+            <Field label="Aula ordinaria"><input value={draft.classroom} onChange={e => setDraft({...draft,classroom:e.target.value})} placeholder="Ej. Aula 1º A"/></Field>
+            <label className="checkbox-field"><input type="checkbox" checked={draft.combined} onChange={e => setDraft({...draft,combined:e.target.checked})}/><span><strong>Grupo combinado</strong><small>Unidad que agrupa alumnado de más de un nivel.</small></span></label>
+          </div>
+          <label className="form-field notes-field"><span>Observaciones</span><textarea value={draft.notes} onChange={e => setDraft({...draft,notes:e.target.value})} placeholder="Información útil para la planificación..."/></label>
+          {error && <div className="inline-error">{error}</div>}
+          <div className={'form-guide '+(groupReady?'complete':'partial')}><strong>{groupReady?'Grupo listo':'Siguiente paso'}</strong><span>{groupGuide}</span></div>
         </div>
+        <div className="app-modal-footer"><button type="button" className="btn ghost-inline" onClick={resetDraft}>Cancelar</button><button type="submit" className="btn primary" disabled={!groupReady}>Aceptar</button></div>
       </form>
-
-      <aside className="wizard-aside">
-        <article className={'aside-card validation '+(complete?'ready':'')}>
-          <span className="panel-kicker">Estado</span>
-          <strong>{complete?'Estructura válida':'Estructura incompleta'}</strong>
-          <p>{complete?'Todas las etapas seleccionadas tienen al menos un grupo activo.':'Crea al menos un grupo en cada etapa seleccionada.'}</p>
-        </article>
-        <TemplatePanel
-          title="Estructura estándar"
-          description="Genera una línea A para todos los niveles ordinarios de las etapas seleccionadas. No elimina ni sobrescribe grupos existentes."
-          actions={[
-            {id:'standard-a',label:'Cargar plantilla estándar',description:'Una línea A por nivel',onApply:generateStandard},
-          ]}
-        />
-      </aside>
-    </section>
+    </div>}
 
     <section className="groups-table-card">
       <div className="groups-table-heading">
         <div><span className="panel-kicker">Unidades del curso</span><h2>Grupos creados</h2></div>
-        <button className="btn ghost-inline" onClick={() => {resetDraft();window.scrollTo({top:0,behavior:'smooth'})}}><Plus size={16}/> Nuevo grupo</button>
+        <button className="btn ghost-inline" onClick={openCreate}><Plus size={16}/> Añadir grupo</button>
       </div>
       {groups.length>0&&<div className="list-filter-tags" aria-label="Filtrar grupos por etapa">
         <button type="button" className={stageFilter==='all'?'active':''} onClick={()=>setStageFilter('all')}>Todos</button>
@@ -298,6 +267,16 @@ export function GroupsPage({
         </table>
       </div>}
     </section>
+
+    <div className="section-template-full">
+      <TemplatePanel
+        title="Estructura estándar"
+        description="Genera una línea A para todos los niveles ordinarios de las etapas seleccionadas. No elimina ni sobrescribe grupos existentes."
+        actions={[
+          {id:'standard-a',label:'Cargar plantilla estándar',description:'Una línea A por nivel',onApply:generateStandard},
+        ]}
+      />
+    </div>
   </div>
 }
 
