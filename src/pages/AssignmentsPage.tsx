@@ -411,10 +411,16 @@ export function AssignmentsPage({
       </div>
     </section>}
 
-    <article className={'aside-card validation section-prevalidation-card '+(validation.length===0&&activeAssignments.length?'ready':'')}>
-      <span className="panel-kicker">Prevalidación</span>
-      <strong>{validation.length===0&&activeAssignments.length?'Asignaciones completas':validation.length?`${validation.length} ${validation.length===1?'incidencia':'incidencias'}`:'Sin asignaciones'}</strong>
-      <p>{validation[0]??'Todas las cargas activas tienen profesorado asignado.'}</p>
+    <article className={'aside-card validation section-prevalidation-card '+(validation.length?'error':activeAssignments.length?'ready':'incomplete')}>
+      <span className="panel-kicker">ESTADO:</span>
+      <strong>{validation.length?'Sección Asignaciones con errores':activeAssignments.length?'Sección Asignaciones válida':'Sección Asignaciones incompleta'}</strong>
+      <p>{validation.length
+        ? `${validation[0]} Revisa la asignación o disponibilidad relacionada y corrige el docente, grupo, materia o carga indicada.`
+        : activeAssignments.length
+          ? `${activeAssignments.length} asignaciones activas · ${coveredStudyEntries}/${totalStudyEntries} cargas del plan cubiertas · ${teachersWithAssignments} docentes implicados. Las referencias activas son coherentes.`
+          : 'Todavía no hay asignaciones docentes. Vincula las cargas del Plan de estudios con el profesorado correspondiente.'}</p>
+      {validation.length>0&&<button type="button" className="section-status-action" onClick={()=>document.querySelector('.groups-table-card')?.scrollIntoView({behavior:'smooth',block:'start'})}>Revisar asignaciones</button>}
+      {!validation.length&&!activeAssignments.length&&<button type="button" className="section-status-action" onClick={openCreate}>Añadir asignación</button>}
     </article>
 
     {assignmentModalOpen&&<div className="modal-backdrop section-form-modal-backdrop">
