@@ -74,6 +74,9 @@ export function AssignmentsPage({
   const [auditFocus,setAuditFocus]=useState('')
   const [assignmentModalOpen,setAssignmentModalOpen]=useState(false)
   const [availabilityModalOpen,setAvailabilityModalOpen]=useState(false)
+  const [bulkModalOpen,setBulkModalOpen]=useState(false)
+  const [bulkSubjectId,setBulkSubjectId]=useState('')
+  const [bulkTeacherId,setBulkTeacherId]=useState('')
 
   const activeGroups=project.groups.filter(group=>group.active)
   const activeSubjects=project.subjects.filter(subject=>subject.active)
@@ -140,6 +143,47 @@ export function AssignmentsPage({
       project.studyPlan.filter(entry=>entry.active&&entry.groupId===groupId).map(entry=>entry.subjectId)
     )
     return activeSubjects.filter(subject=>subject.stage===group.stage&&subjectIds.has(subject.id))
+  }
+
+  const assignmentExists=(groupId:string,subjectId:string,type:AssignmentType,excludeId:string|null=editingId)=>
+    activeAssignments.some(assignment=>
+      assignment.id!==excludeId&&
+      assignment.groupId===groupId&&
+      assignment.subjectId===subjectId&&
+      assignment.assignmentType===type
+    )
+
+  const groupMainComplete=(groupId:string)=>{
+    const entries=project.studyPlan.filter(entry=>entry.active&&entry.groupId===groupId)
+    return entries.length>0&&entries.every(entry=>assignmentExists(groupId,entry.subjectId,'main',null))
+  }
+
+  const bulkEligibleEntries=project.studyPlan.filter(entry=>
+    entry.active&&
+    entry.subjectId===bulkSubjectId&&
+    !assignmentExists(entry.groupId,entry.subjectId,'main',null)
+  )
+
+  const applyBulkAssignment=()=>{
+    if(!bulkSubjectId||!bulkTeacherId||!bulkEligibleEntries.length)return
+    const additions:TeachingAssignment[]=bulkEligibleEntries.map(entry=>({
+      id:uid('asg'),
+      groupId:entry.groupId,
+      subjectId:entry.subjectId,
+      teacherId:bulkTeacherId,
+      assignmentType:'main',
+      weeklySessions:entry.weeklySessions>0?entry.weeklySessions:null,
+      weeklyMinutes:(entry.weeklyMinutes??0)>0?(entry.weeklyMinutes??null):null,
+      active:true,
+      source:'manual-bulk',
+    }))
+    persistAssignments([...project.assignments,...additions])
+    const subject=project.subjects.find(item=>item.id===bulkSubjectId)
+    const teacher=project.teachers.find(item=>item.id===bulkTeacherId)
+    setTemplateMessage(`${subject?.name??'Materia'} asignada a ${teacher?.name??'docente'} en ${additions.length} ${additions.length===1?'grupo pendiente':'grupos pendientes'}.`)
+    setBulkModalOpen(false)
+    setBulkSubjectId('')
+    setBulkTeacherId('')
   }
 
   const persistAssignments=(assignments:TeachingAssignment[])=>saveProject({...project,assignments})
@@ -429,10 +473,10 @@ export function AssignmentsPage({
         <div className="app-modal-body">
           <div className="form-card-heading"><div className="form-card-number">06A</div><div><span className="panel-kicker">{editingId?'Edición':'Docencia'}</span><h2>{editingId?'Editar asignación':'Asignar docente'}</h2><p>Una misma materia puede tener titular, apoyo y codocencia mediante asignaciones independientes.</p></div></div>
           <div className="form-grid two">
-            <Field label="Grupo" required><select value={draft.groupId} onChange={e=>setDraft({...draft,groupId:e.target.value,subjectId:''})}><option value="">Selecciona...</option>{activeGroups.map(group=><option key={group.id} value={group.id}>{group.name}</option>)}</select></Field>
-            <Field label="Materia" required><select value={draft.subjectId} disabled={!draft.groupId} onChange={e=>setDraft({...draft,subjectId:e.target.value})}><option value="">Selecciona...</option>{groupSubjects(draft.groupId).map(subject=><option key={subject.id} value={subject.id}>{subject.name}</option>)}</select></Field>
+            <Field label="Grupo" required><select value={draft.groupId} onChange={e=>setDraft({...draft,groupId:e.target.value,subjectId:''})}><option value="">Selecciona...</option>{activeGroups.map(group=>{const complete=groupMainComplete(group.id)&&draft.assignmentType==='main';return <option key={group.id} value={group.id} disabled={complete}>{group.name}{complete?' · completo':''}</option>})}</select></Field>
+            <Field label="Materia" required><select value={draft.subjectId} disabled={!draft.groupId} onChange={e=>setDraft({...draft,subjectId:e.target.value})}><option value="">Selecciona...</option>{groupSubjects(draft.groupId).map(subject=>{const assigned=assignmentExists(draft.groupId,subject.id,draft.assignmentType);return <option key={subject.id} value={subject.id} disabled={assigned}>{subject.name}{assigned?' · ya asignada':''}</option>})}</select></Field>
             <Field label="Docente" required><select value={draft.teacherId} disabled={!draft.subjectId} onChange={e=>setDraft({...draft,teacherId:e.target.value})}><option value="">Selecciona...</option>{activeTeachers.map(teacher=><option key={teacher.id} value={teacher.id}>{teacher.name}</option>)}</select></Field>
-            <Field label="Tipo de intervención"><select value={draft.assignmentType} onChange={e=>setDraft({...draft,assignmentType:e.target.value as AssignmentType})}>{(Object.entries(assignmentTypeLabels) as [AssignmentType,string][]).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></Field>
+            <Field label="Tipo de intervención"><select value={draft.assignmentType} onChange={e=>setDraft({...draft,assignmentType:e.target.value as AssignmentType,subjectId:''})}>{(Object.entries(assignmentTypeLabels) as [AssignmentType,string][]).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></Field>
             <Field label="Sesiones semanales"><input type="number" min="0" step="0.25" value={draft.weeklySessions} onChange={e=>setDraft({...draft,weeklySessions:e.target.value})} placeholder="Opcional"/></Field>
             <Field label="Minutos semanales"><input type="number" min="0" step="5" value={draft.weeklyMinutes} onChange={e=>setDraft({...draft,weeklyMinutes:e.target.value})} placeholder="Opcional"/></Field>
           </div>
@@ -441,6 +485,27 @@ export function AssignmentsPage({
         </div>
         <div className="app-modal-footer"><button type="button" className="btn ghost-inline" onClick={reset}>Cancelar</button><button className="btn primary" type="submit" disabled={!assignmentReady}>Aceptar</button></div>
       </form>
+    </div>}
+
+    {bulkModalOpen&&<div className="modal-backdrop section-form-modal-backdrop">
+      <div className="app-modal section-form-modal" role="dialog" aria-modal="true" aria-label="Asignar materia a varios grupos">
+        <div className="app-modal-header"><div><UsersRound size={20}/><h2>Asignar materia a grupos</h2></div></div>
+        <div className="app-modal-body">
+          <div className="form-card-heading"><div className="form-card-number">06B</div><div><span className="panel-kicker">Asignación masiva</span><h2>Una materia · un docente</h2><p>Selecciona una materia y un docente. Se crearán únicamente las asignaciones titulares pendientes en los grupos que tengan esa materia en su Plan de estudios.</p></div></div>
+          <div className="form-grid two">
+            <Field label="Materia" required><select value={bulkSubjectId} onChange={e=>setBulkSubjectId(e.target.value)}><option value="">Selecciona...</option>{activeSubjects.map(subject=>{const pending=project.studyPlan.filter(entry=>entry.active&&entry.subjectId===subject.id&&!assignmentExists(entry.groupId,subject.id,'main',null)).length;return <option key={subject.id} value={subject.id} disabled={!pending}>{subject.name}{pending?` · ${pending} pendientes`:' · completa'}</option>})}</select></Field>
+            <Field label="Docente" required><select value={bulkTeacherId} disabled={!bulkSubjectId} onChange={e=>setBulkTeacherId(e.target.value)}><option value="">Selecciona...</option>{activeTeachers.map(teacher=><option key={teacher.id} value={teacher.id}>{teacher.name}</option>)}</select></Field>
+          </div>
+          {bulkSubjectId&&<div className="bulk-assignment-preview">
+            <strong>{bulkEligibleEntries.length} {bulkEligibleEntries.length===1?'grupo pendiente':'grupos pendientes'}</strong>
+            <p>{bulkEligibleEntries.length
+              ? bulkEligibleEntries.map(entry=>project.groups.find(group=>group.id===entry.groupId)?.name).filter(Boolean).join(' · ')
+              : 'Todos los grupos que cursan esta materia ya tienen una asignación titular.'}</p>
+          </div>}
+          <div className={'form-guide '+(bulkSubjectId&&bulkTeacherId&&bulkEligibleEntries.length?'complete':'partial')}><strong>{bulkSubjectId&&bulkTeacherId&&bulkEligibleEntries.length?'Asignación masiva lista':'Siguiente paso'}</strong><span>{!bulkSubjectId?'Selecciona la materia.':!bulkTeacherId?'Selecciona el docente que la impartirá.':!bulkEligibleEntries.length?'No quedan grupos pendientes para esta materia.':`Se crearán ${bulkEligibleEntries.length} asignaciones titulares conservando la carga semanal definida en el Plan de estudios.`}</span></div>
+        </div>
+        <div className="app-modal-footer"><button type="button" className="btn ghost-inline" onClick={()=>setBulkModalOpen(false)}>Cancelar</button><button type="button" className="btn primary" disabled={!bulkSubjectId||!bulkTeacherId||!bulkEligibleEntries.length} onClick={applyBulkAssignment}>Aceptar</button></div>
+      </div>
     </div>}
 
     {availabilityModalOpen&&<div className="modal-backdrop section-form-modal-backdrop">
@@ -464,7 +529,7 @@ export function AssignmentsPage({
     {templateMessage&&<div className="template-result"><CheckCircle2 size={16}/><span>{templateMessage}</span></div>}
 
     <section className="groups-table-card">
-      <div className="groups-table-heading"><div><span className="panel-kicker">Matriz docente</span><h2>Asignaciones configuradas</h2></div><button className="btn ghost-inline" onClick={openCreate}><Plus size={16}/> Añadir asignación</button></div>
+      <div className="groups-table-heading"><div><span className="panel-kicker">Matriz docente</span><h2>Asignaciones configuradas</h2></div><div className="groups-table-actions"><button className="btn ghost-inline" onClick={()=>{setBulkSubjectId('');setBulkTeacherId('');setBulkModalOpen(true)}}><UsersRound size={16}/> Asignar materia a grupos</button><button className="btn ghost-inline" onClick={openCreate}><Plus size={16}/> Añadir asignación</button></div></div>
       {project.assignments.length===0
         ? <div className="groups-empty"><UsersRound size={28}/><strong>No hay asignaciones todavía</strong><p>Asigna profesorado manualmente, importa el JSON anterior o completa los casos inequívocos.</p></div>
         : <div className="groups-table-wrap"><table className="groups-table assignments-table">
