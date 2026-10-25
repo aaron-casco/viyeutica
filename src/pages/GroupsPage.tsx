@@ -208,10 +208,13 @@ export function GroupsPage({
       <Summary label="Alumnado" value={studentTotal ? String(studentTotal) : '—'} detail="total agregado informado"/>
     </section>
 
-    <article className={'aside-card validation section-prevalidation-card '+(complete?'ready':'')}>
-      <span className="panel-kicker">Prevalidación</span>
-      <strong>{complete?'Estructura válida':'Estructura incompleta'}</strong>
-      <p>{complete?'Todas las etapas seleccionadas tienen al menos un grupo activo.':'Crea al menos un grupo en cada etapa seleccionada.'}</p>
+    <article className={'aside-card validation section-prevalidation-card '+(complete?'ready':'incomplete')}>
+      <span className="panel-kicker">ESTADO:</span>
+      <strong>{complete?'Sección Estructura y grupos válida':'Sección Estructura y grupos incompleta'}</strong>
+      <p>{complete
+        ? `${activeGroups.length} ${activeGroups.length===1?'grupo activo':'grupos activos'} distribuidos en ${allowedStages.length} ${allowedStages.length===1?'etapa':'etapas'}. Todas las etapas seleccionadas tienen al menos una unidad activa.`
+        : 'Falta crear al menos un grupo activo en alguna de las etapas seleccionadas. Añádelo para completar la estructura.'}</p>
+      {!complete&&<button type="button" className="section-status-action" onClick={openCreate}>Añadir grupo pendiente</button>}
     </article>
 
     {modalOpen&&<div className="modal-backdrop section-form-modal-backdrop">
