@@ -1,6 +1,6 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import {
-  BookOpen, CheckCircle2, Copy, GraduationCap, Pencil, Plus, Save, Trash2,
+  BookOpen, CheckCircle2, ChevronDown, Copy, GraduationCap, Pencil, Plus, Save, Trash2,
 } from 'lucide-react'
 import {
   isStructureComplete,
@@ -294,13 +294,22 @@ export function StudyPlanPage({
   const removeEntry=(id:string)=>persist({studyPlan:project.studyPlan.filter(entry=>entry.id!==id)})
   const toggleEntry=(id:string)=>persist({studyPlan:project.studyPlan.map(entry=>entry.id===id?{...entry,active:!entry.active}:entry)})
 
-  const duplicateGroupPlan=(sourceGroupId:string,targetGroupId:string)=>{
-    if(!sourceGroupId||!targetGroupId||sourceGroupId===targetGroupId)return
-    const existing=new Set(project.studyPlan.filter(e=>e.groupId===targetGroupId).map(e=>e.subjectId))
-    const copies=project.studyPlan
-      .filter(entry=>entry.groupId===sourceGroupId&&entry.active&&!existing.has(entry.subjectId))
-      .map(entry=>({...entry,id:uid('plan'),groupId:targetGroupId,teacherId:null}))
-    if(copies.length) persist({studyPlan:[...project.studyPlan,...copies]})
+  const duplicateGroupPlan=(sourceGroupId:string,targetGroupIds:string[])=>{
+    const validTargets=targetGroupIds.filter(targetGroupId=>targetGroupId&&targetGroupId!==sourceGroupId)
+    if(!sourceGroupId||!validTargets.length)return
+    const sourceEntries=project.studyPlan.filter(entry=>entry.groupId===sourceGroupId&&entry.active)
+    const copies=validTargets.flatMap(targetGroupId=>{
+      const existing=new Set(project.studyPlan.filter(entry=>entry.groupId===targetGroupId).map(entry=>entry.subjectId))
+      return sourceEntries
+        .filter(entry=>!existing.has(entry.subjectId))
+        .map(entry=>({...entry,id:uid('plan'),groupId:targetGroupId,teacherId:null}))
+    })
+    if(copies.length){
+      persist({studyPlan:[...project.studyPlan,...copies]})
+      setTemplateMessage(`Plantilla aplicada: ${copies.length} ${copies.length===1?'carga copiada':'cargas copiadas'} en ${validTargets.length} ${validTargets.length===1?'grupo':'grupos'} destino.`)
+    }else{
+      setTemplateMessage('No se añadieron cargas nuevas porque los grupos seleccionados ya tenían las materias disponibles de la plantilla.')
+    }
   }
 
   if(!isStructureComplete(project)){
@@ -326,6 +335,13 @@ export function StudyPlanPage({
     const group=project.groups.find(item=>item.id===groupId)
     return group ? subject.stage===group.stage : false
   })
+
+  const groupPlanCompleteForCopy=(groupId:string)=>{
+    const compatible=compatibleSubjectsForGroup(groupId)
+    if(!compatible.length)return false
+    const assigned=new Set(activeEntries.filter(entry=>entry.groupId===groupId).map(entry=>entry.subjectId))
+    return compatible.every(subject=>assigned.has(subject.id))
+  }
 
   return <div className="wizard-page study-plan-page">
     <section className="wizard-intro">
@@ -443,6 +459,12 @@ export function StudyPlanPage({
       {project.subjects.length===0?<Empty text="Todavía no hay materias en el catálogo."/>:visibleSubjects.length===0?<Empty text="No hay materias para esta etapa."/>:<div className="groups-table-wrap"><table className="groups-table"><thead><tr><th>Materia</th><th>Código</th><th>Etapa</th><th>Tipo</th><th>Duración</th><th>Estado</th><th/></tr></thead><tbody>{visibleSubjects.map(subject=><tr key={subject.id} className={!subject.active?'is-inactive':''}><td><strong>{subject.name}</strong></td><td>{subject.code||'—'}</td><td>{subject.stage}</td><td>{subjectTypeLabel(subject.type)}</td><td>{subject.defaultSessionMinutes?`${subject.defaultSessionMinutes} min`:'—'}</td><td><button className={'status-toggle '+(subject.active?'active':'')} onClick={()=>toggleSubject(subject.id)}>{subject.active?'Activa':'Inactiva'}</button></td><td><div className="row-actions"><button onClick={()=>editSubject(subject)}><Pencil size={15}/></button><button className="danger" onClick={()=>removeSubject(subject.id)}><Trash2 size={15}/></button></div></td></tr>)}</tbody></table></div>}
     </section>
 
+    <CopyPlan
+      groups={activeGroups}
+      isGroupComplete={groupPlanCompleteForCopy}
+      onCopy={duplicateGroupPlan}
+    />
+
     <section className="groups-table-card">
       <div className="groups-table-heading"><div><span className="panel-kicker">Cargas</span><h2>Plan semanal por grupo</h2></div></div>
       {project.studyPlan.length>0&&<div className="list-filter-tags" aria-label="Filtrar cargas por grupo"><button type="button" className={entryGroupFilter==='all'?'active':''} onClick={()=>setEntryGroupFilter('all')}>Todos</button>{activeGroups.map(group=><button type="button" key={group.id} className={entryGroupFilter===group.id?'active':''} onClick={()=>setEntryGroupFilter(group.id)}>{group.name}</button>)}</div>}
@@ -453,14 +475,127 @@ export function StudyPlanPage({
       })}</tbody></table></div>}
     </section>
 
-    <CopyPlan groups={activeGroups} onCopy={duplicateGroupPlan}/>
   </div>
 }
 
-function CopyPlan({groups,onCopy}:{groups:ViyeuticaProject['groups'];onCopy:(source:string,target:string)=>void}) {
+type CopyPlanOption={value:string;label:string;disabled?:boolean}
+
+function CopyPlan({
+  groups,
+  isGroupComplete,
+  onCopy,
+}:{
+  groups:ViyeuticaProject['groups']
+  isGroupComplete:(groupId:string)=>boolean
+  onCopy:(source:string,targets:string[])=>void
+}) {
   const [source,setSource]=useState('')
-  const [target,setTarget]=useState('')
-  return <section className="copy-plan-card" id="copy-plan-template"><div><Copy size={22}/><span><strong>Plantilla desde otro grupo</strong><small>Selecciona un grupo origen y otro destino. Se copiarán solo las materias que todavía no existan en el destino.</small></span></div><select value={source} onChange={e=>setSource(e.target.value)}><option value="">Grupo origen</option>{groups.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select><select value={target} onChange={e=>setTarget(e.target.value)}><option value="">Grupo destino</option>{groups.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select><button className="btn ghost-inline" onClick={()=>onCopy(source,target)}>Aplicar plantilla</button></section>
+  const [targets,setTargets]=useState<string[]>([])
+  const targetOptions=groups
+    .filter(group=>group.id!==source)
+    .map(group=>({
+      value:group.id,
+      label:group.name+(isGroupComplete(group.id)?' · completo':''),
+      disabled:isGroupComplete(group.id),
+    }))
+
+  useEffect(()=>{
+    setTargets(current=>current.filter(id=>id!==source&&!isGroupComplete(id)))
+  },[source])
+
+  return <section className="copy-plan-card" id="copy-plan-template">
+    <div><Copy size={22}/><span><strong>Plantilla desde otro grupo</strong><small>Selecciona un grupo origen y uno o varios destinos. Solo se copiarán las materias que todavía no existan en cada destino.</small></span></div>
+    <select value={source} onChange={e=>setSource(e.target.value)}>
+      <option value="">Grupo origen</option>
+      {groups.map(group=><option key={group.id} value={group.id}>{group.name}</option>)}
+    </select>
+    <PlanMultiCheck
+      placeholder="Grupo destino"
+      options={targetOptions}
+      values={targets}
+      onChange={setTargets}
+      disabled={!source}
+    />
+    <button className="btn ghost-inline" disabled={!source||targets.length===0} onClick={()=>onCopy(source,targets)}>Aplicar plantilla</button>
+  </section>
+}
+
+function PlanMultiCheck({
+  placeholder,
+  options,
+  values,
+  onChange,
+  disabled=false,
+}:{
+  placeholder:string
+  options:CopyPlanOption[]
+  values:string[]
+  onChange:(values:string[])=>void
+  disabled?:boolean
+}){
+  const [open,setOpen]=useState(false)
+  const rootRef=useRef<HTMLDivElement>(null)
+
+  useEffect(()=>{
+    const closeOutside=(event:PointerEvent)=>{
+      if(open&&rootRef.current&&!rootRef.current.contains(event.target as Node))setOpen(false)
+    }
+    document.addEventListener('pointerdown',closeOutside)
+    return ()=>document.removeEventListener('pointerdown',closeOutside)
+  },[open])
+
+  const toggle=(option:CopyPlanOption)=>{
+    if(option.disabled)return
+    onChange(values.includes(option.value)
+      ? values.filter(value=>value!==option.value)
+      : [...values,option.value])
+  }
+
+  const selectedLabels=values
+    .map(value=>options.find(option=>option.value===value)?.label)
+    .filter(Boolean) as string[]
+  const summary=values.length===0
+    ? placeholder
+    : selectedLabels.length<=2
+      ? selectedLabels.join(', ')
+      : values.length+' seleccionados'
+
+  return <div
+    ref={rootRef}
+    className={'multicheck-field copy-plan-multicheck'+(disabled?' disabled':'')}
+    onBlur={event=>{
+      const next=event.relatedTarget as Node|null
+      if(!next||!event.currentTarget.contains(next))setOpen(false)
+    }}
+  >
+    <div className={'multicheck-select'+(open?' open':'')}>
+      <button
+        type="button"
+        className="multicheck-trigger"
+        disabled={disabled}
+        aria-expanded={open}
+        onClick={()=>setOpen(current=>!current)}
+      >
+        <span className={values.length?'has-value':'placeholder'}>{summary}</span>
+        <ChevronDown size={16}/>
+      </button>
+      {open&&!disabled&&<div className="multicheck-menu">
+        <div className="multicheck-options">
+          {options.map(option=><label key={option.value} className={'multicheck-option'+(option.disabled?' disabled':'')}>
+            <input
+              type="checkbox"
+              checked={values.includes(option.value)}
+              disabled={option.disabled}
+              onChange={()=>toggle(option)}
+            />
+            <span>{option.label}</span>
+          </label>)}
+          {!options.length&&<div className="multicheck-empty">Sin grupos destino disponibles</div>}
+        </div>
+        {values.length>0&&<button type="button" className="multicheck-clear" onClick={()=>onChange([])}>Limpiar selección</button>}
+      </div>}
+    </div>
+  </div>
 }
 function Summary({label,value,detail}:{label:string;value:string;detail:string}){return <article className="structure-summary-card"><span>{label}</span><strong>{value}</strong><small>{detail}</small></article>}
 function Field({label,required,children}:{label:string;required?:boolean;children:React.ReactNode}){return <label className="form-field"><span>{label}{required&&<em>*</em>}</span>{children}</label>}
