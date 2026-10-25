@@ -86,6 +86,8 @@ export function StudyPlanPage({
   const [templateMessage,setTemplateMessage]=useState('')
   const [subjectStageFilter,setSubjectStageFilter]=useState<'all'|EducationStage>('all')
   const [entryGroupFilter,setEntryGroupFilter]=useState<'all'|string>('all')
+  const [subjectModalOpen,setSubjectModalOpen]=useState(false)
+  const [entryModalOpen,setEntryModalOpen]=useState(false)
 
   const activeGroups=project.groups.filter(group=>group.active)
   const activeSubjects=project.subjects.filter(subject=>subject.active)
@@ -140,12 +142,16 @@ export function StudyPlanPage({
     setSubjectDraft(emptySubject)
     setEditingSubject(null)
     setSubjectError('')
+    setSubjectModalOpen(false)
   }
   const resetEntry=()=>{
     setEntryDraft(emptyEntry)
     setEditingEntry(null)
     setEntryError('')
+    setEntryModalOpen(false)
   }
+  const openSubjectCreate=()=>{setSubjectDraft(emptySubject);setEditingSubject(null);setSubjectError('');setSubjectModalOpen(true)}
+  const openEntryCreate=()=>{setEntryDraft(emptyEntry);setEditingEntry(null);setEntryError('');setEntryModalOpen(true)}
 
   const applyTemplate=(kind:'infantil'|'primaria')=>{
     const result=kind==='infantil'
@@ -201,7 +207,7 @@ export function StudyPlanPage({
       defaultSessionMinutes:subject.defaultSessionMinutes===null?'':String(subject.defaultSessionMinutes),
     })
     setSubjectError('')
-    window.scrollTo({top:0,behavior:'smooth'})
+    setSubjectModalOpen(true)
   }
 
   const removeSubject=(id:string)=>{
@@ -288,7 +294,7 @@ export function StudyPlanPage({
       notes:entry.notes,
     })
     setEntryError('')
-    window.scrollTo({top:0,behavior:'smooth'})
+    setEntryModalOpen(true)
   }
 
   const removeEntry=(id:string)=>persist({studyPlan:project.studyPlan.filter(entry=>entry.id!==id)})
@@ -361,112 +367,61 @@ export function StudyPlanPage({
       <Summary label="Carga objetivo" value={weeklyMinuteTotal?formatWeeklyMinutes(weeklyMinuteTotal):(weeklySessionTotal?String(weeklySessionTotal):'—')} detail={weeklyMinuteTotal?'minutos semanales acumulados':'sesiones configuradas'}/>
     </section>
 
-    <TemplatePanel
-      title="Plantillas de plan de estudios"
-      description="Bases editables para el curso 2026/2027. Las plantillas añaden solo materias/cargas que aún no existan y conservan cualquier configuración previa."
-      actions={[
-        {
-          id:'extremadura-infantil',
-          label:'Infantil · Extremadura 2026/27',
-          description:project.center.stages.includes('Infantil')?'Aplicar a 3, 4 y 5 años':'El centro no tiene Infantil activa',
-          disabled:!project.center.stages.includes('Infantil'),
-          onApply:()=>applyTemplate('infantil'),
-        },
-        {
-          id:'extremadura-primaria',
-          label:'Primaria · Extremadura 2026/27',
-          description:project.center.stages.includes('Primaria')?'Aplicar a 1.º–6.º según ciclo':'El centro no tiene Primaria activa',
-          disabled:!project.center.stages.includes('Primaria'),
-          onApply:()=>applyTemplate('primaria'),
-        },
-        {
-          id:'copy-group-plan',
-          label:'Usar grupo como plantilla',
-          description:activeEntries.length?'Seleccionar origen y destino':'Configura primero al menos una carga semanal',
-          disabled:activeEntries.length===0,
-          onApply:()=>document.getElementById('copy-plan-template')?.scrollIntoView({behavior:'smooth',block:'center'}),
-        },
-      ]}
-    />
-    {templateMessage&&<div className="template-result"><CheckCircle2 size={16}/><span>{templateMessage}</span></div>}
-
-    <section className="study-plan-grid">
-      <form className="form-card" onSubmit={submitSubject}>
-        <div className="form-card-heading">
-          <div className="form-card-number">04A</div>
-          <div><span className="panel-kicker">Catálogo</span><h2>{editingSubject?'Editar materia':'Nueva materia'}</h2><p>Una materia pertenece a una etapa y puede reutilizarse en todos sus grupos.</p></div>
-        </div>
-        <div className="form-grid two">
-          <Field label="Nombre" required><input value={subjectDraft.name} onChange={e=>setSubjectDraft({...subjectDraft,name:e.target.value})} placeholder="Ej. Lengua Castellana"/></Field>
-          <Field label="Código"><input value={subjectDraft.code} onChange={e=>setSubjectDraft({...subjectDraft,code:e.target.value})} placeholder="Ej. LEN"/></Field>
-          <Field label="Etapa" required><select value={subjectDraft.stage} onChange={e=>setSubjectDraft({...subjectDraft,stage:e.target.value as EducationStage})}><option value="">Selecciona...</option>{project.center.stages.map(stage=><option key={stage} value={stage}>{stage}</option>)}</select></Field>
-          <Field label="Tipo"><select value={subjectDraft.type} onChange={e=>setSubjectDraft({...subjectDraft,type:e.target.value as SubjectType})}>{subjectTypes.map(x=><option key={x.value} value={x.value}>{x.label}</option>)}</select></Field>
-          <Field label="Duración habitual de sesión (min)"><input type="number" min="1" max="240" value={subjectDraft.defaultSessionMinutes} onChange={e=>setSubjectDraft({...subjectDraft,defaultSessionMinutes:e.target.value})} placeholder="Opcional"/></Field>
-        </div>
-        {subjectError&&<div className="inline-error">{subjectError}</div>}
-        <div className={'form-guide '+(subjectReady?'complete':'partial')}><strong>{subjectReady?'Materia lista':'Siguiente paso'}</strong><span>{subjectGuide}</span></div>
-        <div className="form-actions">
-          <span/>
-          <div className="form-actions-right">
-            {editingSubject&&<button type="button" className="btn ghost-inline" onClick={resetSubject}>Cancelar</button>}
-            <button className="btn primary" type="submit" disabled={!subjectReady}><Save size={16}/>{editingSubject?'Guardar':'Añadir materia'}</button>
-          </div>
-        </div>
-      </form>
-
-      <form className="form-card" onSubmit={submitEntry}>
-        <div className="form-card-heading">
-          <div className="form-card-number">04B</div>
-          <div><span className="panel-kicker">Carga semanal</span><h2>{editingEntry?'Editar carga':'Asignar materia a grupo'}</h2><p>El profesorado concreto se asignará en el siguiente paso.</p></div>
-        </div>
-        <div className="form-grid two">
-          <Field label="Grupo" required><select value={entryDraft.groupId} onChange={e=>setEntryDraft({...entryDraft,groupId:e.target.value,subjectId:''})}><option value="">Selecciona...</option>{activeGroups.map(group=>{
-            const complete=groupPlanComplete(group.id)
-            return <option key={group.id} value={group.id} disabled={complete}>{group.name}{complete?' · completo':''}</option>
-          })}</select></Field>
-          <Field label="Materia" required><select value={entryDraft.subjectId} disabled={!entryDraft.groupId} onChange={e=>setEntryDraft({...entryDraft,subjectId:e.target.value})}><option value="">Selecciona...</option>{groupSubjects(entryDraft.groupId).map(subject=>{
-            const assigned=subjectAlreadyAssigned(entryDraft.groupId,subject.id)
-            return <option key={subject.id} value={subject.id} disabled={assigned}>{subject.name}{assigned?' · ya asignada':''}</option>
-          })}</select></Field>
-          <Field label="Sesiones semanales"><input type="number" min="0" step="0.25" value={entryDraft.weeklySessions} onChange={e=>setEntryDraft({...entryDraft,weeklySessions:e.target.value})} placeholder="Opcional"/></Field>
-          <Field label="Carga semanal (min)"><input type="number" min="1" step="5" value={entryDraft.weeklyMinutes} onChange={e=>setEntryDraft({...entryDraft,weeklyMinutes:e.target.value})} placeholder="Opcional / normativa"/></Field>
-          <Field label="Organización"><select value={entryDraft.mode} onChange={e=>setEntryDraft({...entryDraft,mode:e.target.value as StudyPlanMode})}>{planModes.map(x=><option key={x.value} value={x.value}>{x.label}</option>)}</select></Field>
-          <Field label="Requisito docente"><select value={entryDraft.teacherRequirement} onChange={e=>setEntryDraft({...entryDraft,teacherRequirement:e.target.value as TeacherRequirement})}>{teacherRequirements.map(x=><option key={x.value} value={x.value}>{x.label}</option>)}</select></Field>
-          <Field label="Duración fija de sesión (min)"><input type="number" min="1" max="240" value={entryDraft.fixedSessionMinutes} onChange={e=>setEntryDraft({...entryDraft,fixedSessionMinutes:e.target.value})} placeholder="Opcional"/></Field>
-        </div>
-        <label className="checkbox-field plan-checkbox"><input type="checkbox" checked={entryDraft.mandatory} onChange={e=>setEntryDraft({...entryDraft,mandatory:e.target.checked})}/><span><strong>Materia obligatoria para este grupo</strong><small>Desmárcalo solo cuando sea optativa/alternativa.</small></span></label>
-        <label className="form-field notes-field"><span>Observaciones</span><textarea value={entryDraft.notes} onChange={e=>setEntryDraft({...entryDraft,notes:e.target.value})} placeholder="Restricciones o detalles del plan..."/></label>
-        {entryError&&<div className="inline-error">{entryError}</div>}
-        <div className={'form-guide '+(entryReady?'complete':'partial')}><strong>{entryReady?'Carga lista':'Siguiente paso'}</strong><span>{entryGuide}</span></div>
-        <div className="form-actions">
-          <span/>
-          <div className="form-actions-right">
-            {editingEntry&&<button type="button" className="btn ghost-inline" onClick={resetEntry}>Cancelar</button>}
-            <button className="btn primary" type="submit" disabled={!entryReady}><Save size={16}/>{editingEntry?'Guardar':'Añadir carga'}</button>
-          </div>
-        </div>
-      </form>
-    </section>
-
-    <section className="plan-validation-card">
+    <section className="plan-validation-card section-prevalidation-card">
       <div><span className="panel-kicker">Prevalidación</span><h2>{validation.length===0&&activeEntries.length?'Plan coherente':'Revisión necesaria'}</h2><p>{validation[0]??'Todos los grupos activos tienen al menos una carga y no hay referencias inválidas.'}</p></div>
       <CheckCircle2 size={28}/>
     </section>
 
+    {subjectModalOpen&&<div className="modal-backdrop section-form-modal-backdrop">
+      <form className="app-modal section-form-modal" onSubmit={submitSubject} role="dialog" aria-modal="true" aria-label={editingSubject?'Editar materia':'Añadir materia'}>
+        <div className="app-modal-header"><div><BookOpen size={20}/><h2>{editingSubject?'Editar materia':'Añadir materia'}</h2></div></div>
+        <div className="app-modal-body">
+          <div className="form-card-heading"><div className="form-card-number">04A</div><div><span className="panel-kicker">Catálogo</span><h2>{editingSubject?'Editar materia':'Nueva materia'}</h2><p>Una materia pertenece a una etapa y puede reutilizarse en todos sus grupos.</p></div></div>
+          <div className="form-grid two">
+            <Field label="Nombre" required><input value={subjectDraft.name} onChange={e=>setSubjectDraft({...subjectDraft,name:e.target.value})} placeholder="Ej. Lengua Castellana"/></Field>
+            <Field label="Código"><input value={subjectDraft.code} onChange={e=>setSubjectDraft({...subjectDraft,code:e.target.value})} placeholder="Ej. LEN"/></Field>
+            <Field label="Etapa" required><select value={subjectDraft.stage} onChange={e=>setSubjectDraft({...subjectDraft,stage:e.target.value as EducationStage})}><option value="">Selecciona...</option>{project.center.stages.map(stage=><option key={stage} value={stage}>{stage}</option>)}</select></Field>
+            <Field label="Tipo"><select value={subjectDraft.type} onChange={e=>setSubjectDraft({...subjectDraft,type:e.target.value as SubjectType})}>{subjectTypes.map(x=><option key={x.value} value={x.value}>{x.label}</option>)}</select></Field>
+            <Field label="Duración habitual de sesión (min)"><input type="number" min="1" max="240" value={subjectDraft.defaultSessionMinutes} onChange={e=>setSubjectDraft({...subjectDraft,defaultSessionMinutes:e.target.value})} placeholder="Opcional"/></Field>
+          </div>
+          {subjectError&&<div className="inline-error">{subjectError}</div>}
+          <div className={'form-guide '+(subjectReady?'complete':'partial')}><strong>{subjectReady?'Materia lista':'Siguiente paso'}</strong><span>{subjectGuide}</span></div>
+        </div>
+        <div className="app-modal-footer"><button type="button" className="btn ghost-inline" onClick={resetSubject}>Cancelar</button><button className="btn primary" type="submit" disabled={!subjectReady}>Aceptar</button></div>
+      </form>
+    </div>}
+
+    {entryModalOpen&&<div className="modal-backdrop section-form-modal-backdrop">
+      <form className="app-modal section-form-modal" onSubmit={submitEntry} role="dialog" aria-modal="true" aria-label={editingEntry?'Editar carga':'Añadir carga'}>
+        <div className="app-modal-header"><div><BookOpen size={20}/><h2>{editingEntry?'Editar carga':'Añadir carga semanal'}</h2></div></div>
+        <div className="app-modal-body">
+          <div className="form-card-heading"><div className="form-card-number">04B</div><div><span className="panel-kicker">Carga semanal</span><h2>{editingEntry?'Editar carga':'Asignar materia a grupo'}</h2><p>El profesorado concreto se asignará en el siguiente paso.</p></div></div>
+          <div className="form-grid two">
+            <Field label="Grupo" required><select value={entryDraft.groupId} onChange={e=>setEntryDraft({...entryDraft,groupId:e.target.value,subjectId:''})}><option value="">Selecciona...</option>{activeGroups.map(group=>{const complete=groupPlanComplete(group.id);return <option key={group.id} value={group.id} disabled={complete}>{group.name}{complete?' · completo':''}</option>})}</select></Field>
+            <Field label="Materia" required><select value={entryDraft.subjectId} disabled={!entryDraft.groupId} onChange={e=>setEntryDraft({...entryDraft,subjectId:e.target.value})}><option value="">Selecciona...</option>{groupSubjects(entryDraft.groupId).map(subject=>{const assigned=subjectAlreadyAssigned(entryDraft.groupId,subject.id);return <option key={subject.id} value={subject.id} disabled={assigned}>{subject.name}{assigned?' · ya asignada':''}</option>})}</select></Field>
+            <Field label="Sesiones semanales"><input type="number" min="0" step="0.25" value={entryDraft.weeklySessions} onChange={e=>setEntryDraft({...entryDraft,weeklySessions:e.target.value})} placeholder="Opcional"/></Field>
+            <Field label="Carga semanal (min)"><input type="number" min="1" step="5" value={entryDraft.weeklyMinutes} onChange={e=>setEntryDraft({...entryDraft,weeklyMinutes:e.target.value})} placeholder="Opcional / normativa"/></Field>
+            <Field label="Organización"><select value={entryDraft.mode} onChange={e=>setEntryDraft({...entryDraft,mode:e.target.value as StudyPlanMode})}>{planModes.map(x=><option key={x.value} value={x.value}>{x.label}</option>)}</select></Field>
+            <Field label="Requisito docente"><select value={entryDraft.teacherRequirement} onChange={e=>setEntryDraft({...entryDraft,teacherRequirement:e.target.value as TeacherRequirement})}>{teacherRequirements.map(x=><option key={x.value} value={x.value}>{x.label}</option>)}</select></Field>
+            <Field label="Duración fija de sesión (min)"><input type="number" min="1" max="240" value={entryDraft.fixedSessionMinutes} onChange={e=>setEntryDraft({...entryDraft,fixedSessionMinutes:e.target.value})} placeholder="Opcional"/></Field>
+          </div>
+          <label className="checkbox-field plan-checkbox"><input type="checkbox" checked={entryDraft.mandatory} onChange={e=>setEntryDraft({...entryDraft,mandatory:e.target.checked})}/><span><strong>Materia obligatoria para este grupo</strong><small>Desmárcalo solo cuando sea optativa/alternativa.</small></span></label>
+          <label className="form-field notes-field"><span>Observaciones</span><textarea value={entryDraft.notes} onChange={e=>setEntryDraft({...entryDraft,notes:e.target.value})} placeholder="Restricciones o detalles del plan..."/></label>
+          {entryError&&<div className="inline-error">{entryError}</div>}
+          <div className={'form-guide '+(entryReady?'complete':'partial')}><strong>{entryReady?'Carga lista':'Siguiente paso'}</strong><span>{entryGuide}</span></div>
+        </div>
+        <div className="app-modal-footer"><button type="button" className="btn ghost-inline" onClick={resetEntry}>Cancelar</button><button className="btn primary" type="submit" disabled={!entryReady}>Aceptar</button></div>
+      </form>
+    </div>}
+
     <section className="groups-table-card">
-      <div className="groups-table-heading"><div><span className="panel-kicker">Catálogo</span><h2>Materias</h2></div><button className="btn ghost-inline" onClick={()=>{resetSubject();window.scrollTo({top:0,behavior:'smooth'})}}><Plus size={16}/> Nueva materia</button></div>
+      <div className="groups-table-heading"><div><span className="panel-kicker">Catálogo</span><h2>Materias</h2></div><button className="btn ghost-inline" onClick={openSubjectCreate}><Plus size={16}/> Añadir materia</button></div>
       {project.subjects.length>0&&<div className="list-filter-tags" aria-label="Filtrar materias por etapa"><button type="button" className={subjectStageFilter==='all'?'active':''} onClick={()=>setSubjectStageFilter('all')}>Todas</button>{project.center.stages.map(stage=><button type="button" key={stage} className={subjectStageFilter===stage?'active':''} onClick={()=>setSubjectStageFilter(stage)}>{stage}</button>)}</div>}
       {project.subjects.length===0?<Empty text="Todavía no hay materias en el catálogo."/>:visibleSubjects.length===0?<Empty text="No hay materias para esta etapa."/>:<div className="groups-table-wrap"><table className="groups-table"><thead><tr><th>Materia</th><th>Código</th><th>Etapa</th><th>Tipo</th><th>Duración</th><th>Estado</th><th/></tr></thead><tbody>{visibleSubjects.map(subject=><tr key={subject.id} className={!subject.active?'is-inactive':''}><td><strong>{subject.name}</strong></td><td>{subject.code||'—'}</td><td>{subject.stage}</td><td>{subjectTypeLabel(subject.type)}</td><td>{subject.defaultSessionMinutes?`${subject.defaultSessionMinutes} min`:'—'}</td><td><button className={'status-toggle '+(subject.active?'active':'')} onClick={()=>toggleSubject(subject.id)}>{subject.active?'Activa':'Inactiva'}</button></td><td><div className="row-actions"><button onClick={()=>editSubject(subject)}><Pencil size={15}/></button><button className="danger" onClick={()=>removeSubject(subject.id)}><Trash2 size={15}/></button></div></td></tr>)}</tbody></table></div>}
     </section>
 
-    <CopyPlan
-      groups={activeGroups}
-      isGroupComplete={groupPlanCompleteForCopy}
-      onCopy={duplicateGroupPlan}
-    />
-
     <section className="groups-table-card">
-      <div className="groups-table-heading"><div><span className="panel-kicker">Cargas</span><h2>Plan semanal por grupo</h2></div></div>
+      <div className="groups-table-heading"><div><span className="panel-kicker">Cargas</span><h2>Plan semanal por grupo</h2></div><button className="btn ghost-inline" onClick={openEntryCreate}><Plus size={16}/> Añadir carga</button></div>
       {project.studyPlan.length>0&&<div className="list-filter-tags" aria-label="Filtrar cargas por grupo"><button type="button" className={entryGroupFilter==='all'?'active':''} onClick={()=>setEntryGroupFilter('all')}>Todos</button>{activeGroups.map(group=><button type="button" key={group.id} className={entryGroupFilter===group.id?'active':''} onClick={()=>setEntryGroupFilter(group.id)}>{group.name}</button>)}</div>}
       {project.studyPlan.length===0?<Empty text="Todavía no hay cargas semanales configuradas."/>:visibleEntries.length===0?<Empty text="No hay cargas configuradas para este grupo."/>:<div className="groups-table-wrap"><table className="groups-table plan-table"><thead><tr><th>Grupo</th><th>Materia</th><th>Ses./sem.</th><th>Carga semanal</th><th>Organización</th><th>Docente</th><th>Duración</th><th>Estado</th><th/></tr></thead><tbody>{visibleEntries.map(entry=>{
         const group=project.groups.find(x=>x.id===entry.groupId)
@@ -475,6 +430,25 @@ export function StudyPlanPage({
       })}</tbody></table></div>}
     </section>
 
+
+    <CopyPlan
+      groups={activeGroups}
+      isGroupComplete={groupPlanCompleteForCopy}
+      onCopy={duplicateGroupPlan}
+    />
+
+    <div className="section-template-full">
+      <TemplatePanel
+        title="Plantillas de plan de estudios"
+        description="Bases editables para el curso 2026/2027. Las plantillas añaden solo materias/cargas que aún no existan y conservan cualquier configuración previa."
+        actions={[
+          {id:'extremadura-infantil',label:'Infantil · Extremadura 2026/27',description:project.center.stages.includes('Infantil')?'Aplicar a 3, 4 y 5 años':'El centro no tiene Infantil activa',disabled:!project.center.stages.includes('Infantil'),onApply:()=>applyTemplate('infantil')},
+          {id:'extremadura-primaria',label:'Primaria · Extremadura 2026/27',description:project.center.stages.includes('Primaria')?'Aplicar a 1.º–6.º según ciclo':'El centro no tiene Primaria activa',disabled:!project.center.stages.includes('Primaria'),onApply:()=>applyTemplate('primaria')},
+          {id:'copy-group-plan',label:'Usar grupo como plantilla',description:activeEntries.length?'Seleccionar origen y destino':'Configura primero al menos una carga semanal',disabled:activeEntries.length===0,onApply:()=>document.getElementById('copy-plan-template')?.scrollIntoView({behavior:'smooth',block:'center'})},
+        ]}
+      />
+    </div>
+    {templateMessage&&<div className="template-result"><CheckCircle2 size={16}/><span>{templateMessage}</span></div>}
   </div>
 }
 
