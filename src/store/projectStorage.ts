@@ -23,7 +23,9 @@ export function loadProject(): ViyeuticaProject {
       groups: Array.isArray(parsed.groups) ? parsed.groups : [],
       subjects: Array.isArray(parsed.subjects) ? parsed.subjects : [],
       studyPlan: Array.isArray(parsed.studyPlan) ? parsed.studyPlan : [],
-      teachers: Array.isArray(parsed.teachers) ? parsed.teachers : [],
+      teachers: Array.isArray(parsed.teachers)
+        ? parsed.teachers.map(teacher=>({...teacher,dedications:Array.isArray(teacher.dedications)?teacher.dedications:[]}))
+        : [],
       teacherAvailability: Array.isArray(parsed.teacherAvailability) ? parsed.teacherAvailability : [],
       assignments: Array.isArray(parsed.assignments) ? parsed.assignments : [],
       rules: Array.isArray(parsed.rules) ? parsed.rules : [],
