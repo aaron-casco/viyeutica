@@ -416,6 +416,7 @@ export function RulesPage({
   const [filter,setFilter]=useState<'all'|'HARD'|'SOFT'>('all')
   const [auditFocus,setAuditFocus]=useState('')
   const [descriptionCustomized,setDescriptionCustomized]=useState(false)
+  const [ruleModalOpen,setRuleModalOpen]=useState(false)
 
   const validation=useMemo(()=>validateRules(project),[project])
   const activeRules=project.rules.filter(rule=>rule.active)
@@ -440,7 +441,7 @@ export function RulesPage({
       setDescriptionCustomized(true)
       setFilter(rule.ruleType)
       setAuditFocus('Regla cargada desde Auditoría: '+humanRuleName(rule.code))
-      window.setTimeout(()=>window.scrollTo({top:0,behavior:'smooth'}),60)
+      setRuleModalOpen(true)
     }else{
       setAuditFocus('Auditoría ha señalado '+code+', pero no existe una regla editable con ese código.')
     }
@@ -453,6 +454,15 @@ export function RulesPage({
     setEditingId(null)
     setDescriptionCustomized(false)
     setError('')
+    setRuleModalOpen(false)
+  }
+
+  const openCreate=()=>{
+    setDraft(emptyDraft)
+    setEditingId(null)
+    setDescriptionCustomized(false)
+    setError('')
+    setRuleModalOpen(true)
   }
 
   const submit=(event:FormEvent)=>{
@@ -497,7 +507,7 @@ export function RulesPage({
     setDraft(draftFromRule(rule))
     setDescriptionCustomized(true)
     setError('')
-    window.scrollTo({top:0,behavior:'smooth'})
+    setRuleModalOpen(true)
   }
 
   const remove=(id:string)=>persist(project.rules.filter(rule=>rule.id!==id))
@@ -644,167 +654,49 @@ export function RulesPage({
       <Summary label="Normativa / importadas" value={`${normativeCount}/${importedCount}`} detail="por procedencia"/>
     </section>
 
-    <section className="rules-layout">
-      <form className="form-card" onSubmit={submit}>
-        <div className="form-card-heading">
-          <div className="form-card-number">07</div>
-          <div>
-            <span className="panel-kicker">{editingId?'Edición':'Nueva restricción'}</span>
-            <h2>{editingId?'Editar regla':'Crear regla'}</h2>
-            <p>Una regla HARD invalida una solución si se incumple. Una SOFT aporta penalización al score.</p>
-          </div>
-        </div>
+    <article className={'aside-card validation section-prevalidation-card '+(validation.length===0&&activeRules.length?'ready':'')}>
+      <span className="panel-kicker">Prevalidación</span>
+      <strong>{validation.length===0&&activeRules.length?'Reglas preparadas':validation.length?`${validation.length} incidencias`:'Sin reglas'}</strong>
+      <p>{validation[0]??'Las reglas activas tienen una estructura válida.'}</p>
+    </article>
 
-        <div className="form-grid two">
-          <Field label="Tipo" required>
-            <select
-              value={draft.ruleType}
-              onChange={e=>{
-                const ruleType=e.target.value as RuleType
-                setDraft({...draft,ruleType,weight:ruleType==='HARD'?'':draft.weight})
-              }}
-            >
-              <option value="HARD">HARD · obligatoria</option>
-              <option value="SOFT">SOFT · preferencia</option>
-            </select>
-          </Field>
-          <Field label="Prioridad">
-            <select
-              disabled={draft.ruleType==='HARD'}
-              value={draft.ruleType==='HARD'?'':draft.weight}
-              onChange={e=>setDraft({...draft,weight:e.target.value})}
-            >
-              <option value="">{draft.ruleType==='HARD'?'No aplica · las reglas HARD son obligatorias':'Selecciona prioridad'}</option>
-              {draft.weight&&!PRIORITY_OPTIONS.some(option=>option.value===draft.weight)&&
-                <option value={draft.weight}>Personalizada · {draft.weight}</option>}
-              {PRIORITY_OPTIONS.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-            <small className="field-help">{draft.ruleType==='HARD'
-              ? 'Las reglas HARD se cumplen obligatoriamente.'
-              : 'Cuanto mayor sea la prioridad, más penalizará el generador incumplir esta preferencia.'}</small>
-          </Field>
-        </div>
-        <section className="rule-condition-builder">
-          <div className="rule-condition-builder-heading">
-            <span className="panel-kicker">Condición de la regla</span>
-            <h3>Construir condición</h3>
-            <p>Selecciona únicamente los campos que necesites. ⩒Yeutika guardará la estructura técnica automáticamente.</p>
-          </div>
-
+    {ruleModalOpen&&<div className="modal-backdrop section-form-modal-backdrop">
+      <form className="app-modal section-form-modal rule-editor-modal" onSubmit={submit} role="dialog" aria-modal="true" aria-label={editingId?'Editar regla':'Crear regla'}>
+        <div className="app-modal-header"><div><ShieldCheck size={20}/><h2>{editingId?'Editar regla':'Crear regla'}</h2></div></div>
+        <div className="app-modal-body">
+          <div className="form-card-heading"><div className="form-card-number">07</div><div><span className="panel-kicker">{editingId?'Edición':'Nueva restricción'}</span><h2>{editingId?'Editar regla':'Crear regla'}</h2><p>Una regla HARD invalida una solución si se incumple. Una SOFT aporta penalización al score.</p></div></div>
           <div className="form-grid two">
-            <Field label="Tipo de condición" required>
-              <select value={draft.conditionKind} onChange={e=>setDraft(normalizeDraftForCondition(draft,e.target.value))}>
-                <option value="">Selecciona el tipo de condición</option>
-                <option value="generic">Condición general</option>
-                <option value="availability">Disponibilidad / indisponibilidad</option>
-                <option value="daily_limit">Límite diario</option>
-                <option value="consecutive_limit">Sesiones consecutivas</option>
-                <option value="fixed_slot">Franja fija</option>
-                <option value="avoid_slot">Evitar franja</option>
-                <option value="weekly_load">Carga semanal</option>
-              </select>
-            </Field>
-            <Field label="Ámbito" required>
-              <select
-                disabled={!draft.conditionKind}
-                value={draft.scope}
-                onChange={e=>setDraft(normalizeDraftForScope(draft,e.target.value))}
-              >
-                <option value="">{draft.conditionKind?'Selecciona el ámbito':'Selecciona primero el tipo de condición'}</option>
-                {scopes
-                  .filter(([value])=>allowedScopes(draft.conditionKind).includes(value))
-                  .map(([value,label])=><option key={value} value={value}>{label}</option>)}
-              </select>
-            </Field>
-            <RuleTargetFields draft={draft} project={project} onChange={setDraft}/>
-
-            {conditionUses(draft.conditionKind,'comparison')&&<Field label="Comparación">
-              <select disabled={!draft.scope} value={draft.comparison} onChange={e=>setDraft({...draft,comparison:e.target.value})}>
-                {(CONDITION_COMPARISONS[draft.conditionKind]??CONDITION_COMPARISONS.generic).map(value=><option key={value} value={value}>{comparisonLabel(value)}</option>)}
-              </select>
-            </Field>}
-
-            {conditionUses(draft.conditionKind,'value')&&<Field label="Valor">
-              <input disabled={!draft.scope} type="number" min="1" value={draft.value} onChange={e=>setDraft({...draft,value:e.target.value})} placeholder="Ej. 2"/>
-            </Field>}
+            <Field label="Tipo" required><select value={draft.ruleType} onChange={e=>{const ruleType=e.target.value as RuleType;setDraft({...draft,ruleType,weight:ruleType==='HARD'?'':draft.weight})}}><option value="HARD">HARD · obligatoria</option><option value="SOFT">SOFT · preferencia</option></select></Field>
+            <Field label="Prioridad"><select disabled={draft.ruleType==='HARD'} value={draft.ruleType==='HARD'?'':draft.weight} onChange={e=>setDraft({...draft,weight:e.target.value})}><option value="">{draft.ruleType==='HARD'?'No aplica · las reglas HARD son obligatorias':'Selecciona prioridad'}</option>{draft.weight&&!PRIORITY_OPTIONS.some(option=>option.value===draft.weight)&&<option value={draft.weight}>Personalizada · {draft.weight}</option>}{PRIORITY_OPTIONS.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select><small className="field-help">{draft.ruleType==='HARD'?'Las reglas HARD se cumplen obligatoriamente.':'Cuanto mayor sea la prioridad, más penalizará el generador incumplir esta preferencia.'}</small></Field>
           </div>
-
-          <RuleConditionGuide draft={draft} project={project}/>
-        </section>
-
-        <Field label="Descripción" required>
-          <textarea
-            disabled={!draft.conditionKind||!draft.scope}
-            value={displayedDescription}
-            onChange={e=>{setDescriptionCustomized(true);setDraft({...draft,description:e.target.value})}}
-            placeholder={draft.conditionKind&&draft.scope
-              ? 'La descripción se genera automáticamente a partir de la condición.'
-              : 'Completa primero el tipo de condición y el ámbito.'}
-          />
-          {descriptionCustomized&&<button
-            type="button"
-            className="btn ghost-inline rule-auto-description"
-            onClick={()=>setDescriptionCustomized(false)}
-          >Usar descripción automática</button>}
-        </Field>
-
-        {error&&<div className="inline-error">{error}</div>}
-
-        <div className="form-actions">
-          <button type="button" className="btn secondary-light" onClick={()=>navigate('/asignaciones')}>Paso anterior</button>
-          <div className="form-actions-right">
-            {editingId&&<button type="button" className="btn ghost-inline" onClick={reset}>Cancelar</button>}
-            <button className="btn primary" type="submit" disabled={!isRuleDraftReady(draft,project)}><Save size={16}/>{editingId?'Guardar cambios':'Añadir regla'}</button>
-          </div>
+          <section className="rule-condition-builder">
+            <div className="rule-condition-builder-heading"><span className="panel-kicker">Condición de la regla</span><h3>Construir condición</h3><p>Selecciona únicamente los campos que necesites. ⩒Yeutika guardará la estructura técnica automáticamente.</p></div>
+            <div className="form-grid two">
+              <Field label="Tipo de condición" required><select value={draft.conditionKind} onChange={e=>setDraft(normalizeDraftForCondition(draft,e.target.value))}><option value="">Selecciona el tipo de condición</option><option value="generic">Condición general</option><option value="availability">Disponibilidad / indisponibilidad</option><option value="daily_limit">Límite diario</option><option value="consecutive_limit">Sesiones consecutivas</option><option value="fixed_slot">Franja fija</option><option value="avoid_slot">Evitar franja</option><option value="weekly_load">Carga semanal</option></select></Field>
+              <Field label="Ámbito" required><select disabled={!draft.conditionKind} value={draft.scope} onChange={e=>setDraft(normalizeDraftForScope(draft,e.target.value))}><option value="">{draft.conditionKind?'Selecciona el ámbito':'Selecciona primero el tipo de condición'}</option>{scopes.filter(([value])=>allowedScopes(draft.conditionKind).includes(value)).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></Field>
+              <RuleTargetFields draft={draft} project={project} onChange={setDraft}/>
+              {conditionUses(draft.conditionKind,'comparison')&&<Field label="Comparación"><select disabled={!draft.scope} value={draft.comparison} onChange={e=>setDraft({...draft,comparison:e.target.value})}>{(CONDITION_COMPARISONS[draft.conditionKind]??CONDITION_COMPARISONS.generic).map(value=><option key={value} value={value}>{comparisonLabel(value)}</option>)}</select></Field>}
+              {conditionUses(draft.conditionKind,'value')&&<Field label="Valor"><input disabled={!draft.scope} type="number" min="1" value={draft.value} onChange={e=>setDraft({...draft,value:e.target.value})} placeholder="Ej. 2"/></Field>}
+            </div>
+            <RuleConditionGuide draft={draft} project={project}/>
+          </section>
+          <Field label="Descripción" required><textarea disabled={!draft.conditionKind||!draft.scope} value={displayedDescription} onChange={e=>{setDescriptionCustomized(true);setDraft({...draft,description:e.target.value})}} placeholder={draft.conditionKind&&draft.scope?'La descripción se genera automáticamente a partir de la condición.':'Completa primero el tipo de condición y el ámbito.'}/>{descriptionCustomized&&<button type="button" className="btn ghost-inline rule-auto-description" onClick={()=>setDescriptionCustomized(false)}>Usar descripción automática</button>}</Field>
+          {error&&<div className="inline-error">{error}</div>}
         </div>
+        <div className="app-modal-footer"><button type="button" className="btn ghost-inline" onClick={reset}>Cancelar</button><button className="btn primary" type="submit" disabled={!isRuleDraftReady(draft,project)}>Aceptar</button></div>
       </form>
-
-      <aside className="wizard-aside">
-        <article className={'aside-card validation '+(validation.length===0&&activeRules.length?'ready':'')}>
-          <span className="panel-kicker">Prevalidación</span>
-          <strong>{validation.length===0&&activeRules.length?'Reglas preparadas':validation.length?`${validation.length} incidencias`:'Sin reglas'}</strong>
-          <p>{validation[0]??'Las reglas activas tienen una estructura válida.'}</p>
-        </article>
-
-        <TemplatePanel
-          title="Plantillas de reglas"
-          description="Combina reglas base del motor, reglas importadas del curso anterior y reglas obtenidas de normativa aprobada."
-          actions={[
-            {
-              id:'base-rules',
-              label:'Añadir reglas base',
-              description:'Solapes, disponibilidad, franjas fijas y reducción de huecos',
-              onApply:addBaseRules,
-            },
-            {
-              id:'imported-rules',
-              label:'Revisar reglas importadas',
-              description:project.rules.some(rule=>rule.source==='imported'||rule.reviewRequired)?'Hay reglas del curso anterior':'No hay reglas importadas pendientes',
-              disabled:!project.rules.some(rule=>rule.source==='imported'||rule.reviewRequired),
-              onApply:markImportedReviewed,
-            },
-            {
-              id:'normative-rules',
-              label:'Incorporar normativa aprobada',
-              description:project.normativeRules.some(rule=>rule.approved&&(rule.relevance??legacyNormativeRelevance(rule))==='timetable')?'Crear reglas trazables desde Normativa':'No hay normativa aplicable al horario aprobada',
-              disabled:!project.normativeRules.some(rule=>rule.approved&&(rule.relevance??legacyNormativeRelevance(rule))==='timetable'),
-              onApply:createNormativeRules,
-            },
-          ]}
-        />
-      </aside>
-    </section>
+    </div>}
 
     {templateMessage&&<div className="template-result"><CheckCircle2 size={16}/><span>{templateMessage}</span></div>}
 
     <section className="groups-table-card">
       <div className="groups-table-heading">
         <div><span className="panel-kicker">Motor de restricciones</span><h2>Reglas configuradas</h2></div>
-        <div className="rule-filter">
+        <div className="groups-table-actions"><button className="btn ghost-inline" onClick={openCreate}><Plus size={16}/> Añadir regla</button><div className="rule-filter">
           <button className={filter==='all'?'active':''} onClick={()=>setFilter('all')}>Todas</button>
           <button className={filter==='HARD'?'active hard':''} onClick={()=>setFilter('HARD')}>HARD</button>
           <button className={filter==='SOFT'?'active soft':''} onClick={()=>setFilter('SOFT')}>SOFT</button>
-        </div>
+        </div></div>
       </div>
 
       {visible.length===0
@@ -824,6 +716,19 @@ export function RulesPage({
             </div>
           </article>)}</div>}
     </section>
+
+    <div className="section-template-full">
+      <TemplatePanel
+        title="Plantillas de reglas"
+        description="Combina reglas base del motor, reglas importadas del curso anterior y reglas obtenidas de normativa aprobada."
+        actions={[
+          {id:'base-rules',label:'Añadir reglas base',description:'Solapes, disponibilidad, franjas fijas y reducción de huecos',onApply:addBaseRules},
+          {id:'imported-rules',label:'Revisar reglas importadas',description:project.rules.some(rule=>rule.source==='imported'||rule.reviewRequired)?'Hay reglas del curso anterior':'No hay reglas importadas pendientes',disabled:!project.rules.some(rule=>rule.source==='imported'||rule.reviewRequired),onApply:markImportedReviewed},
+          {id:'normative-rules',label:'Incorporar normativa aprobada',description:project.normativeRules.some(rule=>rule.approved&&(rule.relevance??legacyNormativeRelevance(rule))==='timetable')?'Crear reglas trazables desde Normativa':'No hay normativa aplicable al horario aprobada',disabled:!project.normativeRules.some(rule=>rule.approved&&(rule.relevance??legacyNormativeRelevance(rule))==='timetable'),onApply:createNormativeRules},
+        ]}
+      />
+    </div>
+    {templateMessage&&<div className="template-result"><CheckCircle2 size={16}/><span>{templateMessage}</span></div>}
 
     <NormativeTraceabilityPanel project={project}/>
   
