@@ -367,10 +367,17 @@ export function StudyPlanPage({
       <Summary label="Carga objetivo" value={weeklyMinuteTotal?formatWeeklyMinutes(weeklyMinuteTotal):(weeklySessionTotal?String(weeklySessionTotal):'—')} detail={weeklyMinuteTotal?'minutos semanales acumulados':'sesiones configuradas'}/>
     </section>
 
-    <section className="plan-validation-card section-prevalidation-card">
-      <div><span className="panel-kicker">Prevalidación</span><h2>{validation.length===0&&activeEntries.length?'Plan coherente':'Revisión necesaria'}</h2><p>{validation[0]??'Todos los grupos activos tienen al menos una carga y no hay referencias inválidas.'}</p></div>
-      <CheckCircle2 size={28}/>
-    </section>
+    <article className={'aside-card validation section-prevalidation-card '+(validation.length?'error':activeEntries.length?'ready':'incomplete')}>
+      <span className="panel-kicker">ESTADO:</span>
+      <strong>{validation.length?'Sección Plan de estudios con errores':activeEntries.length?'Sección Plan de estudios válida':'Sección Plan de estudios incompleta'}</strong>
+      <p>{validation.length
+        ? `${validation[0]} Revisa las materias o cargas semanales implicadas y corrige la referencia o valor indicado.`
+        : activeEntries.length
+          ? `${activeSubjects.length} materias activas · ${activeEntries.length} cargas configuradas · ${coveredGroups}/${activeGroups.length} grupos cubiertos. No hay referencias inválidas en el plan.`
+          : 'Todavía no hay cargas semanales configuradas. Añade materias y vincúlalas a los grupos para completar el plan.'}</p>
+      {validation.length>0&&<button type="button" className="section-status-action" onClick={()=>document.querySelector('.groups-table-card')?.scrollIntoView({behavior:'smooth',block:'start'})}>Revisar plan de estudios</button>}
+      {!validation.length&&!activeEntries.length&&<button type="button" className="section-status-action" onClick={openEntryCreate}>Añadir primera carga</button>}
+    </article>
 
     {subjectModalOpen&&<div className="modal-backdrop section-form-modal-backdrop">
       <form className="app-modal section-form-modal" onSubmit={submitSubject} role="dialog" aria-modal="true" aria-label={editingSubject?'Editar materia':'Añadir materia'}>
