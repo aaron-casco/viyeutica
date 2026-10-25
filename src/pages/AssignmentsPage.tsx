@@ -369,10 +369,18 @@ export function AssignmentsPage({
   }
 
   const duplicate=(assignment:TeachingAssignment)=>{
-    persistAssignments([
-      ...project.assignments,
-      {...assignment,id:uid('asg'),source:'duplicated',active:true},
-    ])
+    setEditingId(null)
+    setDraft({
+      groupId:assignment.groupId,
+      subjectId:assignment.subjectId,
+      teacherId:assignment.teacherId,
+      assignmentType:assignment.assignmentType,
+      weeklySessions:assignment.weeklySessions===null?'':String(assignment.weeklySessions),
+      weeklyMinutes:assignment.weeklyMinutes===null?'':String(assignment.weeklyMinutes),
+    })
+    setShowOtherTeachers(false)
+    setError('Modifica al menos grupo, materia, docente o tipo de intervención. Una asignación idéntica no se puede guardar dos veces.')
+    setAssignmentModalOpen(true)
   }
 
   const remove=(id:string)=>persistAssignments(project.assignments.filter(item=>item.id!==id))
