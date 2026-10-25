@@ -1685,3 +1685,16 @@ button.btn:disabled:hover{
 .availability-suggestion:hover{border-color:#9bc879;background:#f7fbf4}
 [data-theme="dark"] .availability-suggestion{background:#101925}
 [data-theme="dark"] .availability-suggestion:hover{background:#172619;border-color:#426a32}
+
+.availability-heading{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px}
+.availability-collapse-toggle{width:30px;height:30px;display:grid;place-items:center;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--muted);cursor:pointer}
+.availability-card.is-collapsed .availability-collapse-toggle svg{transform:rotate(-90deg)}
+.availability-collapse-toggle svg{transition:transform .18s ease}
+.availability-heading-copy{min-width:0}
+.availability-heading-copy h2{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.availability-count{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 7px;border-radius:99px;background:#eef3f7;color:#516074;font-size:9px;font-weight:850}
+.availability-content{border-top:1px solid var(--border)}
+.availability-filter-tags{padding:12px 16px 0}
+@media(max-width:780px){.availability-heading{grid-template-columns:auto minmax(0,1fr)}.availability-add-action{grid-column:1/-1;justify-self:stretch}.availability-heading-copy h2{align-items:flex-start}}
+[data-theme="dark"] .availability-collapse-toggle{background:#101925}
+[data-theme="dark"] .availability-count{background:#202b39;color:#aebbd0}
