@@ -77,6 +77,7 @@ export function AssignmentsPage({
   const [bulkModalOpen,setBulkModalOpen]=useState(false)
   const [bulkSubjectId,setBulkSubjectId]=useState('')
   const [bulkTeacherId,setBulkTeacherId]=useState('')
+  const [availabilitySuggestion,setAvailabilitySuggestion]=useState('')
 
   const activeGroups=project.groups.filter(group=>group.active)
   const activeSubjects=project.subjects.filter(subject=>subject.active)
@@ -98,6 +99,9 @@ export function AssignmentsPage({
   const availabilityReady=Boolean(
     availabilityDraft.teacherIds.length&&availabilityDraft.days.length&&availabilityDraft.sessions.length
   )
+  const availabilityReasons=Array.from(new Set(
+    project.teacherAvailability.map(item=>item.detail.trim()).filter(Boolean)
+  )).sort((a,b)=>a.localeCompare(b,'es',{sensitivity:'base'}))
   const availabilityGuide=!availabilityDraft.teacherIds.length?'Selecciona al menos un docente.'
     :!availabilityDraft.days.length?'Selecciona al menos un día.'
     :!availabilityDraft.sessions.length?'Selecciona al menos una sesión.'
@@ -196,7 +200,7 @@ export function AssignmentsPage({
     setAssignmentModalOpen(false)
   }
   const openCreate=()=>{setDraft(emptyAssignment);setEditingId(null);setError('');setAssignmentModalOpen(true)}
-  const closeAvailability=()=>{setAvailabilityDraft(emptyAvailability);setAvailabilityError('');setAvailabilityModalOpen(false)}
+  const closeAvailability=()=>{setAvailabilityDraft(emptyAvailability);setAvailabilityError('');setAvailabilitySuggestion('');setAvailabilityModalOpen(false)}
 
   const submit=(event:FormEvent)=>{
     event.preventDefault()
@@ -315,6 +319,7 @@ export function AssignmentsPage({
     persistAvailability([...filtered,...additions])
     setAvailabilityDraft(emptyAvailability)
     setAvailabilityError('')
+    setAvailabilitySuggestion('')
     setAvailabilityModalOpen(false)
   }
 
@@ -517,7 +522,40 @@ export function AssignmentsPage({
             <MultiCheckSelect label="Días" placeholder="Selecciona días..." options={project.schedule.activeDays.map(day=>({value:day,label:dayLabels[day]}))} values={availabilityDraft.days} onChange={values=>setAvailabilityDraft({...availabilityDraft,days:values as Weekday[]})}/>
             <MultiCheckSelect label="Sesiones" placeholder="Selecciona sesiones..." allValue="__all__" options={[{value:'__all__',label:'Todas las sesiones'},...project.schedule.blocks.filter(block=>block.active&&block.type==='teaching').map(block=>({value:block.id,label:block.label+' · '+block.start+'-'+block.end}))]} values={availabilityDraft.sessions} onChange={sessions=>setAvailabilityDraft({...availabilityDraft,sessions})}/>
             <label className="availability-single-field"><span>Estado</span><select value={availabilityDraft.status} onChange={e=>setAvailabilityDraft({...availabilityDraft,status:e.target.value as AvailabilityStatus})}>{(Object.entries(availabilityLabels) as [AvailabilityStatus,string][]).map(([value,label])=><option value={value} key={value}>{label}</option>)}</select></label>
-            <label className="availability-single-field availability-detail-field"><span>Motivo / detalle</span><input value={availabilityDraft.detail} onChange={e=>setAvailabilityDraft({...availabilityDraft,detail:e.target.value})} placeholder="Opcional"/></label>
+            <label className="availability-single-field availability-detail-field availability-autocomplete">
+              <span>Motivo / detalle</span>
+              <input
+                value={availabilityDraft.detail}
+                onChange={e=>{
+                  const value=e.target.value
+                  setAvailabilityDraft({...availabilityDraft,detail:value})
+                  const normalized=value.trim().toLocaleLowerCase('es')
+                  const match=normalized.length>=3
+                    ? availabilityReasons.find(reason=>reason.toLocaleLowerCase('es').startsWith(normalized)&&reason.toLocaleLowerCase('es')!==normalized)
+                    : undefined
+                  setAvailabilitySuggestion(match??'')
+                }}
+                onKeyDown={e=>{
+                  if(e.key==='Tab'&&availabilitySuggestion){
+                    e.preventDefault()
+                    setAvailabilityDraft({...availabilityDraft,detail:availabilitySuggestion})
+                    setAvailabilitySuggestion('')
+                  }
+                }}
+                onBlur={()=>window.setTimeout(()=>setAvailabilitySuggestion(''),120)}
+                placeholder="Opcional"
+                autoComplete="off"
+              />
+              {availabilitySuggestion&&<button
+                type="button"
+                className="availability-suggestion"
+                onMouseDown={e=>e.preventDefault()}
+                onClick={()=>{
+                  setAvailabilityDraft({...availabilityDraft,detail:availabilitySuggestion})
+                  setAvailabilitySuggestion('')
+                }}
+              ><span>{availabilitySuggestion}</span><small>Tab para completar</small></button>}
+            </label>
           </div>
           <div className={'form-guide '+(availabilityReady?'complete':'partial')}><strong>{availabilityReady?'Restricción lista':'Siguiente paso'}</strong><span>{availabilityGuide}</span></div>
           {availabilityError&&<div className="inline-error">{availabilityError}</div>}
