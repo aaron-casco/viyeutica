@@ -297,6 +297,7 @@ export function GenerationPage({
 
     <WizardStepper currentStep={9} project={project} navigate={navigate}/>
 
+    {runs.length===0&&<>
     <section className="generation-control-card">
       <div>
         <span className="panel-kicker">Motor heurístico</span>
@@ -320,6 +321,7 @@ export function GenerationPage({
         </button>
       </div>
     </section>
+    </>}
 
     {generationNotice&&<section className="generation-uniqueness-notice"><Info size={18}/><span>{generationNotice}</span></section>}
     {appliedAlternative&&<section className="template-result generation-applied-alternative">
@@ -459,6 +461,32 @@ export function GenerationPage({
           />
         </section>}
       </>}
+
+    {runs.length>0&&<>
+    <section className="generation-control-card">
+      <div>
+        <span className="panel-kicker">Motor heurístico</span>
+        <h2>{runs.length===0?'Generar 3 propuestas':'Añadir otra propuesta'}</h2>
+        <p>{runs.length===0
+          ? '⩒Yeutika generará tres alternativas independientes para poder compararlas antes de decidir.'
+          : 'Genera una nueva alternativa sin eliminar las propuestas existentes.'}</p>
+      </div>
+      <div className="generation-control-actions">
+        {runs.length>0&&<>
+          <button className="btn ghost-inline" onClick={()=>setShowClearModal(true)}>Limpiar propuestas</button>
+          <button className="btn ghost-inline" disabled={running} onClick={()=>setShowRegenerateModal(true)}><RefreshCcw size={16}/> Regenerar 3 propuestas</button>
+        </>}
+        <button className="btn primary" disabled={running} onClick={runGeneration}>
+          {running
+            ? <RefreshCcw className="spin" size={16}/>
+            : runs.length===0?<Sparkles size={16}/>:<Plus size={16}/>}
+          {running
+            ? (runs.length===0?'Generando 3 propuestas...':'Generando propuesta...')
+            : (runs.length===0?'Generar 3 propuestas':'Generar otra propuesta')}
+        </button>
+      </div>
+    </section>
+    </>}
 
     {showRegenerateModal&&<AppModal
       title="Regenerar 3 propuestas"
