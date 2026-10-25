@@ -414,6 +414,7 @@ export function RulesPage({
   const [error,setError]=useState('')
   const [templateMessage,setTemplateMessage]=useState('')
   const [filter,setFilter]=useState<'all'|'HARD'|'SOFT'>('all')
+  const [originFilter,setOriginFilter]=useState<'all'|'engine'|'normative'|'manual'|'imported'>('all')
   const [auditFocus,setAuditFocus]=useState('')
   const [descriptionCustomized,setDescriptionCustomized]=useState(false)
   const [ruleModalOpen,setRuleModalOpen]=useState(false)
@@ -450,6 +451,7 @@ export function RulesPage({
       setDraft(draftFromRule(rule))
       setDescriptionCustomized(true)
       setFilter(rule.ruleType)
+      setOriginFilter(rule.source??'manual')
       setAuditFocus('Regla cargada desde Auditoría: '+humanRuleName(rule.code))
       setRuleModalOpen(true)
     }else{
@@ -594,7 +596,20 @@ export function RulesPage({
     </div>
   }
 
-  const visible=project.rules.filter(rule=>filter==='all'||rule.ruleType===filter)
+  const visibleEngineRules=engineRules.filter(()=>(
+    (filter==='all'||filter==='HARD') &&
+    (originFilter==='all'||originFilter==='engine')
+  ))
+  const visibleNormativeDedications=normativeDedications.filter(()=>(
+    (filter==='all'||filter==='HARD') &&
+    (originFilter==='all'||originFilter==='normative')
+  ))
+  const visibleProjectRules=project.rules.filter(rule=>{
+    const origin=rule.source??'manual'
+    return (filter==='all'||rule.ruleType===filter) &&
+      (originFilter==='all'||originFilter===origin)
+  })
+  const visibleRuleCount=visibleEngineRules.length+visibleNormativeDedications.length+visibleProjectRules.length
 
   return <div className="wizard-page rules-page">
     <section className="wizard-intro">
@@ -660,24 +675,28 @@ export function RulesPage({
     <section className="groups-table-card">
       <div className="groups-table-heading">
         <div><span className="panel-kicker">Motor de restricciones</span><h2>Reglas configuradas</h2></div>
-        <div className="groups-table-actions"><button className="btn ghost-inline" onClick={openCreate}><Plus size={16}/> Añadir regla</button><div className="rule-filter">
+        <div className="groups-table-actions"><button className="btn ghost-inline" onClick={openCreate}><Plus size={16}/> Añadir regla</button></div>
+      </div>
+
+      <div className="rules-filter-toolbar">
+        <div className="rule-origin-filter" aria-label="Filtrar reglas por procedencia">
+          <button className={originFilter==='all'?'active all':''} onClick={()=>setOriginFilter('all')}>Todas</button>
+          <button className={originFilter==='engine'?'active engine':''} onClick={()=>setOriginFilter('engine')}><i/>Motor</button>
+          <button className={originFilter==='normative'?'active normative':''} onClick={()=>setOriginFilter('normative')}><i/>Normativa</button>
+          <button className={originFilter==='manual'?'active manual':''} onClick={()=>setOriginFilter('manual')}><i/>Manual</button>
+          <button className={originFilter==='imported'?'active imported':''} onClick={()=>setOriginFilter('imported')}><i/>Importada</button>
+        </div>
+        <div className="rule-filter" aria-label="Filtrar reglas por tipo">
           <button className={filter==='all'?'active':''} onClick={()=>setFilter('all')}>Todas</button>
           <button className={filter==='HARD'?'active hard':''} onClick={()=>setFilter('HARD')}>HARD</button>
           <button className={filter==='SOFT'?'active soft':''} onClick={()=>setFilter('SOFT')}>SOFT</button>
-        </div></div>
+        </div>
       </div>
 
-      <div className="rule-origin-legend" aria-label="Leyenda de procedencia de las reglas">
-        <span className="engine"><i/>Motor</span>
-        <span className="normative"><i/>Normativa</span>
-        <span className="manual"><i/>Manual</span>
-        <span className="imported"><i/>Importada</span>
-      </div>
-
-      {(visible.length===0&&filter==='SOFT')
-        ? <div className="groups-empty"><ShieldAlert size={28}/><strong>No hay reglas SOFT configuradas</strong><p>Añade una preferencia o cambia el filtro para ver las reglas obligatorias.</p></div>
+      {visibleRuleCount===0
+        ? <div className="groups-empty"><ShieldAlert size={28}/><strong>No hay reglas para estos filtros</strong><p>Cambia la procedencia o el tipo HARD/SOFT para ampliar el listado.</p></div>
         : <div className="rules-list">
-            {(filter==='all'||filter==='HARD')&&engineRules.map(rule=><article className="rule-card hard rule-origin-engine" key={rule.id}>
+            {visibleEngineRules.map(rule=><article className="rule-card hard rule-origin-engine" key={rule.id}>
               <div className="rule-type-badge engine">MOTOR</div>
               <div className="rule-card-main">
                 <div className="rule-title-row"><strong>{rule.title}</strong><span>HARD</span><span className="origin-tag engine">Motor</span></div>
@@ -685,7 +704,7 @@ export function RulesPage({
               </div>
               <div className="engine-rule-lock"><ShieldCheck size={17}/><span>Siempre activa</span></div>
             </article>)}
-            {(filter==='all'||filter==='HARD')&&normativeDedications.map(({teacher,item})=><article className="rule-card hard rule-origin-normative" key={'norm-ded-'+teacher.id+'-'+item.id}>
+            {visibleNormativeDedications.map(({teacher,item})=><article className="rule-card hard rule-origin-normative" key={'norm-ded-'+teacher.id+'-'+item.id}>
               <div className="rule-type-badge normative">NORMA</div>
               <div className="rule-card-main">
                 <div className="rule-title-row"><strong>{item.label}</strong><span>HARD</span><span className="origin-tag normative">Normativa</span></div>
@@ -694,7 +713,7 @@ export function RulesPage({
               </div>
               <div className="engine-rule-lock"><ShieldCheck size={17}/><span>Derivada de Profesorado</span></div>
             </article>)}
-            {visible.map(rule=><article className={'rule-card '+rule.ruleType.toLowerCase()+' rule-origin-'+(rule.source??'manual')+(!rule.active?' inactive':'')} key={rule.id}>
+            {visibleProjectRules.map(rule=><article className={'rule-card '+rule.ruleType.toLowerCase()+' rule-origin-'+(rule.source??'manual')+(!rule.active?' inactive':'')} key={rule.id}>
               <div className="rule-type-badge">{rule.ruleType}</div>
               <div className="rule-card-main">
                 <div className="rule-title-row"><strong>{ruleDisplayName(rule)}</strong><span>{scopeLabel(rule.scope)}</span>{rule.source&&<span className={'origin-tag '+rule.source}>{sourceLabel(rule.source)}</span>}{rule.reviewRequired&&<span className="review-tag">Revisar</span>}</div>
