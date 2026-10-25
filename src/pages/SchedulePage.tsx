@@ -58,6 +58,7 @@ export function SchedulePage({project,navigate}:{project:ViyeuticaProject;naviga
   const [editingId,setEditingId]=useState<string|null>(null)
   const [error,setError]=useState('')
   const [showPresetModal,setShowPresetModal]=useState(false)
+  const [blockModalOpen,setBlockModalOpen]=useState(false)
   const schedule=project.schedule
   const blocks=[...schedule.blocks].sort((a,b)=>a.start.localeCompare(b.start))
   const validation=useMemo(()=>validateSchedule(schedule),[schedule])
@@ -89,7 +90,8 @@ export function SchedulePage({project,navigate}:{project:ViyeuticaProject;naviga
     setDraft({...draft,stageScope:next})
   }
 
-  const reset=()=>{setDraft(emptyDraft);setEditingId(null);setError('')}
+  const reset=()=>{setDraft(emptyDraft);setEditingId(null);setError('');setBlockModalOpen(false)}
+  const openCreate=()=>{setDraft(emptyDraft);setEditingId(null);setError('');setBlockModalOpen(true)}
 
   const submit=(event:FormEvent)=>{
     event.preventDefault()
@@ -115,7 +117,7 @@ export function SchedulePage({project,navigate}:{project:ViyeuticaProject;naviga
     setEditingId(block.id)
     setDraft({label:block.label,start:block.start,end:block.end,type:block.type,stageScope:[...block.stageScope]})
     setError('')
-    window.scrollTo({top:0,behavior:'smooth'})
+    setBlockModalOpen(true)
   }
 
   const remove=(id:string)=>{
@@ -205,82 +207,48 @@ export function SchedulePage({project,navigate}:{project:ViyeuticaProject;naviga
       <Summary label="Horario" value={first&&last?`${first.start}–${last.end}`:'—'} detail={modeLabel(schedule.mode)}/>
     </section>
 
+    <article className={'aside-card validation section-prevalidation-card '+(validation.length===0&&blocks.length?'ready':'')}>
+      <span className="panel-kicker">Prevalidación</span>
+      <strong>{validation.length===0&&blocks.length?'Jornada válida':validation.length?`${validation.length} incidencias`:'Sin tramos'}</strong>
+      <p>{validation[0]??'No hay solapamientos ni intervalos temporales inválidos.'}</p>
+    </article>
+
     <section className="schedule-config-card">
       <div className="schedule-config-row">
-        <div>
-          <span className="panel-kicker">Semana lectiva</span>
-          <h2>Días activos</h2>
-          <p>Activa únicamente los días en los que el centro puede programar actividad.</p>
-        </div>
+        <div><span className="panel-kicker">Semana lectiva</span><h2>Días activos</h2><p>Activa únicamente los días en los que el centro puede programar actividad.</p></div>
         <div className="weekday-picker">{days.map(day=><button key={day.id} className={schedule.activeDays.includes(day.id)?'active':''} onClick={()=>toggleDay(day.id)} title={day.label}>{day.short}</button>)}</div>
       </div>
       <div className="schedule-config-row">
-        <div>
-          <span className="panel-kicker">Tipo de jornada</span>
-          <h2>Organización general</h2>
-          <p>Este valor es descriptivo; los tramos concretos son los que gobiernan el horario.</p>
-        </div>
-        <div className="mode-picker">
-          {([['morning','Mañana'],['afternoon','Tarde'],['split','Partida'],['custom','Personalizada']] as [ScheduleMode,string][]).map(([value,label])=><button key={value} className={schedule.mode===value?'active':''} onClick={()=>setMode(value)}>{label}</button>)}
-        </div>
+        <div><span className="panel-kicker">Tipo de jornada</span><h2>Organización general</h2><p>Este valor es descriptivo; los tramos concretos son los que gobiernan el horario.</p></div>
+        <div className="mode-picker">{([['morning','Mañana'],['afternoon','Tarde'],['split','Partida'],['custom','Personalizada']] as [ScheduleMode,string][]).map(([value,label])=><button key={value} className={schedule.mode===value?'active':''} onClick={()=>setMode(value)}>{label}</button>)}</div>
       </div>
     </section>
 
-    <section className="schedule-editor-grid">
-      <form className="form-card compact-form-card" onSubmit={submit}>
-        <div className="form-card-heading">
-          <div className="form-card-number">03</div>
-          <div>
-            <span className="panel-kicker">{editingId?'Editar tramo':'Nuevo tramo'}</span>
-            <h2>{editingId?'Modificar sesión':'Añadir sesión o pausa'}</h2>
-            <p>Las duraciones pueden ser distintas; no se presupone una sesión fija de 45, 50 o 60 minutos.</p>
+    {blockModalOpen&&<div className="modal-backdrop section-form-modal-backdrop">
+      <form className="app-modal section-form-modal" onSubmit={submit} role="dialog" aria-modal="true" aria-label={editingId?'Modificar sesión':'Añadir sesión o pausa'}>
+        <div className="app-modal-header"><div><CalendarClock size={20}/><h2>{editingId?'Modificar sesión':'Añadir sesión o pausa'}</h2></div></div>
+        <div className="app-modal-body">
+          <div className="form-card-heading"><div className="form-card-number">03</div><div><span className="panel-kicker">{editingId?'Editar tramo':'Nuevo tramo'}</span><h2>{editingId?'Modificar sesión':'Añadir sesión o pausa'}</h2><p>Las duraciones pueden ser distintas; no se presupone una sesión fija de 45, 50 o 60 minutos.</p></div></div>
+          <div className="form-grid two">
+            <Field label="Nombre" required><input value={draft.label} onChange={e=>setDraft({...draft,label:e.target.value})} placeholder="Ej. 1.ª sesión"/></Field>
+            <Field label="Tipo" required><select value={draft.type} onChange={e=>setDraft({...draft,type:e.target.value as TimeBlockType})}>{typeOptions.map(x=><option value={x.value} key={x.value}>{x.label}</option>)}</select></Field>
+            <Field label="Inicio" required><input type="time" value={draft.start} onChange={e=>setDraft({...draft,start:e.target.value})}/></Field>
+            <Field label="Fin" required><input type="time" value={draft.end} onChange={e=>setDraft({...draft,end:e.target.value})}/></Field>
           </div>
+          <div className="form-section-title"><h3>Etapas a las que aplica</h3><p>Si no seleccionas ninguna, el tramo se considera común a todo el centro.</p></div>
+          <div className="stage-scope-picker">{project.center.stages.map(stage=><button type="button" key={stage} className={draft.stageScope.includes(stage)?'active':''} onClick={()=>toggleStage(stage)}>{stage}</button>)}</div>
+          <div className="duration-preview"><Clock3 size={16}/><span>Duración:</span><strong>{formatMinutes(new Date(`1970-01-01T${draft.end}:00`).getTime()/60000-new Date(`1970-01-01T${draft.start}:00`).getTime()/60000)}</strong></div>
+          {error&&<div className="inline-error">{error}</div>}
+          <div className={'form-guide '+(blockReady?'complete':'partial')}><strong>{blockReady?'Tramo listo':'Siguiente paso'}</strong><span>{blockGuide}</span></div>
         </div>
-
-        <div className="form-grid two">
-          <Field label="Nombre" required><input value={draft.label} onChange={e=>setDraft({...draft,label:e.target.value})} placeholder="Ej. 1.ª sesión"/></Field>
-          <Field label="Tipo" required><select value={draft.type} onChange={e=>setDraft({...draft,type:e.target.value as TimeBlockType})}>{typeOptions.map(x=><option value={x.value} key={x.value}>{x.label}</option>)}</select></Field>
-          <Field label="Inicio" required><input type="time" value={draft.start} onChange={e=>setDraft({...draft,start:e.target.value})}/></Field>
-          <Field label="Fin" required><input type="time" value={draft.end} onChange={e=>setDraft({...draft,end:e.target.value})}/></Field>
-        </div>
-
-        <div className="form-section-title"><h3>Etapas a las que aplica</h3><p>Si no seleccionas ninguna, el tramo se considera común a todo el centro.</p></div>
-        <div className="stage-scope-picker">
-          {project.center.stages.map(stage=><button type="button" key={stage} className={draft.stageScope.includes(stage)?'active':''} onClick={()=>toggleStage(stage)}>{stage}</button>)}
-        </div>
-        <div className="duration-preview"><Clock3 size={16}/><span>Duración:</span><strong>{formatMinutes(new Date(`1970-01-01T${draft.end}:00`).getTime()/60000-new Date(`1970-01-01T${draft.start}:00`).getTime()/60000)}</strong></div>
-        {error&&<div className="inline-error">{error}</div>}
-        <div className={'form-guide '+(blockReady?'complete':'partial')}><strong>{blockReady?'Tramo listo':'Siguiente paso'}</strong><span>{blockGuide}</span></div>
-
-        <div className="form-actions">
-          <button type="button" className="btn secondary-light" onClick={()=>navigate('/grupos')}><ArrowLeft size={16}/> Paso anterior</button>
-          <div className="form-actions-right">
-            {editingId&&<button type="button" className="btn ghost-inline" onClick={reset}>Cancelar</button>}
-            <button className="btn primary" type="submit" disabled={!blockReady}><Save size={16}/>{editingId?'Guardar cambios':'Añadir tramo'}</button>
-          </div>
-        </div>
+        <div className="app-modal-footer"><button type="button" className="btn ghost-inline" onClick={reset}>Cancelar</button><button className="btn primary" type="submit" disabled={!blockReady}>Aceptar</button></div>
       </form>
-
-      <aside className="wizard-aside">
-        <article className={'aside-card validation '+(validation.length===0&&blocks.length?'ready':'')}>
-          <span className="panel-kicker">Prevalidación</span>
-          <strong>{validation.length===0&&blocks.length?'Jornada válida':validation.length?`${validation.length} incidencias`:'Sin tramos'}</strong>
-          <p>{validation[0]??'No hay solapamientos ni intervalos temporales inválidos.'}</p>
-        </article>
-        <TemplatePanel
-          title="Jornada de ejemplo"
-          description="Carga una base editable 09:00–14:00 con cinco sesiones y recreo. Es una plantilla de trabajo, no una regla normativa."
-          actions={[
-            {id:'morning-9-14',label:'Cargar plantilla 09:00–14:00',description:'5 sesiones + recreo',onApply:createPreset},
-          ]}
-        />
-      </aside>
-    </section>
+    </div>}
 
     <section className="timeline-card">
       <div className="groups-table-heading">
         <div><span className="panel-kicker">Secuencia diaria</span><h2>Tramos configurados</h2></div>
-        <button className="btn ghost-inline" onClick={()=>{reset();window.scrollTo({top:0,behavior:'smooth'})}}><Plus size={16}/> Nuevo tramo</button>
+        <button className="btn ghost-inline" onClick={openCreate}><Plus size={16}/> Añadir tramo</button>
       </div>
       {blocks.length===0?<div className="groups-empty"><CalendarClock size={28}/><strong>No hay sesiones todavía</strong><p>Añade los tramos manualmente o utiliza el ejemplo editable.</p></div>:
       <div className="timeline-list">{blocks.map(block=><article className={'timeline-row '+(!block.active?'is-inactive':'')} key={block.id}>
@@ -296,6 +264,16 @@ export function SchedulePage({project,navigate}:{project:ViyeuticaProject;naviga
         </div>
       </article>)}</div>}
     </section>
+
+    <div className="section-template-full">
+      <TemplatePanel
+        title="Jornada de ejemplo"
+        description="Carga una base editable 09:00–14:00 con cinco sesiones y recreo. Es una plantilla de trabajo, no una regla normativa."
+        actions={[
+          {id:'morning-9-14',label:'Cargar plantilla 09:00–14:00',description:'5 sesiones + recreo',onApply:createPreset},
+        ]}
+      />
+    </div>
   </div>
 }
 
