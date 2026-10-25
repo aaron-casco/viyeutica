@@ -163,6 +163,15 @@ export function AssignmentsPage({
     return activeSubjects.filter(subject=>subject.stage===group.stage&&subjectIds.has(subject.id))
   }
 
+  const studyPlanLoad=(groupId:string,subjectId:string)=>{
+    const entry=project.studyPlan.find(item=>item.active&&item.groupId===groupId&&item.subjectId===subjectId)
+    return {
+      weeklySessions:entry&&entry.weeklySessions>0?String(entry.weeklySessions):'',
+      weeklyMinutes:entry&&(entry.weeklyMinutes??0)>0?String(entry.weeklyMinutes):'',
+    }
+  }
+
+
   const assignmentExists=(groupId:string,subjectId:string,type:AssignmentType,excludeId:string|null=editingId)=>
     activeAssignments.some(assignment=>
       assignment.id!==excludeId&&
@@ -502,12 +511,13 @@ export function AssignmentsPage({
         <div className="app-modal-body">
           <div className="form-card-heading"><div className="form-card-number">06A</div><div><span className="panel-kicker">{editingId?'Edición':'Docencia'}</span><h2>{editingId?'Editar asignación':'Asignar docente'}</h2><p>Una misma materia puede tener titular, apoyo y codocencia mediante asignaciones independientes.</p></div></div>
           <div className="form-grid two">
-            <Field label="Grupo" required><select value={draft.groupId} onChange={e=>setDraft({...draft,groupId:e.target.value,subjectId:''})}><option value="">Selecciona...</option>{activeGroups.map(group=>{const complete=groupMainComplete(group.id)&&draft.assignmentType==='main';return <option key={group.id} value={group.id} disabled={complete}>{group.name}{complete?' · completo':''}</option>})}</select></Field>
-            <Field label="Materia" required><select value={draft.subjectId} disabled={!draft.groupId} onChange={e=>setDraft({...draft,subjectId:e.target.value})}><option value="">Selecciona...</option>{groupSubjects(draft.groupId).map(subject=>{const assigned=assignmentExists(draft.groupId,subject.id,draft.assignmentType);return <option key={subject.id} value={subject.id} disabled={assigned}>{subject.name}{assigned?' · ya asignada':''}</option>})}</select></Field>
+            <Field label="Grupo" required><select value={draft.groupId} onChange={e=>setDraft({...draft,groupId:e.target.value,subjectId:'',weeklySessions:'',weeklyMinutes:''})}><option value="">Selecciona...</option>{activeGroups.map(group=>{const complete=groupMainComplete(group.id)&&draft.assignmentType==='main';return <option key={group.id} value={group.id} disabled={complete}>{group.name}{complete?' · completo':''}</option>})}</select></Field>
+            <Field label="Materia" required><select value={draft.subjectId} disabled={!draft.groupId} onChange={e=>{const subjectId=e.target.value;const load=studyPlanLoad(draft.groupId,subjectId);setDraft({...draft,subjectId,...load})}}> <option value="">Selecciona...</option>{groupSubjects(draft.groupId).map(subject=>{const assigned=assignmentExists(draft.groupId,subject.id,draft.assignmentType);return <option key={subject.id} value={subject.id} disabled={assigned}>{subject.name}{assigned?' · ya asignada':''}</option>})}</select></Field>
             <Field label="Docente" required><select value={draft.teacherId} disabled={!draft.subjectId} onChange={e=>setDraft({...draft,teacherId:e.target.value})}><option value="">Selecciona...</option>{activeTeachers.map(teacher=><option key={teacher.id} value={teacher.id}>{teacher.name}</option>)}</select></Field>
-            <Field label="Tipo de intervención"><select value={draft.assignmentType} onChange={e=>setDraft({...draft,assignmentType:e.target.value as AssignmentType,subjectId:''})}>{(Object.entries(assignmentTypeLabels) as [AssignmentType,string][]).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></Field>
+            <Field label="Tipo de intervención"><select value={draft.assignmentType} onChange={e=>setDraft({...draft,assignmentType:e.target.value as AssignmentType,subjectId:'',weeklySessions:'',weeklyMinutes:''})}>{(Object.entries(assignmentTypeLabels) as [AssignmentType,string][]).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></Field>
             <Field label="Sesiones semanales"><input type="number" min="0" step="0.25" value={draft.weeklySessions} onChange={e=>setDraft({...draft,weeklySessions:e.target.value})} placeholder="Opcional"/></Field>
             <Field label="Minutos semanales"><input type="number" min="0" step="5" value={draft.weeklyMinutes} onChange={e=>setDraft({...draft,weeklyMinutes:e.target.value})} placeholder="Opcional"/></Field>
+            {draft.groupId&&draft.subjectId&&<div className="assignment-load-source"><CheckCircle2 size={14}/><span>Carga tomada del Plan de estudios. Puedes modificarla si esta asignación necesita una excepción.</span></div>}
           </div>
           {error&&<div className="inline-error">{error}</div>}
           <div className={'form-guide '+(assignmentReady?'complete':'partial')}><strong>{assignmentReady?'Asignación lista':'Siguiente paso'}</strong><span>{assignmentGuide}</span></div>
