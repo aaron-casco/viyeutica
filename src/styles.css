@@ -1714,3 +1714,9 @@ button.btn:disabled:hover{
 [data-theme="dark"] .availability-day-option{background:#101925}
 [data-theme="dark"] .availability-day-option.selected{background:#172619;border-color:#426a32}
 @media(max-width:780px){.assignments-matrix-heading{grid-template-columns:auto minmax(0,1fr)}.assignments-matrix-actions{grid-column:1/-1}.assignment-filter-row{grid-template-columns:1fr}.assignment-filter-row>span{padding-top:0}}
+
+.assignment-progress-heading{display:grid;grid-template-columns:auto auto minmax(0,1fr);align-items:start;gap:10px}
+.assignment-progress-heading>div:last-child{min-width:0}
+.assignment-progress-heading>div:last-child>strong{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.assignment-progress-alert.is-collapsed .availability-collapse-toggle svg{transform:rotate(-90deg)}
+.assignment-progress-alert.is-expanded .assignment-missing-list{margin-top:12px}
