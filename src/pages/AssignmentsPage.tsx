@@ -72,6 +72,8 @@ export function AssignmentsPage({
   const [availabilityError,setAvailabilityError]=useState('')
   const [templateMessage,setTemplateMessage]=useState('')
   const [auditFocus,setAuditFocus]=useState('')
+  const [assignmentModalOpen,setAssignmentModalOpen]=useState(false)
+  const [availabilityModalOpen,setAvailabilityModalOpen]=useState(false)
 
   const activeGroups=project.groups.filter(group=>group.active)
   const activeSubjects=project.subjects.filter(subject=>subject.active)
@@ -147,7 +149,10 @@ export function AssignmentsPage({
     setDraft(emptyAssignment)
     setEditingId(null)
     setError('')
+    setAssignmentModalOpen(false)
   }
+  const openCreate=()=>{setDraft(emptyAssignment);setEditingId(null);setError('');setAssignmentModalOpen(true)}
+  const closeAvailability=()=>{setAvailabilityDraft(emptyAvailability);setAvailabilityError('');setAvailabilityModalOpen(false)}
 
   const submit=(event:FormEvent)=>{
     event.preventDefault()
@@ -206,7 +211,7 @@ export function AssignmentsPage({
       weeklyMinutes:assignment.weeklyMinutes===null?'':String(assignment.weeklyMinutes),
     })
     setError('')
-    window.scrollTo({top:0,behavior:'smooth'})
+    setAssignmentModalOpen(true)
   }
 
   const duplicate=(assignment:TeachingAssignment)=>{
@@ -266,6 +271,7 @@ export function AssignmentsPage({
     persistAvailability([...filtered,...additions])
     setAvailabilityDraft(emptyAvailability)
     setAvailabilityError('')
+    setAvailabilityModalOpen(false)
   }
 
   const removeAvailability=(item:TeacherAvailability)=>persistAvailability(
@@ -394,7 +400,7 @@ export function AssignmentsPage({
                   weeklySessions:entry.weeklySessions>0?String(entry.weeklySessions):'',
                   weeklyMinutes:(entry.weeklyMinutes??0)>0?String(entry.weeklyMinutes):'',
                 })
-                window.scrollTo({top:0,behavior:'smooth'})
+                setAssignmentModalOpen(true)
               }}
             >
               <span><strong>{group?.name??'Grupo'}</strong> · {subject?.name??'Materia'}</span>
@@ -405,93 +411,54 @@ export function AssignmentsPage({
       </div>
     </section>}
 
-    <section className="assignments-layout">
-      <form className="form-card" onSubmit={submit}>
-        <div className="form-card-heading">
-          <div className="form-card-number">06A</div>
-          <div>
-            <span className="panel-kicker">{editingId?'Edición':'Docencia'}</span>
-            <h2>{editingId?'Editar asignación':'Asignar docente'}</h2>
-            <p>Una misma materia puede tener titular, apoyo y codocencia mediante asignaciones independientes.</p>
+    <article className={'aside-card validation section-prevalidation-card '+(validation.length===0&&activeAssignments.length?'ready':'')}>
+      <span className="panel-kicker">Prevalidación</span>
+      <strong>{validation.length===0&&activeAssignments.length?'Asignaciones completas':validation.length?`${validation.length} ${validation.length===1?'incidencia':'incidencias'}`:'Sin asignaciones'}</strong>
+      <p>{validation[0]??'Todas las cargas activas tienen profesorado asignado.'}</p>
+    </article>
+
+    {assignmentModalOpen&&<div className="modal-backdrop section-form-modal-backdrop">
+      <form className="app-modal section-form-modal" onSubmit={submit} role="dialog" aria-modal="true" aria-label={editingId?'Editar asignación':'Añadir asignación'}>
+        <div className="app-modal-header"><div><SlidersHorizontal size={20}/><h2>{editingId?'Editar asignación':'Añadir asignación'}</h2></div></div>
+        <div className="app-modal-body">
+          <div className="form-card-heading"><div className="form-card-number">06A</div><div><span className="panel-kicker">{editingId?'Edición':'Docencia'}</span><h2>{editingId?'Editar asignación':'Asignar docente'}</h2><p>Una misma materia puede tener titular, apoyo y codocencia mediante asignaciones independientes.</p></div></div>
+          <div className="form-grid two">
+            <Field label="Grupo" required><select value={draft.groupId} onChange={e=>setDraft({...draft,groupId:e.target.value,subjectId:''})}><option value="">Selecciona...</option>{activeGroups.map(group=><option key={group.id} value={group.id}>{group.name}</option>)}</select></Field>
+            <Field label="Materia" required><select value={draft.subjectId} disabled={!draft.groupId} onChange={e=>setDraft({...draft,subjectId:e.target.value})}><option value="">Selecciona...</option>{groupSubjects(draft.groupId).map(subject=><option key={subject.id} value={subject.id}>{subject.name}</option>)}</select></Field>
+            <Field label="Docente" required><select value={draft.teacherId} disabled={!draft.subjectId} onChange={e=>setDraft({...draft,teacherId:e.target.value})}><option value="">Selecciona...</option>{activeTeachers.map(teacher=><option key={teacher.id} value={teacher.id}>{teacher.name}</option>)}</select></Field>
+            <Field label="Tipo de intervención"><select value={draft.assignmentType} onChange={e=>setDraft({...draft,assignmentType:e.target.value as AssignmentType})}>{(Object.entries(assignmentTypeLabels) as [AssignmentType,string][]).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></Field>
+            <Field label="Sesiones semanales"><input type="number" min="0" step="0.25" value={draft.weeklySessions} onChange={e=>setDraft({...draft,weeklySessions:e.target.value})} placeholder="Opcional"/></Field>
+            <Field label="Minutos semanales"><input type="number" min="0" step="5" value={draft.weeklyMinutes} onChange={e=>setDraft({...draft,weeklyMinutes:e.target.value})} placeholder="Opcional"/></Field>
           </div>
+          {error&&<div className="inline-error">{error}</div>}
+          <div className={'form-guide '+(assignmentReady?'complete':'partial')}><strong>{assignmentReady?'Asignación lista':'Siguiente paso'}</strong><span>{assignmentGuide}</span></div>
         </div>
-
-        <div className="form-grid two">
-          <Field label="Grupo" required>
-            <select value={draft.groupId} onChange={e=>setDraft({...draft,groupId:e.target.value,subjectId:''})}>
-              <option value="">Selecciona...</option>
-              {activeGroups.map(group=><option key={group.id} value={group.id}>{group.name}</option>)}
-            </select>
-          </Field>
-          <Field label="Materia" required>
-            <select value={draft.subjectId} disabled={!draft.groupId} onChange={e=>setDraft({...draft,subjectId:e.target.value})}>
-              <option value="">Selecciona...</option>
-              {groupSubjects(draft.groupId).map(subject=><option key={subject.id} value={subject.id}>{subject.name}</option>)}
-            </select>
-          </Field>
-          <Field label="Docente" required>
-            <select value={draft.teacherId} disabled={!draft.subjectId} onChange={e=>setDraft({...draft,teacherId:e.target.value})}>
-              <option value="">Selecciona...</option>
-              {activeTeachers.map(teacher=><option key={teacher.id} value={teacher.id}>{teacher.name}</option>)}
-            </select>
-          </Field>
-          <Field label="Tipo de intervención">
-            <select value={draft.assignmentType} onChange={e=>setDraft({...draft,assignmentType:e.target.value as AssignmentType})}>
-              {(Object.entries(assignmentTypeLabels) as [AssignmentType,string][]).map(([value,label])=><option key={value} value={value}>{label}</option>)}
-            </select>
-          </Field>
-          <Field label="Sesiones semanales">
-            <input type="number" min="0" step="0.25" value={draft.weeklySessions} onChange={e=>setDraft({...draft,weeklySessions:e.target.value})} placeholder="Opcional"/>
-          </Field>
-          <Field label="Minutos semanales">
-            <input type="number" min="0" step="5" value={draft.weeklyMinutes} onChange={e=>setDraft({...draft,weeklyMinutes:e.target.value})} placeholder="Opcional"/>
-          </Field>
-        </div>
-
-        {error&&<div className="inline-error">{error}</div>}
-        <div className={'form-guide '+(assignmentReady?'complete':'partial')}><strong>{assignmentReady?'Asignación lista':'Siguiente paso'}</strong><span>{assignmentGuide}</span></div>
-
-        <div className="form-actions">
-          <button type="button" className="btn secondary-light" onClick={()=>navigate('/profesorado')}>Paso anterior</button>
-          <div className="form-actions-right">
-            {editingId&&<button type="button" className="btn ghost-inline" onClick={reset}>Cancelar</button>}
-            <button className="btn primary" type="submit" disabled={!assignmentReady}><Save size={16}/>{editingId?'Guardar cambios':'Añadir asignación'}</button>
-          </div>
-        </div>
+        <div className="app-modal-footer"><button type="button" className="btn ghost-inline" onClick={reset}>Cancelar</button><button className="btn primary" type="submit" disabled={!assignmentReady}>Aceptar</button></div>
       </form>
+    </div>}
 
-      <aside className="wizard-aside">
-        <article className={'aside-card validation '+(validation.length===0&&activeAssignments.length?'ready':'')}>
-          <span className="panel-kicker">Prevalidación</span>
-          <strong>{validation.length===0&&activeAssignments.length?'Asignaciones completas':validation.length?`${validation.length} ${validation.length===1?'incidencia':'incidencias'}`:'Sin asignaciones'}</strong>
-          <p>{validation[0]??'Todas las cargas activas tienen profesorado asignado.'}</p>
-        </article>
-        <TemplatePanel
-          title="Asignaciones del curso anterior"
-          description="Reutiliza las relaciones importadas mediante JSON y revisa únicamente los cambios de este curso."
-          actions={[
-            {
-              id:'imported-assignments',
-              label:'Revisar asignaciones importadas',
-              description:project.assignments.length?`${project.assignments.length} ${project.assignments.length===1?'asignación disponible':'asignaciones disponibles'}`:'No hay asignaciones importadas',
-              disabled:project.assignments.length===0,
-              onApply:useImportedTemplate,
-            },
-            {
-              id:'autofill-unique',
-              label:'Completar casos inequívocos',
-              description:'Solo asigna cuando existe un único docente compatible',
-              onApply:autoFillMainAssignments,
-            },
-          ]}
-        />
-      </aside>
-    </section>
+    {availabilityModalOpen&&<div className="modal-backdrop section-form-modal-backdrop">
+      <form className="app-modal section-form-modal" onSubmit={submitAvailability} role="dialog" aria-modal="true" aria-label="Añadir restricciones de disponibilidad">
+        <div className="app-modal-header"><div><CalendarClock size={20}/><h2>Añadir restricciones</h2></div></div>
+        <div className="app-modal-body">
+          <div className="availability-form availability-form-multiple">
+            <MultiCheckSelect label="Docentes" placeholder="Selecciona docentes..." searchable options={activeTeachers.map(teacher=>({value:teacher.id,label:teacher.name}))} values={availabilityDraft.teacherIds} onChange={teacherIds=>setAvailabilityDraft({...availabilityDraft,teacherIds})}/>
+            <MultiCheckSelect label="Días" placeholder="Selecciona días..." options={project.schedule.activeDays.map(day=>({value:day,label:dayLabels[day]}))} values={availabilityDraft.days} onChange={values=>setAvailabilityDraft({...availabilityDraft,days:values as Weekday[]})}/>
+            <MultiCheckSelect label="Sesiones" placeholder="Selecciona sesiones..." allValue="__all__" options={[{value:'__all__',label:'Todas las sesiones'},...project.schedule.blocks.filter(block=>block.active&&block.type==='teaching').map(block=>({value:block.id,label:block.label+' · '+block.start+'-'+block.end}))]} values={availabilityDraft.sessions} onChange={sessions=>setAvailabilityDraft({...availabilityDraft,sessions})}/>
+            <label className="availability-single-field"><span>Estado</span><select value={availabilityDraft.status} onChange={e=>setAvailabilityDraft({...availabilityDraft,status:e.target.value as AvailabilityStatus})}>{(Object.entries(availabilityLabels) as [AvailabilityStatus,string][]).map(([value,label])=><option value={value} key={value}>{label}</option>)}</select></label>
+            <label className="availability-single-field availability-detail-field"><span>Motivo / detalle</span><input value={availabilityDraft.detail} onChange={e=>setAvailabilityDraft({...availabilityDraft,detail:e.target.value})} placeholder="Opcional"/></label>
+          </div>
+          <div className={'form-guide '+(availabilityReady?'complete':'partial')}><strong>{availabilityReady?'Restricción lista':'Siguiente paso'}</strong><span>{availabilityGuide}</span></div>
+          {availabilityError&&<div className="inline-error">{availabilityError}</div>}
+        </div>
+        <div className="app-modal-footer"><button type="button" className="btn ghost-inline" onClick={closeAvailability}>Cancelar</button><button className="btn primary" type="submit" disabled={!availabilityReady}>Aceptar</button></div>
+      </form>
+    </div>}
 
     {templateMessage&&<div className="template-result"><CheckCircle2 size={16}/><span>{templateMessage}</span></div>}
 
     <section className="groups-table-card">
-      <div className="groups-table-heading"><div><span className="panel-kicker">Matriz docente</span><h2>Asignaciones configuradas</h2></div><button className="btn ghost-inline" onClick={()=>{reset();window.scrollTo({top:0,behavior:'smooth'})}}><Plus size={16}/> Nueva asignación</button></div>
+      <div className="groups-table-heading"><div><span className="panel-kicker">Matriz docente</span><h2>Asignaciones configuradas</h2></div><button className="btn ghost-inline" onClick={openCreate}><Plus size={16}/> Añadir asignación</button></div>
       {project.assignments.length===0
         ? <div className="groups-empty"><UsersRound size={28}/><strong>No hay asignaciones todavía</strong><p>Asigna profesorado manualmente, importa el JSON anterior o completa los casos inequívocos.</p></div>
         : <div className="groups-table-wrap"><table className="groups-table assignments-table">
@@ -516,63 +483,34 @@ export function AssignmentsPage({
     </section>
 
     <section className="availability-card">
-      <div className="groups-table-heading"><div><span className="panel-kicker">Disponibilidad</span><h2>Restricciones por día y sesión</h2></div><CalendarClock size={22}/></div>
-      <form className="availability-form availability-form-multiple" onSubmit={submitAvailability}>
-        <MultiCheckSelect
-          label="Docentes"
-          placeholder="Selecciona docentes..."
-          searchable
-          options={activeTeachers.map(teacher=>({value:teacher.id,label:teacher.name}))}
-          values={availabilityDraft.teacherIds}
-          onChange={teacherIds=>setAvailabilityDraft({...availabilityDraft,teacherIds})}
-        />
+      <div className="groups-table-heading"><div><span className="panel-kicker">Disponibilidad</span><h2>Restricciones por día y sesión</h2></div><button className="btn ghost-inline" onClick={()=>setAvailabilityModalOpen(true)}><Plus size={16}/> Añadir restricción</button></div>
+      {project.teacherAvailability.length===0
+        ? <div className="groups-empty"><CalendarClock size={26}/><strong>No hay restricciones temporales</strong><p>Añade únicamente las excepciones de disponibilidad que afecten al horario.</p></div>
+        : <div className="availability-list">{project.teacherAvailability.map((item,index)=>{
+          const teacher=project.teachers.find(value=>value.id===item.teacherId)
+          const block=project.schedule.blocks.find(value=>value.id===item.session)
+          return <article key={`${item.teacherId}-${item.day}-${item.session}-${index}`}>
+            <div><strong>{teacher?.name??'Docente eliminado'}</strong><span>{dayLabels[item.day as Weekday]??item.day} · {block?.label??item.session} · {availabilityLabels[item.status]}</span>{item.detail&&<small>{item.detail}</small>}</div>
+            <button className="row-delete" onClick={()=>removeAvailability(item)}><Trash2 size={15}/></button>
+          </article>
+        })}</div>}
+    </section>
 
-        <MultiCheckSelect
-          label="Días"
-          placeholder="Selecciona días..."
-          options={project.schedule.activeDays.map(day=>({value:day,label:dayLabels[day]}))}
-          values={availabilityDraft.days}
-          onChange={values=>setAvailabilityDraft({...availabilityDraft,days:values as Weekday[]})}
-        />
+    <div className="section-template-full">
+      <TemplatePanel
+        title="Asignaciones del curso anterior"
+        description="Reutiliza las relaciones importadas mediante JSON y revisa únicamente los cambios de este curso."
+        actions={[
+          {id:'imported-assignments',label:'Revisar asignaciones importadas',description:project.assignments.length?`${project.assignments.length} ${project.assignments.length===1?'asignación disponible':'asignaciones disponibles'}`:'No hay asignaciones importadas',disabled:project.assignments.length===0,onApply:useImportedTemplate},
+          {id:'autofill-unique',label:'Completar casos inequívocos',description:'Solo asigna cuando existe un único docente compatible',onApply:autoFillMainAssignments},
+        ]}
+      />
+    </div>
 
-        <MultiCheckSelect
-          label="Sesiones"
-          placeholder="Selecciona sesiones..."
-          allValue="__all__"
-          options={[
-            {value:'__all__',label:'Todas las sesiones'},
-            ...project.schedule.blocks
-              .filter(block=>block.active&&block.type==='teaching')
-              .map(block=>({value:block.id,label:block.label+' · '+block.start+'-'+block.end})),
-          ]}
-          values={availabilityDraft.sessions}
-          onChange={sessions=>setAvailabilityDraft({...availabilityDraft,sessions})}
-        />
-
-        <label className="availability-single-field">
-          <span>Estado</span>
-          <select value={availabilityDraft.status} onChange={e=>setAvailabilityDraft({...availabilityDraft,status:e.target.value as AvailabilityStatus})}>
-            {(Object.entries(availabilityLabels) as [AvailabilityStatus,string][]).map(([value,label])=><option value={value} key={value}>{label}</option>)}
-          </select>
-        </label>
-
-        <label className="availability-single-field availability-detail-field">
-          <span>Motivo / detalle</span>
-          <input value={availabilityDraft.detail} onChange={e=>setAvailabilityDraft({...availabilityDraft,detail:e.target.value})} placeholder="Opcional"/>
-        </label>
-
-        <button className="btn primary availability-submit" type="submit" disabled={!availabilityReady}><Plus size={15}/> Añadir restricciones</button>
-      </form>
-      <div className={'form-guide '+(availabilityReady?'complete':'partial')}><strong>{availabilityReady?'Restricción lista':'Siguiente paso'}</strong><span>{availabilityGuide}</span></div>
-      {availabilityError&&<div className="inline-error">{availabilityError}</div>}
-      {project.teacherAvailability.length>0&&<div className="availability-list">{project.teacherAvailability.map((item,index)=>{
-        const teacher=project.teachers.find(value=>value.id===item.teacherId)
-        const block=project.schedule.blocks.find(value=>value.id===item.session)
-        return <article key={`${item.teacherId}-${item.day}-${item.session}-${index}`}>
-          <div><strong>{teacher?.name??'Docente eliminado'}</strong><span>{dayLabels[item.day as Weekday]??item.day} · {block?.label??item.session} · {availabilityLabels[item.status]}</span>{item.detail&&<small>{item.detail}</small>}</div>
-          <button className="row-delete" onClick={()=>removeAvailability(item)}><Trash2 size={15}/></button>
-        </article>
-      })}</div>}
+    <section className="section-info-grid">
+      <article className="panel compact-info-panel"><UsersRound size={22}/><div><strong>Cobertura del plan</strong><p>Cada carga del Plan de estudios debe quedar vinculada al menos a una asignación docente activa.</p></div></article>
+      <article className="panel compact-info-panel"><CalendarClock size={22}/><div><strong>Disponibilidad</strong><p>Registra aquí únicamente excepciones por día y sesión; las restricciones se tendrán en cuenta durante la generación.</p></div></article>
+      <article className="panel compact-info-panel"><SlidersHorizontal size={22}/><div><strong>Intervenciones</strong><p>Titular, apoyo y codocencia se guardan como asignaciones independientes para mantener trazabilidad.</p></div></article>
     </section>
   </div>
 }
