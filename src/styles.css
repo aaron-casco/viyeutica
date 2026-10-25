@@ -1740,3 +1740,6 @@ button.btn:disabled:hover{
 .assignment-teacher-source{grid-column:1/-1;display:flex;align-items:center;gap:7px;margin-top:-4px;padding:8px 10px;border:1px solid #cbdcf0;border-radius:9px;background:#f6f9fe;color:#355d86;font-size:9.5px;font-weight:700;line-height:1.4}
 .assignment-teacher-source svg{flex:0 0 auto}
 [data-theme="dark"] .assignment-teacher-source{background:#111c2b;border-color:#294a6f;color:#91bde8}
+
+.assignment-teacher-filter-reset{margin-top:6px;justify-self:start;border:0;background:transparent;color:var(--navy2);font-size:9px;font-weight:800;cursor:pointer;padding:0}
+.assignment-teacher-filter-reset:hover{text-decoration:underline}
