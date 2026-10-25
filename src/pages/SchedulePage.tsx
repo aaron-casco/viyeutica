@@ -10,7 +10,6 @@ import {
   timeBlockDuration,
   validateSchedule,
   type EducationStage,
-  type ScheduleMode,
   type TimeBlock,
   type TimeBlockType,
   type ViyeuticaProject,
@@ -81,7 +80,6 @@ export function SchedulePage({project,navigate}:{project:ViyeuticaProject;naviga
     persist({activeDays:next})
   }
 
-  const setMode=(mode:ScheduleMode)=>persist({mode})
 
   const toggleStage=(stage:EducationStage)=>{
     const next=draft.stageScope.includes(stage)
@@ -260,10 +258,6 @@ export function SchedulePage({project,navigate}:{project:ViyeuticaProject;naviga
       <div className="schedule-config-row">
         <div><span className="panel-kicker">Semana lectiva</span><h2>Días activos</h2><p>Activa únicamente los días en los que el centro puede programar actividad.</p></div>
         <div className="weekday-picker">{days.map(day=><button key={day.id} className={schedule.activeDays.includes(day.id)?'active':''} onClick={()=>toggleDay(day.id)} title={day.label}>{day.short}</button>)}</div>
-      </div>
-      <div className="schedule-config-row">
-        <div><span className="panel-kicker">Tipo de jornada</span><h2>Organización general</h2><p>Este valor es descriptivo; los tramos concretos son los que gobiernan el horario.</p></div>
-        <div className="mode-picker">{([['morning','Mañana'],['afternoon','Tarde'],['split','Partida'],['custom','Personalizada']] as [ScheduleMode,string][]).map(([value,label])=><button key={value} className={schedule.mode===value?'active':''} onClick={()=>setMode(value)}>{label}</button>)}</div>
       </div>
     </section>
       </div>
