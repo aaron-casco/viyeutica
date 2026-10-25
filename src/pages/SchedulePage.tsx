@@ -213,17 +213,6 @@ export function SchedulePage({project,navigate}:{project:ViyeuticaProject;naviga
       <p>{validation[0]??'No hay solapamientos ni intervalos temporales inválidos.'}</p>
     </article>
 
-    <section className="schedule-config-card">
-      <div className="schedule-config-row">
-        <div><span className="panel-kicker">Semana lectiva</span><h2>Días activos</h2><p>Activa únicamente los días en los que el centro puede programar actividad.</p></div>
-        <div className="weekday-picker">{days.map(day=><button key={day.id} className={schedule.activeDays.includes(day.id)?'active':''} onClick={()=>toggleDay(day.id)} title={day.label}>{day.short}</button>)}</div>
-      </div>
-      <div className="schedule-config-row">
-        <div><span className="panel-kicker">Tipo de jornada</span><h2>Organización general</h2><p>Este valor es descriptivo; los tramos concretos son los que gobiernan el horario.</p></div>
-        <div className="mode-picker">{([['morning','Mañana'],['afternoon','Tarde'],['split','Partida'],['custom','Personalizada']] as [ScheduleMode,string][]).map(([value,label])=><button key={value} className={schedule.mode===value?'active':''} onClick={()=>setMode(value)}>{label}</button>)}</div>
-      </div>
-    </section>
-
     {blockModalOpen&&<div className="modal-backdrop section-form-modal-backdrop">
       <form className="app-modal section-form-modal" onSubmit={submit} role="dialog" aria-modal="true" aria-label={editingId?'Modificar sesión':'Añadir sesión o pausa'}>
         <div className="app-modal-header"><div><CalendarClock size={20}/><h2>{editingId?'Modificar sesión':'Añadir sesión o pausa'}</h2></div></div>
@@ -265,6 +254,20 @@ export function SchedulePage({project,navigate}:{project:ViyeuticaProject;naviga
       </article>)}</div>}
     </section>
 
+    <section className="schedule-secondary-grid">
+      <div className="schedule-secondary-column">
+    <section className="schedule-config-card">
+      <div className="schedule-config-row">
+        <div><span className="panel-kicker">Semana lectiva</span><h2>Días activos</h2><p>Activa únicamente los días en los que el centro puede programar actividad.</p></div>
+        <div className="weekday-picker">{days.map(day=><button key={day.id} className={schedule.activeDays.includes(day.id)?'active':''} onClick={()=>toggleDay(day.id)} title={day.label}>{day.short}</button>)}</div>
+      </div>
+      <div className="schedule-config-row">
+        <div><span className="panel-kicker">Tipo de jornada</span><h2>Organización general</h2><p>Este valor es descriptivo; los tramos concretos son los que gobiernan el horario.</p></div>
+        <div className="mode-picker">{([['morning','Mañana'],['afternoon','Tarde'],['split','Partida'],['custom','Personalizada']] as [ScheduleMode,string][]).map(([value,label])=><button key={value} className={schedule.mode===value?'active':''} onClick={()=>setMode(value)}>{label}</button>)}</div>
+      </div>
+    </section>
+      </div>
+      <div className="schedule-secondary-column">
     <div className="section-template-full">
       <TemplatePanel
         title="Jornada de ejemplo"
@@ -274,6 +277,9 @@ export function SchedulePage({project,navigate}:{project:ViyeuticaProject;naviga
         ]}
       />
     </div>
+      </div>
+    </section>
+
   </div>
 }
 
