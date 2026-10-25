@@ -1762,3 +1762,15 @@ button.btn:disabled:hover{
 .rule-engine-safeguard-list span{display:flex;align-items:center;gap:7px;font-size:9.5px;font-weight:800;color:var(--text)}
 .rule-engine-safeguard-list svg{color:var(--green)}
 @media(max-width:820px){.rule-engine-safeguards{grid-template-columns:1fr}}
+
+.engine-rules-card{border:1px solid var(--border);border-radius:14px;background:var(--surface);overflow:hidden}
+.engine-rules-card>.groups-table-heading{border-bottom:1px solid var(--border)}
+.engine-rules-card>.groups-table-heading p{margin:4px 0 0;color:var(--muted);font-size:9.5px;line-height:1.45}
+.engine-rule-count{display:grid;place-items:center;min-width:30px;height:30px;padding:0 8px;border-radius:999px;background:#eef6ff;color:#335f8d;font-size:10px;font-weight:900}
+.engine-rules-list{padding:12px}
+.rule-type-badge.engine{background:#eaf2fb;color:#315f8e;border-color:#bfd4ea}
+.engine-rule{opacity:1}
+.engine-rule-lock{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:9px;font-weight:800;white-space:nowrap}
+.engine-rule-lock svg{color:var(--green)}
+[data-theme="dark"] .engine-rule-count,[data-theme="dark"] .rule-type-badge.engine{background:#152338;color:#8db9e5;border-color:#2e4b6c}
+@media(max-width:760px){.engine-rule-lock{grid-column:1/-1;justify-self:start}}
