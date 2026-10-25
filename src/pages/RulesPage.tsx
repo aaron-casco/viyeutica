@@ -681,10 +681,10 @@ export function RulesPage({
       <div className="rules-filter-toolbar">
         <div className="rule-origin-filter" aria-label="Filtrar reglas por procedencia">
           <button className={originFilter==='all'?'active all':''} onClick={()=>setOriginFilter('all')}>Todas</button>
-          <button className={originFilter==='engine'?'active engine':''} onClick={()=>setOriginFilter('engine')}><i/>Motor</button>
-          <button className={originFilter==='normative'?'active normative':''} onClick={()=>setOriginFilter('normative')}><i/>Normativa</button>
-          <button className={originFilter==='manual'?'active manual':''} onClick={()=>setOriginFilter('manual')}><i/>Manual</button>
-          <button className={originFilter==='imported'?'active imported':''} onClick={()=>setOriginFilter('imported')}><i/>Importada</button>
+          <button className={'engine'+(originFilter==='engine'?' active':'')} onClick={()=>setOriginFilter('engine')}><i/>Motor</button>
+          <button className={'normative'+(originFilter==='normative'?' active':'')} onClick={()=>setOriginFilter('normative')}><i/>Normativa</button>
+          <button className={'manual'+(originFilter==='manual'?' active':'')} onClick={()=>setOriginFilter('manual')}><i/>Manual</button>
+          <button className={'imported'+(originFilter==='imported'?' active':'')} onClick={()=>setOriginFilter('imported')}><i/>Importada</button>
         </div>
         <div className="rule-filter" aria-label="Filtrar reglas por tipo">
           <button className={filter==='all'?'active':''} onClick={()=>setFilter('all')}>Todas</button>
