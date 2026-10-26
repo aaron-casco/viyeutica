@@ -262,12 +262,19 @@ export function AssignmentsPage({
         const assigned=teacherAssignedSessions(teacher.id)
         const available=teacherAvailableSlots(teacher.id)
         const margin=available-assigned
-        return {teacher,specialtyMatch,assigned,available,margin}
+        const supportAssignments=activeAssignments.filter(assignment=>{
+          if(assignment.teacherId!==teacher.id)return false
+          const assignmentSubject=project.subjects.find(item=>item.id===assignment.subjectId)
+          const label=(assignmentSubject?.name??'').trim().toLocaleLowerCase('es')
+          return label.includes('apoyo')||label.includes('refuerzo')
+        }).length
+        return {teacher,specialtyMatch,assigned,available,margin,supportAssignments}
       })
       .filter(candidate=>candidate.margin>0)
       .sort((a,b)=>
         Number(b.specialtyMatch)-Number(a.specialtyMatch) ||
         Number(b.teacher.status==='confirmed')-Number(a.teacher.status==='confirmed') ||
+        a.supportAssignments-b.supportAssignments ||
         b.margin-a.margin ||
         a.teacher.name.localeCompare(b.teacher.name,'es')
       )
@@ -689,7 +696,7 @@ export function AssignmentsPage({
                   title={`Resolver con ${candidate.teacher.name}`}
                 >
                   <strong>{candidate.teacher.name}</strong>
-                  <small>{candidate.specialtyMatch?'Especialidad compatible · ':''}{candidate.margin} franjas de margen</small>
+                  <small>{candidate.specialtyMatch?'Especialidad compatible · ':''}{candidate.supportAssignments} {candidate.supportAssignments===1?'apoyo asignado':'apoyos asignados'} · {candidate.margin} franjas de margen</small>
                 </button>)}
               </div>}
               {!suggestedTeacher&&!candidates.length&&<small className="assignment-candidate-empty">No hay docentes con margen semanal disponible.</small>}
