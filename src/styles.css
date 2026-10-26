@@ -1927,3 +1927,9 @@ button.btn:disabled:hover{
 .staff-schedule-table .empty-slot{background:#fafbfc;color:var(--muted);text-align:center}
 [data-theme="dark"] .staff-schedule-summary,[data-theme="dark"] .staff-schedule-table .empty-slot{background:#17202c}
 @media(max-width:700px){.staff-schedule-modal{width:min(96vw,760px)}.staff-schedule-summary{align-items:flex-start;flex-direction:column}.staff-schedule-table th,.staff-schedule-table td{padding:7px 5px}.staff-schedule-entry strong{font-size:9px}.staff-schedule-entry small{font-size:8px}}
+
+/* === Horarios: horario establecido === */
+.generation-result-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.established-schedule-badge{display:inline-flex;align-items:center;gap:7px;padding:9px 11px;border-radius:10px;border:1px solid #9dce7b;background:#eef7e9;color:#4b8b24;font-size:9px;font-weight:900}
+[data-theme="dark"] .established-schedule-badge{background:#182718;border-color:#3f6135;color:#9fd079}
+@media(max-width:760px){.generation-result-actions{width:100%;justify-content:flex-start}}
