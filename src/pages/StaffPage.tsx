@@ -113,6 +113,29 @@ export function StaffPage({
     :!hasSpecialties?'Indica al menos una especialidad. Después podrás completar tutorías, carga objetivo, cargos y dedicaciones.'
     :'Datos mínimos completos. Puedes guardar el docente o completar, si corresponde, tutorías, carga objetivo, cargos y dedicaciones.'
 
+  useEffect(()=>{
+    const raw=window.location.hash.split('?')[1]
+    if(!raw)return
+    const params=new URLSearchParams(raw)
+    const teacherId=params.get('teacherId')
+    if(!teacherId)return
+    const teacher=project.teachers.find(item=>item.id===teacherId)
+    if(!teacher)return
+    setEditingId(teacher.id)
+    setDraft({
+      name:teacher.name,
+      status:teacher.status,
+      employmentType:teacher.employmentType,
+      specialties:teacher.specialties.join(', '),
+      roles:teacher.roles.join(', '),
+      weeklyTeachingMinutes:teacher.weeklyTeachingMinutes===null?'':String(teacher.weeklyTeachingMinutes),
+      tutorGroupIds:project.groups.filter(group=>group.tutorTeacherId===teacher.id).map(group=>group.id),
+      dedications:teacher.dedications??[],
+    })
+    setError('')
+    setModalOpen(true)
+  },[])
+
   const persist=(nextTeachers:Teacher[],nextGroups=project.groups)=>saveProject({...project,teachers:nextTeachers,groups:nextGroups})
 
   const reset=()=>{
