@@ -98,6 +98,7 @@ export function StaffPage({
   const teachers=project.teachers
   const validRuns=uniqueGenerationRuns(project.generationRuns).filter(run=>isGenerationProposalValid(project,run))
   const scheduleRun=project.establishedScheduleRun
+    ?? project.draftScheduleRun
     ?? validRuns.find(run=>run.id===project.selectedGenerationRunId)
     ?? validRuns[validRuns.length-1]
     ?? null
