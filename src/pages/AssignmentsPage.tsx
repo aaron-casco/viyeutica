@@ -227,6 +227,53 @@ export function AssignmentsPage({
     return teachers.length===1?teachers[0].id:''
   }
 
+  const teachingBlocks=project.schedule.blocks.filter(block=>block.active&&block.type==='teaching')
+  const totalTeachingSlots=project.schedule.activeDays.length*teachingBlocks.length
+  const teacherAssignedSessions=(teacherId:string)=>activeAssignments
+    .filter(assignment=>assignment.teacherId===teacherId)
+    .reduce((total,assignment)=>{
+      if((assignment.weeklySessions??0)>0)return total+Math.max(1,Math.round(assignment.weeklySessions!))
+      const plan=project.studyPlan.find(entry=>entry.active&&entry.groupId===assignment.groupId&&entry.subjectId===assignment.subjectId)
+      if((plan?.weeklySessions??0)>0)return total+Math.max(1,Math.round(plan!.weeklySessions))
+      return total+1
+    },0)
+  const teacherAvailableSlots=(teacherId:string)=>{
+    const unavailable=new Set(
+      project.teacherAvailability
+        .filter(item=>
+          item.teacherId===teacherId&&
+          (item.status==='unavailable'||item.status==='travel')&&
+          project.schedule.activeDays.includes(item.day as Weekday)&&
+          teachingBlocks.some(block=>block.id===item.session)
+        )
+        .map(item=>item.day+'|'+item.session)
+    )
+    return Math.max(0,totalTeachingSlots-unavailable.size)
+  }
+  const supportCandidates=(entry:typeof project.studyPlan[number])=>{
+    const subject=project.subjects.find(item=>item.id===entry.subjectId)
+    const targets=[subject?.name,subject?.code].filter(Boolean).map(value=>String(value).trim().toLocaleLowerCase('es'))
+    return activeTeachers
+      .map(teacher=>{
+        const specialtyMatch=teacher.specialties.some(specialty=>{
+          const normalized=specialty.trim().toLocaleLowerCase('es')
+          return targets.some(value=>normalized===value||normalized.includes(value)||value.includes(normalized))
+        })
+        const assigned=teacherAssignedSessions(teacher.id)
+        const available=teacherAvailableSlots(teacher.id)
+        const margin=available-assigned
+        return {teacher,specialtyMatch,assigned,available,margin}
+      })
+      .filter(candidate=>candidate.margin>0)
+      .sort((a,b)=>
+        Number(b.specialtyMatch)-Number(a.specialtyMatch) ||
+        Number(b.teacher.status==='confirmed')-Number(a.teacher.status==='confirmed') ||
+        b.margin-a.margin ||
+        a.teacher.name.localeCompare(b.teacher.name,'es')
+      )
+      .slice(0,3)
+  }
+
   const assignmentTeachers=compatibleTeachers(draft.subjectId)
   const selectedAssignmentTeacher=activeTeachers.find(teacher=>teacher.id===draft.teacherId)
   const visibleAssignmentTeachers=selectedAssignmentTeacher&&!assignmentTeachers.some(teacher=>teacher.id===selectedAssignmentTeacher.id)
@@ -622,6 +669,7 @@ export function AssignmentsPage({
           const subject=project.subjects.find(item=>item.id===entry.subjectId)
           const resolved=pendingAssignmentDraft(entry)
           const suggestedTeacher=project.teachers.find(item=>item.id===resolved.teacherId)
+          const candidates=suggestedTeacher?[]:supportCandidates(entry)
           return <article key={entry.id} className="assignment-missing-item is-pending-organization">
             <div className="assignment-missing-copy">
               <span><strong>{group?.name??'Grupo'}</strong> · {subject?.name??'Materia'}</span>
@@ -629,8 +677,15 @@ export function AssignmentsPage({
               <small className={'assignment-suggestion '+(suggestedTeacher?'ready':'manual')}>
                 {suggestedTeacher
                   ? `Sugerencia automática: ${suggestedTeacher.name}`
-                  : 'Sin sugerencia inequívoca: selecciona el docente manualmente'}
+                  : 'Requiere decisión: candidatos ordenados por compatibilidad y margen semanal'}
               </small>
+              {!suggestedTeacher&&candidates.length>0&&<div className="assignment-candidate-list">
+                {candidates.map(candidate=><span key={candidate.teacher.id} className="assignment-candidate-chip">
+                  <strong>{candidate.teacher.name}</strong>
+                  <small>{candidate.specialtyMatch?'Especialidad compatible · ':''}${candidate.margin} franjas de margen</small>
+                </span>)}
+              </div>}
+              {!suggestedTeacher&&!candidates.length&&<small className="assignment-candidate-empty">No hay docentes con margen semanal disponible.</small>}
             </div>
             <div className="assignment-missing-actions">
               <button type="button" className="btn primary" onClick={()=>editPendingAssignment(entry)}>Resolver</button>
