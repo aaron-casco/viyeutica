@@ -124,6 +124,20 @@ export function AssignmentsPage({
     :!availabilityDraft.sessions.length?'Selecciona al menos una sesión.'
     :'La restricción tiene los datos mínimos necesarios. Ya puedes añadirla.'
   useEffect(()=>{
+    const normalized=project.assignments.map(assignment=>{
+      if(!assignment.active||assignment.assignmentType!=='main')return assignment
+      const entry=project.studyPlan.find(item=>
+        item.active&&item.groupId===assignment.groupId&&item.subjectId===assignment.subjectId
+      )
+      if(!entry)return assignment
+      const expectedType=assignmentTypeForStudyEntry(entry)
+      return expectedType==='main'?assignment:{...assignment,assignmentType:expectedType}
+    })
+    const changed=normalized.some((assignment,index)=>assignment.assignmentType!==project.assignments[index]?.assignmentType)
+    if(changed)saveProject({...project,assignments:normalized})
+  },[])
+
+  useEffect(()=>{
     const raw=window.location.hash.split('?')[1]
     if(!raw)return
     const params=new URLSearchParams(raw)
@@ -201,6 +215,16 @@ export function AssignmentsPage({
       weeklySessions:entry&&entry.weeklySessions>0?String(entry.weeklySessions):'',
       weeklyMinutes:entry&&(entry.weeklyMinutes??0)>0?String(entry.weeklyMinutes):'',
     }
+  }
+
+  const assignmentTypeForStudyEntry=(entry:typeof project.studyPlan[number]):AssignmentType=>{
+    if(entry.mode==='co_teaching')return 'co_teaching'
+    const subject=project.subjects.find(item=>item.id===entry.subjectId)
+    const semantic=[subject?.name,subject?.code]
+      .filter(Boolean)
+      .join(' ')
+      .toLocaleLowerCase('es')
+    return /apoyo|refuerzo|support/.test(semantic)?'support':'main'
   }
 
   const compatibleTeachers=(subjectId:string)=>{
@@ -337,7 +361,7 @@ export function AssignmentsPage({
       groupId:entry.groupId,
       subjectId:entry.subjectId,
       teacherId:bulkTeacherId,
-      assignmentType:'main',
+      assignmentType:resolved.assignmentType,
       weeklySessions:entry.weeklySessions>0?entry.weeklySessions:null,
       weeklyMinutes:(entry.weeklyMinutes??0)>0?(entry.weeklyMinutes??null):null,
       active:true,
@@ -358,7 +382,7 @@ export function AssignmentsPage({
       groupId:entry.groupId,
       subjectId:entry.subjectId,
       teacherId,
-      assignmentType:'main' as AssignmentType,
+      assignmentType:assignmentTypeForStudyEntry(entry),
       weeklySessions:entry.weeklySessions>0?String(entry.weeklySessions):'',
       weeklyMinutes:(entry.weeklyMinutes??0)>0?String(entry.weeklyMinutes):'',
     }
