@@ -439,6 +439,20 @@ button.wizard-step:focus-visible{outline:3px solid rgba(89,180,17,.22);outline-o
 .prevalidation-rule-summary>div:first-child{display:flex;align-items:flex-start;gap:10px}.prevalidation-rule-summary>div:first-child>svg{color:var(--navy2)}.prevalidation-rule-summary strong,.prevalidation-rule-summary small{display:block}.prevalidation-rule-summary strong{font-size:11px}.prevalidation-rule-summary small{margin-top:3px;max-width:720px;color:var(--muted);font-size:8.8px;line-height:1.45}
 .rule-counts{display:flex;gap:8px}.rule-counts span{min-width:58px;padding:8px 10px;border:1px solid var(--border);border-radius:10px;text-align:center}.rule-counts strong{font-size:15px}.rule-counts small{font-size:7.8px;text-transform:uppercase}
 .prevalidation-actions{display:flex;justify-content:space-between;gap:10px}
+.prevalidation-loading{pointer-events:none}
+.prevalidation-skeleton-card,.prevalidation-skeleton-section,.prevalidation-status-skeleton{overflow:hidden}
+.prevalidation-status-skeleton{display:flex;align-items:center;gap:14px;flex:1;min-width:0}
+.prevalidation-skeleton-copy{display:grid;gap:7px;flex:1;min-width:0}
+.prevalidation-skeleton-line,.prevalidation-skeleton-icon,.prevalidation-skeleton-count,.prevalidation-skeleton-rule-count{display:block;background:linear-gradient(90deg,#edf1f5 25%,#f8fafc 50%,#edf1f5 75%);background-size:220% 100%;animation:prevalidation-shimmer 1.15s ease-in-out infinite;border-radius:999px}
+.prevalidation-skeleton-line{height:9px;width:100%}
+.prevalidation-skeleton-line.short{width:22%}.prevalidation-skeleton-line.title{width:48%;height:16px}.prevalidation-skeleton-line.label{width:45%;height:8px}.prevalidation-skeleton-line.metric{width:26%;height:25px;margin:8px 0 4px}.prevalidation-skeleton-line.detail{width:64%;height:8px}.prevalidation-skeleton-line.heading{width:140px;height:10px}.prevalidation-skeleton-line.tag{width:70px;height:17px;margin-bottom:8px}
+.prevalidation-skeleton-icon{width:34px;height:34px;flex:0 0 auto;border-radius:50%}.prevalidation-skeleton-icon.small{width:20px;height:20px}
+.prevalidation-skeleton-heading,.prevalidation-skeleton-rule-copy{display:flex;align-items:flex-start;gap:10px}.prevalidation-skeleton-heading>span:last-child,.prevalidation-skeleton-rule-copy>span:last-child{display:grid;gap:6px;min-width:0;flex:1}
+.prevalidation-skeleton-count{width:26px;height:26px}.prevalidation-skeleton-issue{padding:14px 16px;display:grid;gap:7px}.prevalidation-skeleton-issue .title{width:58%;height:12px}
+.prevalidation-skeleton-rule-count{width:58px;height:48px;border-radius:10px}
+@keyframes prevalidation-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+[data-theme="dark"] .prevalidation-skeleton-line,[data-theme="dark"] .prevalidation-skeleton-icon,[data-theme="dark"] .prevalidation-skeleton-count,[data-theme="dark"] .prevalidation-skeleton-rule-count{background:linear-gradient(90deg,#202b39 25%,#2a3747 50%,#202b39 75%);background-size:220% 100%}
+@media(prefers-reduced-motion:reduce){.prevalidation-skeleton-line,.prevalidation-skeleton-icon,.prevalidation-skeleton-count,.prevalidation-skeleton-rule-count{animation:none}}
 [data-theme="dark"] .prevalidation-count,[data-theme="dark"] .prevalidation-issue-meta span{background:#202b39;color:#aebbd0}
 @media(max-width:760px){.prevalidation-hero,.prevalidation-rule-summary,.prevalidation-issue-list article{align-items:stretch;flex-direction:column}.prevalidation-actions{flex-direction:column}.prevalidation-actions .btn{width:100%}.rule-counts{width:100%}.rule-counts span{flex:1}}
 
