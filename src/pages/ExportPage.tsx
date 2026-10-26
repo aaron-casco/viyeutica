@@ -111,10 +111,10 @@ export function ExportPage({project,navigate}:{project:ViyeuticaProject;navigate
     {!official&&<section className="export-blocker">
       <ShieldAlert size={20}/>
       <div>
-        <strong>La Auditoría contiene errores</strong>
-        <p>Los archivos de horario se generan identificados como <strong>BORRADOR</strong>. La versión definitiva se habilita cuando la Auditoría no tiene errores.</p>
+        <strong>El horario contiene errores de validación</strong>
+        <p>Los archivos de horario se generan identificados como <strong>BORRADOR</strong>. La versión definitiva se habilita cuando las validaciones del horario no tienen errores.</p>
       </div>
-      <button className="btn secondary-light" onClick={()=>navigate('/auditoria')}>Revisar Auditoría</button>
+      <button className="btn secondary-light" onClick={()=>navigate('/horarios')}>Revisar Horarios</button>
     </section>}
 
     {message&&<section className="template-result"><CheckCircle2 size={16}/><span>{message}</span></section>}
@@ -125,7 +125,7 @@ export function ExportPage({project,navigate}:{project:ViyeuticaProject;navigate
       <ExportCard icon={<FileSpreadsheet size={24}/>} title="Libro completo" description="Excel con grupos, docentes y una hoja final de Auditoría." action="Descargar completo" onClick={()=>downloadWorkbook('full')}/>
       <ExportCard icon={<Printer size={24}/>} title="Horario en PDF" description="Abre un informe maquetado para imprimir o guardar como PDF desde el navegador." action="Imprimir / PDF" onClick={printReport}/>
       <ExportCard icon={<ShieldCheck size={24}/>} title="Informe de Auditoría" description="Listado CSV de errores, advertencias y contexto de cada incidencia." action="Descargar auditoría" onClick={downloadAudit}/>
-      <ExportCard icon={<DatabaseBackup size={24}/>} title="Respaldo completo JSON" description="Copia íntegra del proyecto, propuesta seleccionada y estado de Auditoría." action="Descargar JSON" onClick={downloadJson}/>
+      <ExportCard icon={<DatabaseBackup size={24}/>} title="Respaldo completo JSON" description="Copia íntegra del proyecto, propuesta seleccionada y estado de validación." action="Descargar JSON" onClick={downloadJson}/>
     </section>
 
     <section className="export-footnote">
