@@ -33,11 +33,11 @@ export function Dashboard({
     ['Asignaciones', assignmentsDone ? 'done' : staffDone ? 'progress' : 'pending'],
     ['Reglas', rulesDone ? 'done' : assignmentsDone ? 'progress' : 'pending'],
     ['Prevalidación', prevalidationDone ? 'done' : rulesDone ? 'progress' : 'pending'],
-    ['Generación', generationDone ? 'done' : prevalidationDone ? 'progress' : 'pending'],
+    ['Horarios', generationDone ? 'done' : prevalidationDone ? 'progress' : 'pending'],
   ] as const
 
   const progress = generationDone ? 100 : prevalidationDone ? 88 : rulesDone ? 77 : assignmentsDone ? 66 : staffDone ? 55 : studyPlanDone ? 44 : scheduleDone ? 33 : structureDone ? 22 : centerDone ? 11 : 0
-  const nextRoute = !centerDone ? '/centro' : !structureDone ? '/grupos' : !scheduleDone ? '/jornada' : !studyPlanDone ? '/materias' : !staffDone ? '/profesorado' : !assignmentsDone ? '/asignaciones' : !rulesDone ? '/reglas' : !prevalidationDone ? '/prevalidacion' : '/generacion'
+  const nextRoute = !centerDone ? '/centro' : !structureDone ? '/grupos' : !scheduleDone ? '/jornada' : !studyPlanDone ? '/materias' : !staffDone ? '/profesorado' : !assignmentsDone ? '/asignaciones' : !rulesDone ? '/reglas' : !prevalidationDone ? '/prevalidacion' : '/horarios'
 
   return <div className="dashboard-stack">
     <section className="hero-card">
