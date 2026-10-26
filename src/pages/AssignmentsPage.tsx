@@ -85,6 +85,8 @@ export function AssignmentsPage({
   const [assignmentTeacherFilter,setAssignmentTeacherFilter]=useState<'all'|string>('all')
   const [progressExpanded,setProgressExpanded]=useState(false)
   const [showOtherTeachers,setShowOtherTeachers]=useState(false)
+  const [supportCandidateOrder,setSupportCandidateOrder]=useState<'margin'|'supports'|'load'>('margin')
+  const [prioritizeNonManagement,setPrioritizeNonManagement]=useState(true)
 
   const activeGroups=project.groups.filter(group=>group.active)
   const activeSubjects=project.subjects.filter(subject=>subject.active)
@@ -275,14 +277,32 @@ export function AssignmentsPage({
         return {teacher,specialtyMatch,assigned,available,margin,supportAssignments,management}
       })
       .filter(candidate=>candidate.margin>0)
-      .sort((a,b)=>
-        Number(b.specialtyMatch)-Number(a.specialtyMatch) ||
-        Number(b.teacher.status==='confirmed')-Number(a.teacher.status==='confirmed') ||
-        Number(a.management)-Number(b.management) ||
-        a.supportAssignments-b.supportAssignments ||
-        b.margin-a.margin ||
-        a.teacher.name.localeCompare(b.teacher.name,'es')
-      )
+      .sort((a,b)=>{
+        const compatibility=
+          Number(b.specialtyMatch)-Number(a.specialtyMatch) ||
+          Number(b.teacher.status==='confirmed')-Number(a.teacher.status==='confirmed')
+        if(compatibility)return compatibility
+        if(prioritizeNonManagement){
+          const managementOrder=Number(a.management)-Number(b.management)
+          if(managementOrder)return managementOrder
+        }
+        if(supportCandidateOrder==='supports'){
+          return a.supportAssignments-b.supportAssignments ||
+            b.margin-a.margin ||
+            a.assigned-b.assigned ||
+            a.teacher.name.localeCompare(b.teacher.name,'es')
+        }
+        if(supportCandidateOrder==='load'){
+          return a.assigned-b.assigned ||
+            b.margin-a.margin ||
+            a.supportAssignments-b.supportAssignments ||
+            a.teacher.name.localeCompare(b.teacher.name,'es')
+        }
+        return b.margin-a.margin ||
+          a.supportAssignments-b.supportAssignments ||
+          a.assigned-b.assigned ||
+          a.teacher.name.localeCompare(b.teacher.name,'es')
+      })
       .slice(0,4)
   }
 
@@ -657,6 +677,21 @@ export function AssignmentsPage({
             : `${pendingOrganizationEntries.length} ${pendingOrganizationEntries.length===1?'carga revisada y pendiente':'cargas revisadas y pendientes'} de organizar. Asignaciones ya no bloquea Reglas.`}</p>
         </div>
       </div>
+
+      {progressExpanded&&pendingOrganizationEntries.length>0&&<div className="assignment-candidate-controls">
+        <span>Ordenar candidatos por</span>
+        <div className="assignment-candidate-order">
+          <button type="button" className={supportCandidateOrder==='margin'?'active':''} onClick={()=>setSupportCandidateOrder('margin')}>Franjas libres</button>
+          <button type="button" className={supportCandidateOrder==='supports'?'active':''} onClick={()=>setSupportCandidateOrder('supports')}>Menos apoyos</button>
+          <button type="button" className={supportCandidateOrder==='load'?'active':''} onClick={()=>setSupportCandidateOrder('load')}>Menor carga docente</button>
+          <button
+            type="button"
+            className={'candidate-priority-toggle '+(prioritizeNonManagement?'active':'')}
+            aria-pressed={prioritizeNonManagement}
+            onClick={()=>setPrioritizeNonManagement(value=>!value)}
+          >No dirección primero</button>
+        </div>
+      </div>}
 
       {progressExpanded&&<div className="assignment-missing-list">
         {uncoveredStudyEntries.map(entry=>{
