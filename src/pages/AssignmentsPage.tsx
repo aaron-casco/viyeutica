@@ -346,8 +346,9 @@ export function AssignmentsPage({
     )
   }
 
-  const editPendingAssignment=(entry:typeof project.studyPlan[number])=>{
-    setDraft(pendingAssignmentDraft(entry))
+  const editPendingAssignment=(entry:typeof project.studyPlan[number],teacherId?:string)=>{
+    const resolved=pendingAssignmentDraft(entry)
+    setDraft({...resolved,teacherId:teacherId??resolved.teacherId})
     setEditingId(null)
     setShowOtherTeachers(false)
     setError('')
@@ -680,16 +681,27 @@ export function AssignmentsPage({
                   : 'Requiere decisión: candidatos ordenados por compatibilidad y margen semanal'}
               </small>
               {!suggestedTeacher&&candidates.length>0&&<div className="assignment-candidate-list">
-                {candidates.map(candidate=><span key={candidate.teacher.id} className="assignment-candidate-chip">
+                {candidates.map(candidate=><button
+                  type="button"
+                  key={candidate.teacher.id}
+                  className="assignment-candidate-chip"
+                  onClick={()=>editPendingAssignment(entry,candidate.teacher.id)}
+                  title={`Resolver con ${candidate.teacher.name}`}
+                >
                   <strong>{candidate.teacher.name}</strong>
                   <small>{candidate.specialtyMatch?'Especialidad compatible · ':''}{candidate.margin} franjas de margen</small>
-                </span>)}
+                </button>)}
               </div>}
               {!suggestedTeacher&&!candidates.length&&<small className="assignment-candidate-empty">No hay docentes con margen semanal disponible.</small>}
             </div>
             <div className="assignment-missing-actions">
               <button type="button" className="btn primary" onClick={()=>editPendingAssignment(entry)}>Resolver</button>
-              <button type="button" className="btn pending-inline active" onClick={()=>togglePendingOrganization(entry.id)}>Reabrir</button>
+              <button
+                type="button"
+                className="btn pending-inline active"
+                title="Volver a tratar esta carga como pendiente normal. Asignaciones volverá a bloquear Reglas hasta resolverla o marcarla de nuevo como pendiente de organizar."
+                onClick={()=>togglePendingOrganization(entry.id)}
+              >Volver a pendiente</button>
             </div>
           </article>
         })}
