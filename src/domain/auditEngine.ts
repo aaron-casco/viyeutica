@@ -20,8 +20,18 @@ function sessionsRequired(project:ViyeuticaProject,assignment:TeachingAssignment
   if((assignment.weeklySessions??0)>0) return Math.max(1,Math.round(assignment.weeklySessions!))
   const entry=project.studyPlan.find(item=>item.active&&item.groupId===assignment.groupId&&item.subjectId===assignment.subjectId)
   if(entry?.weeklySessions&&entry.weeklySessions>0) return Math.max(1,Math.round(entry.weeklySessions))
-  if((assignment.weeklyMinutes??0)>0) return Math.max(1,Math.ceil((assignment.weeklyMinutes??0)/45))
-  if((entry?.weeklyMinutes??0)>0) return Math.max(1,Math.ceil((entry?.weeklyMinutes??0)/45))
+  const blocks=project.schedule.blocks.filter(block=>block.active&&block.type==='teaching')
+  const durations=blocks
+    .map(block=>{
+      const [sh,sm]=block.start.split(':').map(Number)
+      const [eh,em]=block.end.split(':').map(Number)
+      return (eh*60+em)-(sh*60+sm)
+    })
+    .filter(value=>value>0)
+    .sort((x,y)=>x-y)
+  const median=durations[Math.floor(durations.length/2)]||45
+  if((assignment.weeklyMinutes??0)>0) return Math.max(1,Math.ceil((assignment.weeklyMinutes??0)/median))
+  if((entry?.weeklyMinutes??0)>0) return Math.max(1,Math.ceil((entry?.weeklyMinutes??0)/median))
   return 1
 }
 
