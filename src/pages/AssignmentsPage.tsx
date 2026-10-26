@@ -219,12 +219,7 @@ export function AssignmentsPage({
 
   const assignmentTypeForStudyEntry=(entry:typeof project.studyPlan[number]):AssignmentType=>{
     if(entry.mode==='co_teaching')return 'co_teaching'
-    const subject=project.subjects.find(item=>item.id===entry.subjectId)
-    const semantic=[subject?.name,subject?.code]
-      .filter(Boolean)
-      .join(' ')
-      .toLocaleLowerCase('es')
-    return /apoyo|refuerzo|support/.test(semantic)?'support':'main'
+    return 'main'
   }
 
   const compatibleTeachers=(subjectId:string)=>{
