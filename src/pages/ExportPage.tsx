@@ -19,7 +19,10 @@ const dayLabels:Record<Weekday,string>={
 
 export function ExportPage({project,navigate}:{project:ViyeuticaProject;navigate:(path:string)=>void}) {
   const runs=uniqueGenerationRuns(project.generationRuns).filter(run=>isGenerationProposalValid(project,run))
-  const selected=runs.find(run=>run.id===project.selectedGenerationRunId)??runs[runs.length-1]??null
+  const established=project.establishedScheduleRun&&isGenerationProposalValid(project,project.establishedScheduleRun)
+    ? project.establishedScheduleRun
+    : null
+  const selected=established??runs.find(run=>run.id===project.selectedGenerationRunId)??runs[runs.length-1]??null
   const audit=useMemo(()=>selected?auditGeneration(project,selected):null,[project,selected])
   const [message,setMessage]=useState('')
 
@@ -33,13 +36,14 @@ export function ExportPage({project,navigate}:{project:ViyeuticaProject;navigate
   }
 
   const proposalNumber=Math.max(1,runs.findIndex(run=>run.id===selected.id)+1)
+  const isEstablished=Boolean(established&&selected.id===established.id)
   const official=audit.errors===0
   const prefix=official?'':'BORRADOR_'
 
   const downloadWorkbook=(scope:'groups'|'teachers'|'full')=>{
     const xmlText=buildWorkbook(project,selected,audit.issues,scope)
     const suffix=scope==='groups'?'Grupos':scope==='teachers'?'Docentes':'Completo'
-    downloadBlob(xmlText,prefix+fileBase(project)+'_Propuesta_'+proposalNumber+'_'+suffix+'.xls','application/vnd.ms-excel')
+    downloadBlob(xmlText,prefix+fileBase(project)+'_'+(isEstablished?'Horario_establecido':'Propuesta_'+proposalNumber)+'_'+suffix+'.xls','application/vnd.ms-excel')
     setMessage('Excel generado correctamente.')
   }
 
@@ -49,7 +53,7 @@ export function ExportPage({project,navigate}:{project:ViyeuticaProject;navigate
       ...audit.issues.map(issue=>auditRow(project,issue)),
     ]
     const csv=rows.map(row=>row.map(csvCell).join(';')).join('\n')
-    downloadBlob('\ufeff'+csv,prefix+fileBase(project)+'_Propuesta_'+proposalNumber+'_Auditoria.csv','text/csv;charset=utf-8')
+    downloadBlob('\ufeff'+csv,prefix+fileBase(project)+'_'+(isEstablished?'Horario_establecido':'Propuesta_'+proposalNumber)+'_Auditoria.csv','text/csv;charset=utf-8')
     setMessage('Informe de Auditoría descargado.')
   }
 
@@ -90,18 +94,18 @@ export function ExportPage({project,navigate}:{project:ViyeuticaProject;navigate
         {official?<CheckCircle2 size={20}/>:<ShieldAlert size={20}/>}
         <span>
           <strong>{official?'Lista para exportación definitiva':'Solo exportación como borrador'}</strong>
-          <small>Propuesta {proposalNumber} · {audit.errors} {audit.errors===1?'error':'errores'} · {audit.warnings} {audit.warnings===1?'advertencia':'advertencias'}</small>
+          <small>{isEstablished?'Horario establecido':'Propuesta '+proposalNumber} · {audit.errors} {audit.errors===1?'error':'errores'} · {audit.warnings} {audit.warnings===1?'advertencia':'advertencias'}</small>
         </span>
       </div>
     </section>
 
     <section className="export-selected-proposal">
       <div>
-        <span className="panel-kicker">Propuesta activa</span>
-        <h2>Propuesta {proposalNumber}</h2>
+        <span className="panel-kicker">{isEstablished?'Horario oficial del curso':'Propuesta activa'}</span>
+        <h2>{isEstablished?'Horario establecido':'Propuesta '+proposalNumber}</h2>
         <p>{selected.placedSessions} sesiones · HARD {selected.hardViolations} · SOFT {selected.softPenalty} · puntuación {selected.score}</p>
       </div>
-      <button className="btn ghost-inline" onClick={()=>navigate('/horarios')}>Cambiar propuesta</button>
+      <button className="btn ghost-inline" onClick={()=>navigate('/horarios')}>{isEstablished?'Ver Horarios':'Cambiar propuesta'}</button>
     </section>
 
     {!official&&<section className="export-blocker">
