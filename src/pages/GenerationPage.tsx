@@ -29,6 +29,7 @@ import { AppModal } from '../components/AppModal'
 
 type GenerationAlternativeAction =
   | {kind:'review_plan';groupId:string}
+  | {kind:'review_assignment';assignmentId:string}
   | {kind:'free_availability';teacherId:string;day:Weekday;sessionId:string}
   | {kind:'fix_slot';assignmentId:string;day:Weekday;sessionId:string}
 
@@ -181,7 +182,7 @@ export function GenerationPage({
   const projectWithAlternative=(base:ViyeuticaProject,alternative:GenerationAlternative)=>{
     const action=alternative.action
 
-    if(action.kind==='review_plan')return base
+    if(action.kind==='review_plan'||action.kind==='review_assignment')return base
 
     if(action.kind==='free_availability'){
       const teacherAvailability=base.teacherAvailability.map(item=>
@@ -332,7 +333,7 @@ export function GenerationPage({
           <div className="generation-alternative-copy"><strong>{item.title}</strong><p>{item.detail}</p></div>
           <div className="generation-alternative-actions">
             <button className="btn ghost-inline" onClick={()=>navigate(item.route)}>Ver datos</button>
-            {item.action.kind!=='review_plan'&&<>
+            {item.action.kind!=='review_plan'&&item.action.kind!=='review_assignment'&&<>
               <button className="btn secondary-light" disabled={Boolean(simulatingAlternativeId)} onClick={()=>simulateGenerationAlternative(item)}>
                 {simulatingAlternativeId===item.id?'Simulando...':'Simular'}
               </button>
@@ -826,6 +827,32 @@ function buildGenerationAlternatives(project:ViyeuticaProject,run?:GenerationRun
       if(alternatives.length>=8)break
     }
     if(alternatives.length>=8)break
+  }
+
+  for(const issue of run.issues??[]){
+    if(alternatives.length>=8)break
+    const key='issue|'+issue.assignmentId
+    if(seen.has(key))continue
+    const assignment=project.assignments.find(item=>item.id===issue.assignmentId)
+    const group=project.groups.find(item=>item.id===issue.groupId)
+    const subject=project.subjects.find(item=>item.id===issue.subjectId)
+    const teacher=project.teachers.find(item=>item.id===issue.teacherId)
+    const diagnostics=issue.diagnostics
+    const reasons:string[]=[]
+    if(diagnostics?.fixedTarget)reasons.push('la sesión está condicionada por una franja fija')
+    if(diagnostics?.unavailableCount)reasons.push((teacher?.name??'El docente')+' no está disponible en '+diagnostics.unavailableCount+' franjas candidatas')
+    if(diagnostics?.teacherBusyCount)reasons.push((teacher?.name??'El docente')+' ya está ocupado en '+diagnostics.teacherBusyCount+' franjas')
+    if(diagnostics?.groupBusyCount)reasons.push('el grupo ya está ocupado en '+diagnostics.groupBusyCount+' franjas')
+    if(diagnostics?.hardRuleCount)reasons.push(diagnostics.hardRuleCount+' franjas quedan descartadas por reglas HARD')
+    if(!reasons.length)reasons.push('el motor no ha encontrado una colocación compatible para todas las sesiones exigidas')
+    seen.add(key)
+    alternatives.push({
+      id:key,
+      title:'Revisar '+(subject?.name??'la materia')+' en '+(group?.name??'el grupo'),
+      detail:'Falta'+(issue.missingSessions===1?'':'n')+' '+issue.missingSessions+' '+(issue.missingSessions===1?'sesión':'sesiones')+' de '+(teacher?.name??'su docente')+': '+reasons.join('; ')+'.',
+      route:'/asignaciones?assignmentId='+encodeURIComponent(assignment?.id??issue.assignmentId),
+      action:{kind:'review_assignment',assignmentId:assignment?.id??issue.assignmentId},
+    })
   }
 
   return alternatives.slice(0,8)
