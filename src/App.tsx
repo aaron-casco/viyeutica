@@ -20,7 +20,6 @@ import { AssignmentsPage } from './pages/AssignmentsPage'
 import { RulesPage } from './pages/RulesPage'
 import { PrevalidationPage } from './pages/PrevalidationPage'
 import { GenerationPage } from './pages/GenerationPage'
-import { TimetablesPage } from './pages/TimetablesPage'
 import { AuditPage } from './pages/AuditPage'
 import { ExportPage } from './pages/ExportPage'
 import { useProject } from './hooks/useProject'
@@ -39,7 +38,6 @@ const navigation = [
   { path: '/asignaciones', label: 'Asignaciones', icon: SlidersHorizontal },
   { path: '/reglas', label: 'Reglas', icon: ShieldCheck },
   { path: '/prevalidacion', label: 'Prevalidación', icon: ClipboardCheck },
-  { path: '/generacion', label: 'Generación', icon: Sparkles },
   { path: '/horarios', label: 'Horarios', icon: CalendarDays },
   { path: '/auditoria', label: 'Auditoría', icon: ShieldCheck },
   { path: '/exportaciones', label: 'Exportaciones', icon: FileOutput },
@@ -53,8 +51,7 @@ const descriptions: Record<string,string> = {
   '/asignaciones': 'Relación entre grupos, materias, profesorado y responsabilidades docentes.',
   '/reglas': 'Restricciones legales, reglas del centro y preferencias ponderadas.',
   '/prevalidacion': 'Comprobación de integridad antes de ejecutar la generación automática.',
-  '/horarios': 'Vista semanal por grupos, profesores y recursos.',
-  '/generacion': 'Generación y comparación de propuestas de horario.',
+  '/horarios': 'Generación, comparación y revisión de propuestas de horario.',
   '/auditoria': 'Comprobación independiente de coherencia, cargas y conflictos.',
   '/exportaciones': 'Excel, PDF e informes del horario y su auditoría.',
 }
@@ -63,7 +60,9 @@ const getRoute = () => {
   const raw = window.location.hash.replace(/^#/,'') || '/'
   const normalized = raw.startsWith('/') ? raw : '/' + raw
   const [path]=normalized.split('?')
-  return path === '/configuracion' ? '/centro' : path
+  if(path==='/configuracion')return '/centro'
+  if(path==='/generacion')return '/horarios'
+  return path
 }
 
 export default function App() {
@@ -100,8 +99,7 @@ export default function App() {
     if (route === '/asignaciones') return <AssignmentsPage project={project} navigate={go}/>
     if (route === '/reglas') return <RulesPage project={project} navigate={go}/>
     if (route === '/prevalidacion') return <PrevalidationPage project={project} navigate={go}/>
-    if (route === '/generacion') return <GenerationPage project={project} navigate={go}/>
-    if (route === '/horarios') return <TimetablesPage project={project} navigate={go}/>
+    if (route === '/horarios') return <GenerationPage project={project} navigate={go}/>
     if (route === '/auditoria') return <AuditPage project={project} navigate={go}/>
     if (route === '/exportaciones') return <ExportPage project={project} navigate={go}/>
     return <PlaceholderPage title={active.label} description={descriptions[route] ?? 'Módulo preparado para su implementación.'}/>
