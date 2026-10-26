@@ -4,7 +4,6 @@ import {
   ShieldCheck, Sparkles,
 } from 'lucide-react'
 import {
-  isAssignmentsComplete,
   isRulesComplete,
   runPrevalidation,
   type PrevalidationIssue,
@@ -25,9 +24,18 @@ export function PrevalidationPage({
   const warnings=issues.filter(issue=>issue.severity==='warning')
   const infos=issues.filter(issue=>issue.severity==='info')
   const ready=errors.length===0 && isRulesComplete(project)
+  const engineHardCount=3
+  const normativeDerivedHardCount=project.teachers.flatMap(teacher=>
+    (teacher.dedications??[]).filter(item=>
+      item.source==='normative'&&item.status==='applicable'&&item.affectsTeachingLoad
+    )
+  ).length
+  const projectHardCount=project.rules.filter(rule=>rule.active&&rule.ruleType==='HARD').length
+  const softCount=project.rules.filter(rule=>rule.active&&rule.ruleType==='SOFT').length
+  const effectiveHardCount=engineHardCount+normativeDerivedHardCount+projectHardCount
+  const effectiveRuleCount=effectiveHardCount+softCount
 
-  if(!isAssignmentsComplete(project)){
-    return <div className="wizard-page prevalidation-page">
+  return <div className="wizard-page prevalidation-page">
       <section className="wizard-intro">
         <div>
           <h1 className="wizard-page-title"><ClipboardCheck size={28}/> Prevalidación</h1>
@@ -60,7 +68,7 @@ export function PrevalidationPage({
       <Summary label="Errores" value={String(errors.length)} detail="bloquean generación"/>
       <Summary label="Advertencias" value={String(warnings.length)} detail="requieren revisión"/>
       <Summary label="Información" value={String(infos.length)} detail="observaciones"/>
-      <Summary label="Reglas activas" value={String(project.rules.filter(rule=>rule.active).length)} detail="HARD + SOFT"/>
+      <Summary label="Reglas activas" value={String(effectiveRuleCount)} detail="incluye Motor + HARD + SOFT"/>
     </section>
 
     <section className="prevalidation-hero">
@@ -115,8 +123,8 @@ export function PrevalidationPage({
         </span>
       </div>
       <div className="rule-counts">
-        <span><strong>{project.rules.filter(rule=>rule.active&&rule.ruleType==='HARD').length}</strong><small>HARD</small></span>
-        <span><strong>{project.rules.filter(rule=>rule.active&&rule.ruleType==='SOFT').length}</strong><small>SOFT</small></span>
+        <span><strong>{effectiveHardCount}</strong><small>HARD</small></span>
+        <span><strong>{softCount}</strong><small>SOFT</small></span>
       </div>
     </section>
 
