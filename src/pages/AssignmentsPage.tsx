@@ -128,12 +128,30 @@ export function AssignmentsPage({
     const teacherId=params.get('teacherId')??''
     const groupId=params.get('groupId')??''
     const subjectId=params.get('subjectId')??''
+    const assignmentId=params.get('assignmentId')??''
     const day=(params.get('day')??'') as Weekday|''
     const session=params.get('sessionId')??''
     const auditCode=params.get('auditCode')??''
     const pendingOrganization=params.get('pendingOrganization')==='1'
 
-    if(groupId||subjectId||teacherId){
+    if(assignmentId){
+      const assignment=project.assignments.find(item=>item.id===assignmentId)
+      if(assignment){
+        setEditingId(assignment.id)
+        setDraft({
+          groupId:assignment.groupId,
+          subjectId:assignment.subjectId,
+          teacherId:assignment.teacherId,
+          assignmentType:assignment.assignmentType,
+          weeklySessions:assignment.weeklySessions===null?'':String(assignment.weeklySessions),
+          weeklyMinutes:assignment.weeklyMinutes===null?'':String(assignment.weeklyMinutes),
+        })
+        setShowOtherTeachers(false)
+        setError('')
+        setAssignmentModalOpen(true)
+        setAuditFocus('Prevalidación ha abierto esta asignación para revisar su capacidad semanal.')
+      }
+    }else if(groupId||subjectId||teacherId){
       setDraft(current=>({
         ...current,
         groupId:groupId||current.groupId,
