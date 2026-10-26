@@ -1859,10 +1859,11 @@ button.btn:disabled:hover{
 [data-theme="dark"] .assignment-candidate-order .candidate-priority-toggle.active{background:#2a2414;border-color:#5d5127;color:#d6c784}
 @media(max-width:760px){.assignment-candidate-controls{align-items:flex-start;flex-direction:column}.assignment-candidate-order{justify-content:flex-start}}
 
-.assignment-candidate-controls{display:grid;gap:9px}
-.assignment-candidate-sort-row,.assignment-candidate-priority-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.assignment-candidate-controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0}
+.assignment-candidate-sort-row,.assignment-candidate-priority-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0;padding:0 12px}
+.assignment-candidate-sort-row{padding-left:0}
 .assignment-candidate-sort-row>span{font-size:8.6px;font-weight:850;color:var(--muted);white-space:nowrap}
-.assignment-candidate-priority-row{padding-top:9px;border-top:1px solid var(--border)}
+.assignment-candidate-priority-row{padding-right:0;border-left:1px solid var(--border)}
 .assignment-candidate-priority-row strong,.assignment-candidate-priority-row small{display:block}
 .assignment-candidate-priority-row strong{font-size:8.8px}
 .assignment-candidate-priority-row small{margin-top:2px;color:var(--muted);font-size:7.8px}
@@ -1873,4 +1874,8 @@ button.btn:disabled:hover{
 .assignment-switch:focus-visible{outline:2px solid color-mix(in srgb,var(--green) 35%,transparent);outline-offset:2px}
 [data-theme="dark"] .assignment-switch{background:#27313d;border-color:#3a4655}
 [data-theme="dark"] .assignment-switch.is-on{background:#22351a;border-color:#426a32}
-@media(max-width:760px){.assignment-candidate-sort-row,.assignment-candidate-priority-row{align-items:flex-start;flex-direction:column}.assignment-candidate-priority-row{width:100%}}
+@media(max-width:760px){
+  .assignment-candidate-controls{grid-template-columns:1fr;gap:9px}
+  .assignment-candidate-sort-row,.assignment-candidate-priority-row{align-items:flex-start;flex-direction:column;padding:0}
+  .assignment-candidate-priority-row{width:100%;padding-top:9px;border-left:0;border-top:1px solid var(--border)}
+}
