@@ -243,6 +243,8 @@ export interface ViyeuticaProject {
   rules: CenterRule[]
   generationRuns: GenerationRun[]
   selectedGenerationRunId?: string | null
+  establishedScheduleRun?: GenerationRun | null
+  establishedScheduleSavedAt?: string | null
   normativeSources: NormativeSource[]
   normativeRules: NormativeRule[]
   updatedAt: string | null
@@ -293,6 +295,8 @@ export const EMPTY_PROJECT: ViyeuticaProject = {
   rules: [],
   generationRuns: [],
   selectedGenerationRunId: null,
+  establishedScheduleRun: null,
+  establishedScheduleSavedAt: null,
   normativeSources: [],
   normativeRules: [],
   updatedAt: null,
