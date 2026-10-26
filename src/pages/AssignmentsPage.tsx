@@ -633,6 +633,9 @@ export function AssignmentsPage({
   const totalStudyEntries=activeStudyPlanEntries.length
   const reviewedStudyEntries=coveredStudyEntries+pendingOrganizationEntries.length
   const teachersWithAssignments=new Set(activeAssignments.map(item=>item.teacherId)).size
+  const mainAssignments=activeAssignments.filter(item=>item.assignmentType==='main').length
+  const supportAssignmentsCount=activeAssignments.filter(item=>item.assignmentType==='support').length
+  const coTeachingAssignments=activeAssignments.filter(item=>item.assignmentType==='co_teaching').length
 
   return <div className="wizard-page assignments-page">
     <section className="wizard-intro">
@@ -648,7 +651,7 @@ export function AssignmentsPage({
     {auditFocus&&<section className="template-result audit-context-banner"><CheckCircle2 size={16}/><span>{auditFocus}</span></section>}
 
     <section className="structure-summary">
-      <Summary label="Asignaciones activas" value={String(activeAssignments.length)} detail="Docente + grupo + materia"/>
+      <Summary label="Asignaciones activas" value={String(activeAssignments.length)} detail={`${mainAssignments} titulares · ${supportAssignmentsCount} apoyos · ${coTeachingAssignments} codocencias`}/>
       <Summary label="Cargas revisadas" value={`${reviewedStudyEntries}/${totalStudyEntries}`} detail={pendingOrganizationEntries.length?`${coveredStudyEntries} asignadas · ${pendingOrganizationEntries.length} pendientes de organizar`:'Plan de estudios'}/>
       <Summary label="Docentes implicados" value={String(teachersWithAssignments)} detail={`De ${activeTeachers.length} activos`}/>
       <Summary label="Restricciones temporales" value={String(project.teacherAvailability.length)} detail="Disponibilidad registrada"/>
