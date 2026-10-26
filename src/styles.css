@@ -1841,7 +1841,7 @@ button.btn:disabled:hover{
 [data-theme="dark"] .rule-type-badge.normative,[data-theme="dark"] .origin-tag.normative{background:#302340;color:#c7abe9;border-color:#57406f}
 
 .assignment-candidate-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
-.assignment-candidate-chip{display:inline-flex;flex-direction:column;gap:1px;padding:6px 8px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:inherit;text-align:left;cursor:pointer}
+.assignment-candidate-chip{display:inline-flex;flex:0 0 auto;width:auto;max-width:100%;flex-direction:column;gap:1px;padding:6px 8px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:inherit;text-align:left;cursor:pointer}
 .assignment-candidate-chip:hover,.assignment-candidate-chip:focus-visible{border-color:var(--green);box-shadow:0 0 0 2px color-mix(in srgb,var(--green) 16%,transparent);outline:none}
 .assignment-candidate-chip strong{font-size:9px}
 .assignment-candidate-chip small{font-size:7.8px;color:var(--muted)}
