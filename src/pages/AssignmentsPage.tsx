@@ -125,13 +125,30 @@ export function AssignmentsPage({
     :'La restricción tiene los datos mínimos necesarios. Ya puedes añadirla.'
   useEffect(()=>{
     const normalized=project.assignments.map(assignment=>{
-      if(!assignment.active||assignment.assignmentType!=='main')return assignment
+      if(!assignment.active)return assignment
       const entry=project.studyPlan.find(item=>
         item.active&&item.groupId===assignment.groupId&&item.subjectId===assignment.subjectId
       )
       if(!entry)return assignment
+
       const expectedType=assignmentTypeForStudyEntry(entry)
-      return expectedType==='main'?assignment:{...assignment,assignmentType:expectedType}
+      if(expectedType==='co_teaching'&&assignment.assignmentType==='main'){
+        return {...assignment,assignmentType:'co_teaching' as AssignmentType}
+      }
+
+      if(expectedType==='main'&&assignment.assignmentType==='support'){
+        const sameLoad=project.assignments.filter(item=>
+          item.active&&
+          item.groupId===assignment.groupId&&
+          item.subjectId===assignment.subjectId
+        )
+        const hasMain=sameLoad.some(item=>item.assignmentType==='main')
+        if(!hasMain&&sameLoad.length===1){
+          return {...assignment,assignmentType:'main' as AssignmentType}
+        }
+      }
+
+      return assignment
     })
     const changed=normalized.some((assignment,index)=>assignment.assignmentType!==project.assignments[index]?.assignmentType)
     if(changed)saveProject({...project,assignments:normalized})
