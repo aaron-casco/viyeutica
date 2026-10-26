@@ -1,6 +1,6 @@
 import {
   BookOpen, CalendarClock, CheckCircle2, GraduationCap, LayoutGrid, LockKeyhole,
-  ShieldCheck, SlidersHorizontal, Sparkles, Users,
+  ShieldCheck, SlidersHorizontal, CalendarDays, Users,
 } from 'lucide-react'
 import {
   isCenterComplete,
@@ -24,7 +24,7 @@ const steps = [
   { number:6, label:'Asignaciones', icon:SlidersHorizontal, route:'/asignaciones' },
   { number:7, label:'Reglas', icon:ShieldCheck, route:'/reglas' },
   { number:8, label:'Prevalidación', icon:CheckCircle2, route:'/prevalidacion' },
-  { number:9, label:'Generación', icon:Sparkles, route:'/generacion' },
+  { number:9, label:'Horarios', icon:CalendarDays, route:'/horarios' },
 ] as const
 
 export function WizardStepper({
