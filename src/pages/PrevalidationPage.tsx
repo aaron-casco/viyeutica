@@ -19,6 +19,7 @@ export function PrevalidationPage({
   navigate:(path:string)=>void
 }) {
   const [version,setVersion]=useState(0)
+  const [refreshing,setRefreshing]=useState(false)
   const issues=useMemo(()=>runPrevalidation(project),[project,version])
   const errors=issues.filter(issue=>issue.severity==='error')
   const warnings=issues.filter(issue=>issue.severity==='warning')
@@ -35,6 +36,15 @@ export function PrevalidationPage({
   const effectiveHardCount=engineHardCount+normativeDerivedHardCount+projectHardCount
   const effectiveRuleCount=effectiveHardCount+softCount
 
+  const refreshPrevalidation=()=>{
+    if(refreshing)return
+    setRefreshing(true)
+    window.setTimeout(()=>{
+      setVersion(value=>value+1)
+      setRefreshing(false)
+    },500)
+  }
+
   return <div className="wizard-page prevalidation-page">
     <section className="wizard-intro">
       <div>
@@ -46,30 +56,45 @@ export function PrevalidationPage({
 
     <WizardStepper currentStep={8} project={project} navigate={navigate}/>
 
-    <section className="structure-summary">
-      <Summary label="Errores" value={String(errors.length)} detail="bloquean generación"/>
-      <Summary label="Advertencias" value={String(warnings.length)} detail="requieren revisión"/>
-      <Summary label="Información" value={String(infos.length)} detail="observaciones"/>
-      <Summary label="Reglas activas" value={String(effectiveRuleCount)} detail="incluye Motor + HARD + SOFT"/>
-    </section>
+    {refreshing
+      ? <PrevalidationSummarySkeleton/>
+      : <section className="structure-summary">
+          <Summary label="Errores" value={String(errors.length)} detail="bloquean generación"/>
+          <Summary label="Advertencias" value={String(warnings.length)} detail="requieren revisión"/>
+          <Summary label="Información" value={String(infos.length)} detail="observaciones"/>
+          <Summary label="Reglas activas" value={String(effectiveRuleCount)} detail="incluye Motor + HARD + SOFT"/>
+        </section>}
 
     <section className="prevalidation-hero">
-      <div className={'prevalidation-status '+(ready?'ready':'blocked')}>
-        {ready?<CheckCircle2 size={34}/>:<CircleAlert size={34}/>}
-        <div>
-          <span className="panel-kicker">{ready?'Resultado':'Revisión necesaria'}</span>
-          <h2>{ready?'Proyecto listo para generar':'La generación está bloqueada'}</h2>
-          <p>{ready
-            ? warnings.length
-              ? `No hay errores bloqueantes. Quedan ${warnings.length} ${warnings.length===1?'advertencia que conviene revisar':'advertencias que conviene revisar'} antes de generar.`
-              : 'No se han detectado errores estructurales ni incumplimientos bloqueantes en la configuración actual.'
-            : `Hay ${errors.length} ${errors.length===1?'error que debe resolverse':'errores que deben resolverse'} antes de generar un horario.`}</p>
-        </div>
-      </div>
-      <button className="btn ghost-inline" onClick={()=>setVersion(value=>value+1)}><RefreshCcw size={15}/> Volver a comprobar</button>
+      {refreshing
+        ? <div className="prevalidation-status-skeleton" aria-live="polite" aria-label="Comprobando proyecto">
+            <div className="prevalidation-skeleton-icon"/>
+            <div className="prevalidation-skeleton-copy">
+              <span className="prevalidation-skeleton-line short"/>
+              <span className="prevalidation-skeleton-line title"/>
+              <span className="prevalidation-skeleton-line"/>
+            </div>
+          </div>
+        : <div className={'prevalidation-status '+(ready?'ready':'blocked')}>
+            {ready?<CheckCircle2 size={34}/>:<CircleAlert size={34}/>}
+            <div>
+              <span className="panel-kicker">{ready?'Resultado':'Revisión necesaria'}</span>
+              <h2>{ready?'Proyecto listo para generar':'La generación está bloqueada'}</h2>
+              <p>{ready
+                ? warnings.length
+                  ? `No hay errores bloqueantes. Quedan ${warnings.length} ${warnings.length===1?'advertencia que conviene revisar':'advertencias que conviene revisar'} antes de generar.`
+                  : 'No se han detectado errores estructurales ni incumplimientos bloqueantes en la configuración actual.'
+                : `Hay ${errors.length} ${errors.length===1?'error que debe resolverse':'errores que deben resolverse'} antes de generar un horario.`}</p>
+            </div>
+          </div>}
+      <button className="btn ghost-inline" disabled={refreshing} onClick={refreshPrevalidation}>
+        <RefreshCcw size={15} className={refreshing?'spin':''}/> {refreshing?'Comprobando…':'Volver a comprobar'}
+      </button>
     </section>
 
-    <section className="prevalidation-sections">
+    {refreshing
+      ? <PrevalidationSectionsSkeleton/>
+      : <section className="prevalidation-sections">
       <IssueSection
         title="Errores que bloquean"
         description="Deben quedar a cero antes de permitir la generación."
@@ -94,9 +119,11 @@ export function PrevalidationPage({
         project={project}
         navigate={navigate}
       />
-    </section>
+    </section>}
 
-    <section className="prevalidation-rule-summary">
+    {refreshing
+      ? <PrevalidationRuleSummarySkeleton/>
+      : <section className="prevalidation-rule-summary">
       <div>
         <ShieldCheck size={24}/>
         <span>
@@ -108,11 +135,11 @@ export function PrevalidationPage({
         <span><strong>{effectiveHardCount}</strong><small>HARD</small></span>
         <span><strong>{softCount}</strong><small>SOFT</small></span>
       </div>
-    </section>
+    </section>}
 
     <section className="prevalidation-actions">
-      <button className="btn secondary-light" onClick={()=>navigate('/reglas')}>Volver a Reglas</button>
-      <button className="btn primary" disabled={!ready} onClick={()=>navigate('/generacion')}><Sparkles size={16}/> Ir a Generación</button>
+      <button className="btn secondary-light" disabled={refreshing} onClick={()=>navigate('/reglas')}>Volver a Reglas</button>
+      <button className="btn primary" disabled={!ready||refreshing} onClick={()=>navigate('/generacion')}><Sparkles size={16}/> Ir a Generación</button>
     </section>
   </div>
 }
@@ -210,6 +237,54 @@ function sectionRoute(section:string){
   if(section==='Reglas')return '/reglas'
   if(section==='Normativa')return '/normativa'
   return '/'
+}
+
+function PrevalidationSummarySkeleton(){
+  return <section className="structure-summary prevalidation-loading" aria-hidden="true">
+    {[0,1,2,3].map(index=><article className="structure-summary-card prevalidation-skeleton-card" key={index}>
+      <span className="prevalidation-skeleton-line label"/>
+      <span className="prevalidation-skeleton-line metric"/>
+      <span className="prevalidation-skeleton-line detail"/>
+    </article>)}
+  </section>
+}
+
+function PrevalidationSectionsSkeleton(){
+  return <section className="prevalidation-sections prevalidation-loading" aria-hidden="true">
+    {[0,1,2].map(index=><section className="prevalidation-card prevalidation-skeleton-section" key={index}>
+      <div className="prevalidation-card-heading">
+        <div className="prevalidation-skeleton-heading">
+          <span className="prevalidation-skeleton-icon small"/>
+          <span>
+            <span className="prevalidation-skeleton-line heading"/>
+            <span className="prevalidation-skeleton-line detail"/>
+          </span>
+        </div>
+        <span className="prevalidation-skeleton-count"/>
+      </div>
+      <div className="prevalidation-skeleton-issue">
+        <span className="prevalidation-skeleton-line tag"/>
+        <span className="prevalidation-skeleton-line title"/>
+        <span className="prevalidation-skeleton-line"/>
+      </div>
+    </section>)}
+  </section>
+}
+
+function PrevalidationRuleSummarySkeleton(){
+  return <section className="prevalidation-rule-summary prevalidation-loading" aria-hidden="true">
+    <div className="prevalidation-skeleton-rule-copy">
+      <span className="prevalidation-skeleton-icon small"/>
+      <span>
+        <span className="prevalidation-skeleton-line heading"/>
+        <span className="prevalidation-skeleton-line"/>
+      </span>
+    </div>
+    <div className="rule-counts">
+      <span className="prevalidation-skeleton-rule-count"/>
+      <span className="prevalidation-skeleton-rule-count"/>
+    </div>
+  </section>
 }
 
 function Summary({label,value,detail}:{label:string;value:string;detail:string}){return <article className="structure-summary-card"><span>{label}</span><strong>{value}</strong><small>{detail}</small></article>}
