@@ -22,10 +22,14 @@ export function AuditPage({
   project:ViyeuticaProject
   navigate:(path:string)=>void
 }) {
-  const runs=uniqueGenerationRuns(project.generationRuns).filter(run=>isGenerationProposalValid(project,run))
-  const latest=runs[runs.length-1]??null
-  const [runId,setRunId]=useState(latest?.id??'')
-  const run=runs.find(item=>item.id===runId)??latest
+  const generatedRuns=uniqueGenerationRuns(project.generationRuns).filter(run=>isGenerationProposalValid(project,run))
+  const established=project.establishedScheduleRun&&isGenerationProposalValid(project,project.establishedScheduleRun)
+    ? project.establishedScheduleRun
+    : null
+  const runs=uniqueGenerationRuns(established?[...generatedRuns,established]:generatedRuns)
+  const latest=generatedRuns[generatedRuns.length-1]??established??null
+  const [runId,setRunId]=useState(established?.id??latest?.id??'')
+  const run=runs.find(item=>item.id===runId)??established??latest
 
   const result=useMemo(()=>run?auditGeneration(project,run):null,[project,run])
 
@@ -62,8 +66,8 @@ export function AuditPage({
       <label>
         <span className="panel-kicker">Propuesta auditada</span>
         <select value={run.id} onChange={event=>setRunId(event.target.value)}>
-          {[...runs].reverse().map((item,index)=><option key={item.id} value={item.id}>
-            Propuesta {runs.length-index} · {item.status==='complete'?'completa':item.status==='partial'?'parcial':'fallida'}
+          {[...runs].reverse().map(item=><option key={item.id} value={item.id}>
+            {established?.id===item.id?'Horario establecido':'Propuesta '+Math.max(1,generatedRuns.findIndex(run=>run.id===item.id)+1)} · {item.status==='complete'?'completa':item.status==='partial'?'parcial':'fallida'}
           </option>)}
         </select>
       </label>
