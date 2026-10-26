@@ -1933,3 +1933,7 @@ button.btn:disabled:hover{
 .established-schedule-badge{display:inline-flex;align-items:center;gap:7px;padding:9px 11px;border-radius:10px;border:1px solid #9dce7b;background:#eef7e9;color:#4b8b24;font-size:9px;font-weight:900}
 [data-theme="dark"] .established-schedule-badge{background:#182718;border-color:#3f6135;color:#9fd079}
 @media(max-width:760px){.generation-result-actions{width:100%;justify-content:flex-start}}
+
+/* === Horarios: borrador temporal === */
+.draft-schedule-badge{display:inline-flex;align-items:center;gap:7px;padding:9px 11px;border-radius:10px;border:1px solid #b7c8dc;background:#f2f6fb;color:#4d6784;font-size:9px;font-weight:900}
+[data-theme="dark"] .draft-schedule-badge{background:#172231;border-color:#3a5068;color:#a9c1dc}
