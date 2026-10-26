@@ -1858,3 +1858,19 @@ button.btn:disabled:hover{
 [data-theme="dark"] .assignment-candidate-order button.active{background:#182718;border-color:#3f6135;color:#9fd079}
 [data-theme="dark"] .assignment-candidate-order .candidate-priority-toggle.active{background:#2a2414;border-color:#5d5127;color:#d6c784}
 @media(max-width:760px){.assignment-candidate-controls{align-items:flex-start;flex-direction:column}.assignment-candidate-order{justify-content:flex-start}}
+
+.assignment-candidate-controls{display:grid;gap:9px}
+.assignment-candidate-sort-row,.assignment-candidate-priority-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.assignment-candidate-sort-row>span{font-size:8.6px;font-weight:850;color:var(--muted);white-space:nowrap}
+.assignment-candidate-priority-row{padding-top:9px;border-top:1px solid var(--border)}
+.assignment-candidate-priority-row strong,.assignment-candidate-priority-row small{display:block}
+.assignment-candidate-priority-row strong{font-size:8.8px}
+.assignment-candidate-priority-row small{margin-top:2px;color:var(--muted);font-size:7.8px}
+.assignment-switch{position:relative;flex:0 0 auto;width:40px;height:22px;padding:0;border:1px solid var(--border);border-radius:999px;background:#e8edf3;cursor:pointer;transition:.18s}
+.assignment-switch span{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.18);transition:.18s}
+.assignment-switch.is-on{background:#dff1d2;border-color:#9dce7b}
+.assignment-switch.is-on span{transform:translateX(18px);background:var(--green)}
+.assignment-switch:focus-visible{outline:2px solid color-mix(in srgb,var(--green) 35%,transparent);outline-offset:2px}
+[data-theme="dark"] .assignment-switch{background:#27313d;border-color:#3a4655}
+[data-theme="dark"] .assignment-switch.is-on{background:#22351a;border-color:#426a32}
+@media(max-width:760px){.assignment-candidate-sort-row,.assignment-candidate-priority-row{align-items:flex-start;flex-direction:column}.assignment-candidate-priority-row{width:100%}}
