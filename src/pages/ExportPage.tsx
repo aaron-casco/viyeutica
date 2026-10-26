@@ -17,7 +17,7 @@ const dayLabels:Record<Weekday,string>={
   L:'Lunes',M:'Martes',X:'Miércoles',J:'Jueves',V:'Viernes',S:'Sábado',
 }
 
-export function ExportPage({project,navigate}:{project:ViyeuticaProject;navigate:(path:string)=>void}) {
+export function ExportPage({project,navigate,embedded=false}:{project:ViyeuticaProject;navigate:(path:string)=>void;embedded?:boolean}) {
   const runs=uniqueGenerationRuns(project.generationRuns).filter(run=>isGenerationProposalValid(project,run))
   const established=project.establishedScheduleRun&&isGenerationProposalValid(project,project.establishedScheduleRun)
     ? project.establishedScheduleRun
@@ -27,11 +27,14 @@ export function ExportPage({project,navigate}:{project:ViyeuticaProject;navigate
   const [message,setMessage]=useState('')
 
   if(!selected||!audit){
-    return <section className="empty-state-card">
-      <FileOutput size={34}/>
-      <h1>No hay una propuesta válida para exportar</h1>
-      <p>Selecciona primero una propuesta completa y sin huecos en Horarios.</p>
-      <button className="btn primary" onClick={()=>navigate('/horarios')}>Ir a Horarios</button>
+    return <section className={embedded?'export-embedded-section':'empty-state-card'}>
+      {embedded&&<div className="groups-table-heading"><div><span className="panel-kicker">Exportar</span><h2>Horario y datos del proyecto</h2></div></div>}
+      <div className={embedded?'groups-empty':''}>
+        <FileOutput size={34}/>
+        <h1>No hay una propuesta válida para exportar</h1>
+        <p>Selecciona primero una propuesta completa y sin huecos en Horarios.</p>
+        <button className="btn primary" onClick={()=>navigate('/horarios')}>Ir a Horarios</button>
+      </div>
     </section>
   }
 
@@ -84,8 +87,8 @@ export function ExportPage({project,navigate}:{project:ViyeuticaProject;navigate
     window.setTimeout(()=>win.print(),250)
   }
 
-  return <div className="export-page">
-    <section className="wizard-intro">
+  return <div className={'export-page '+(embedded?'export-embedded-section':'')}>
+    {!embedded&&<section className="wizard-intro">
       <div>
         <h1 className="wizard-page-title"><FileOutput size={28}/> Exportaciones</h1>
         <p>Descarga la propuesta seleccionada en formatos utilizables por el centro y conserva un respaldo completo del proyecto.</p>
@@ -97,7 +100,14 @@ export function ExportPage({project,navigate}:{project:ViyeuticaProject;navigate
           <small>{isEstablished?'Horario establecido':'Propuesta '+proposalNumber} · {audit.errors} {audit.errors===1?'error':'errores'} · {audit.warnings} {audit.warnings===1?'advertencia':'advertencias'}</small>
         </span>
       </div>
-    </section>
+    </section>}
+    {embedded&&<div className="groups-table-heading import-export-section-heading">
+      <div><span className="panel-kicker">Exportar</span><h2>Horario y datos del proyecto</h2><p>Descarga el horario seleccionado en formatos utilizables por el centro y conserva un respaldo completo del proyecto.</p></div>
+      <div className={'export-audit-status '+(official?'passed':'failed')}>
+        {official?<CheckCircle2 size={20}/>:<ShieldAlert size={20}/>}
+        <span><strong>{official?'Lista para exportación definitiva':'Solo exportación como borrador'}</strong><small>{isEstablished?'Horario establecido':'Propuesta '+proposalNumber} · {audit.errors} {audit.errors===1?'error':'errores'} · {audit.warnings} {audit.warnings===1?'advertencia':'advertencias'}</small></span>
+      </div>
+    </div>}
 
     <section className="export-selected-proposal">
       <div>
