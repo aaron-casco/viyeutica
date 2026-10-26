@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   Bell, BookOpen, CalendarClock, CalendarDays, ChevronDown, ClipboardCheck,
-  FileInput, FileOutput, FileSearch, Gauge, GraduationCap, LayoutGrid, Menu, PanelLeftClose,
+  FileInput, FileSearch, Gauge, GraduationCap, LayoutGrid, Menu, PanelLeftClose,
   ShieldCheck, SlidersHorizontal, Sparkles, Users, X,
 } from 'lucide-react'
 import { Logo } from './components/Logo'
@@ -20,7 +20,6 @@ import { AssignmentsPage } from './pages/AssignmentsPage'
 import { RulesPage } from './pages/RulesPage'
 import { PrevalidationPage } from './pages/PrevalidationPage'
 import { GenerationPage } from './pages/GenerationPage'
-import { ExportPage } from './pages/ExportPage'
 import { useProject } from './hooks/useProject'
 import { useTheme } from './hooks/useTheme'
 
@@ -28,7 +27,7 @@ const navigation = [
   { path: '/', label: 'Inicio', icon: Gauge },
   { path: '/cursos', label: 'Curso académico', icon: CalendarDays },
   { path: '/normativa', label: 'Normativa', icon: FileSearch },
-  { path: '/proyecto-json', label: 'Importar Plantilla', icon: FileInput },
+  { path: '/proyecto-json', label: 'Importar | Exportar', icon: FileInput },
   { path: '/centro', label: 'Centro', icon: GraduationCap },
   { path: '/grupos', label: 'Estructura y grupos', icon: LayoutGrid },
   { path: '/jornada', label: 'Jornada y sesiones', icon: CalendarClock },
@@ -38,19 +37,17 @@ const navigation = [
   { path: '/reglas', label: 'Reglas', icon: ShieldCheck },
   { path: '/prevalidacion', label: 'Prevalidación', icon: ClipboardCheck },
   { path: '/horarios', label: 'Horarios', icon: CalendarDays },
-  { path: '/exportaciones', label: 'Exportaciones', icon: FileOutput },
 ]
 
 const descriptions: Record<string,string> = {
   '/cursos': 'Creación, histórico y estado de los cursos académicos.',
   '/normativa': 'Fuentes normativas, extracción de reglas y revisión antes de aplicar plantillas.',
-  '/proyecto-json': 'Importación de datos del centro desde plantillas JSON o Excel.',
+  '/proyecto-json': 'Importación de plantillas y exportación de horarios, informes y respaldos.',
   '/profesorado': 'Plantilla docente, especialidades, jornadas, cargos y reducciones.',
   '/asignaciones': 'Relación entre grupos, materias, profesorado y responsabilidades docentes.',
   '/reglas': 'Restricciones legales, reglas del centro y preferencias ponderadas.',
   '/prevalidacion': 'Comprobación de integridad antes de ejecutar la generación automática.',
   '/horarios': 'Generación, comparación y revisión de propuestas de horario.',
-  '/exportaciones': 'Excel, PDF e informes del horario y su auditoría.',
 }
 
 const getRoute = () => {
@@ -59,6 +56,7 @@ const getRoute = () => {
   const [path]=normalized.split('?')
   if(path==='/configuracion')return '/centro'
   if(path==='/generacion')return '/horarios'
+  if(path==='/exportaciones')return '/proyecto-json'
   return path
 }
 
@@ -97,7 +95,6 @@ export default function App() {
     if (route === '/reglas') return <RulesPage project={project} navigate={go}/>
     if (route === '/prevalidacion') return <PrevalidationPage project={project} navigate={go}/>
     if (route === '/horarios') return <GenerationPage project={project} navigate={go}/>
-    if (route === '/exportaciones') return <ExportPage project={project} navigate={go}/>
     return <PlaceholderPage title={active.label} description={descriptions[route] ?? 'Módulo preparado para su implementación.'}/>
   }
 
