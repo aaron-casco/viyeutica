@@ -38,6 +38,10 @@ function sessionsRequired(project:ViyeuticaProject,assignment:TeachingAssignment
 export function auditGeneration(project:ViyeuticaProject,run:GenerationRun):AuditResult{
   const issues:AuditIssue[]=[]
   const push=(issue:Omit<AuditIssue,'id'>)=>issues.push({id:uid('audit'),...issue})
+  const countableRuleEntries=(rule:ViyeuticaProject['rules'][number])=>
+    rule.scope==='group'||rule.scope==='subject'
+      ? run.entries.filter(entry=>project.assignments.find(assignment=>assignment.id===entry.assignmentId)?.assignmentType==='main')
+      : run.entries
 
   // Integridad de referencias.
   for(const entry of run.entries){
@@ -178,7 +182,7 @@ export function auditGeneration(project:ViyeuticaProject,run:GenerationRun):Audi
     if(kind==='daily_limit'){
       const value=ruleNumericValue(rule)
       if(value!==null){
-        const matching=run.entries.filter(entry=>ruleMatchesEntry({...rule,parameters:{...rule.parameters,day:undefined,sessionId:undefined}},entry))
+        const matching=countableRuleEntries(rule).filter(entry=>ruleMatchesEntry({...rule,parameters:{...rule.parameters,day:undefined,sessionId:undefined}},entry))
         const byDay=new Map<string,number>()
         for(const entry of matching){
           const key=rule.scope==='teacher'
@@ -208,7 +212,7 @@ export function auditGeneration(project:ViyeuticaProject,run:GenerationRun):Audi
       const value=ruleNumericValue(rule)
       if(value!==null){
         const orderBySession=new Map(teachingBlocks.map((block,index)=>[block.id,index]))
-        const matching=run.entries.filter(entry=>ruleMatchesEntry({...rule,parameters:{...rule.parameters,day:undefined,sessionId:undefined}},entry))
+        const matching=countableRuleEntries(rule).filter(entry=>ruleMatchesEntry({...rule,parameters:{...rule.parameters,day:undefined,sessionId:undefined}},entry))
         const grouped=new Map<string,number[]>()
         for(const entry of matching){
           const order=orderBySession.get(entry.sessionId)
@@ -252,7 +256,7 @@ export function auditGeneration(project:ViyeuticaProject,run:GenerationRun):Audi
     if(kind==='weekly_load'){
       const value=ruleNumericValue(rule)
       if(value!==null){
-        const matching=run.entries.filter(entry=>ruleMatchesEntry({...rule,parameters:{...rule.parameters,day:undefined,sessionId:undefined}},entry))
+        const matching=countableRuleEntries(rule).filter(entry=>ruleMatchesEntry({...rule,parameters:{...rule.parameters,day:undefined,sessionId:undefined}},entry))
         const grouped=new Map<string,number>()
         for(const entry of matching){
           const key=rule.scope==='teacher'
