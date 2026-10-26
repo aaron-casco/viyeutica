@@ -131,6 +131,7 @@ export function AssignmentsPage({
     const day=(params.get('day')??'') as Weekday|''
     const session=params.get('sessionId')??''
     const auditCode=params.get('auditCode')??''
+    const pendingOrganization=params.get('pendingOrganization')==='1'
 
     if(groupId||subjectId||teacherId){
       setDraft(current=>({
@@ -148,7 +149,11 @@ export function AssignmentsPage({
         sessions:session?[session]:current.sessions,
       }))
     }
-    if(auditCode){
+    if(pendingOrganization){
+      setProgressExpanded(true)
+      setAuditFocus('Prevalidación ha señalado cargas pendientes de organizar. Revísalas antes de cerrar el horario.')
+      window.setTimeout(()=>document.querySelector('.assignment-progress-alert')?.scrollIntoView({behavior:'smooth',block:'center'}),80)
+    }else if(auditCode){
       setAuditFocus('Datos cargados desde Auditoría para revisar una incidencia del horario.')
       window.setTimeout(()=>document.querySelector('.assignment-form')?.scrollIntoView({behavior:'smooth',block:'start'}),60)
     }
