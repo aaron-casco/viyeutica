@@ -124,6 +124,24 @@ export function AssignmentsPage({
     :!availabilityDraft.sessions.length?'Selecciona al menos una sesión.'
     :'La restricción tiene los datos mínimos necesarios. Ya puedes añadirla.'
   useEffect(()=>{
+    const teachingBlocks=project.schedule.blocks.filter(block=>block.active&&block.type==='teaching')
+    const teachingSlots=project.schedule.activeDays.length*teachingBlocks.length
+    const assignmentSessions=(assignment:TeachingAssignment)=>{
+      if((assignment.weeklySessions??0)>0)return Math.max(1,Math.round(assignment.weeklySessions!))
+      const entry=project.studyPlan.find(item=>
+        item.active&&item.groupId===assignment.groupId&&item.subjectId===assignment.subjectId
+      )
+      if((entry?.weeklySessions??0)>0)return Math.max(1,Math.round(entry!.weeklySessions))
+      return 1
+    }
+    const mainSessionsByGroup=new Map<string,number>()
+    for(const assignment of project.assignments.filter(item=>item.active&&item.assignmentType==='main')){
+      mainSessionsByGroup.set(
+        assignment.groupId,
+        (mainSessionsByGroup.get(assignment.groupId)??0)+assignmentSessions(assignment)
+      )
+    }
+
     const normalized=project.assignments.map(assignment=>{
       if(!assignment.active)return assignment
       const entry=project.studyPlan.find(item=>
@@ -131,19 +149,34 @@ export function AssignmentsPage({
       )
       if(!entry)return assignment
 
-      const expectedType=assignmentTypeForStudyEntry(entry)
-      if(expectedType==='co_teaching'&&assignment.assignmentType==='main'){
+      if(entry.mode==='co_teaching'&&assignment.assignmentType==='main'){
+        mainSessionsByGroup.set(
+          assignment.groupId,
+          Math.max(0,(mainSessionsByGroup.get(assignment.groupId)??0)-assignmentSessions(assignment))
+        )
         return {...assignment,assignmentType:'co_teaching' as AssignmentType}
       }
 
-      if(expectedType==='main'&&assignment.assignmentType==='support'){
+      const subject=project.subjects.find(item=>item.id===assignment.subjectId)
+      const semantic=(subject?.name??'').trim().toLocaleLowerCase('es')
+      const isSupportLoad=semantic.includes('apoyo')||semantic.includes('refuerzo')
+      if(!isSupportLoad)return assignment
+
+      const groupMainSessions=mainSessionsByGroup.get(assignment.groupId)??0
+      const sessions=assignmentSessions(assignment)
+
+      if(assignment.assignmentType==='main'&&teachingSlots>0&&groupMainSessions>teachingSlots){
+        mainSessionsByGroup.set(assignment.groupId,Math.max(0,groupMainSessions-sessions))
+        return {...assignment,assignmentType:'support' as AssignmentType}
+      }
+
+      if(assignment.assignmentType==='support'&&teachingSlots>0&&groupMainSessions<teachingSlots){
         const sameLoad=project.assignments.filter(item=>
-          item.active&&
-          item.groupId===assignment.groupId&&
-          item.subjectId===assignment.subjectId
+          item.active&&item.groupId===assignment.groupId&&item.subjectId===assignment.subjectId
         )
         const hasMain=sameLoad.some(item=>item.assignmentType==='main')
-        if(!hasMain&&sameLoad.length===1){
+        if(!hasMain&&sameLoad.length===1&&groupMainSessions+sessions<=teachingSlots){
+          mainSessionsByGroup.set(assignment.groupId,groupMainSessions+sessions)
           return {...assignment,assignmentType:'main' as AssignmentType}
         }
       }
