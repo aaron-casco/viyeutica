@@ -54,7 +54,7 @@ export function ExportPage({project,navigate}:{project:ViyeuticaProject;navigate
     ]
     const csv=rows.map(row=>row.map(csvCell).join(';')).join('\n')
     downloadBlob('\ufeff'+csv,prefix+fileBase(project)+'_'+(isEstablished?'Horario_establecido':'Propuesta_'+proposalNumber)+'_Auditoria.csv','text/csv;charset=utf-8')
-    setMessage('Informe de Auditoría descargado.')
+    setMessage('Informe de validaciones descargado.')
   }
 
   const downloadJson=()=>{
@@ -122,9 +122,9 @@ export function ExportPage({project,navigate}:{project:ViyeuticaProject;navigate
     <section className="export-grid">
       <ExportCard icon={<FileSpreadsheet size={24}/>} title="Horarios por grupos" description="Libro Excel con una hoja independiente para cada grupo activo." action="Descargar Excel" onClick={()=>downloadWorkbook('groups')}/>
       <ExportCard icon={<FileSpreadsheet size={24}/>} title="Horarios por docentes" description="Libro Excel con una hoja independiente para cada docente activo." action="Descargar Excel" onClick={()=>downloadWorkbook('teachers')}/>
-      <ExportCard icon={<FileSpreadsheet size={24}/>} title="Libro completo" description="Excel con grupos, docentes y una hoja final de Auditoría." action="Descargar completo" onClick={()=>downloadWorkbook('full')}/>
+      <ExportCard icon={<FileSpreadsheet size={24}/>} title="Libro completo" description="Excel con grupos, docentes y una hoja final de validaciones." action="Descargar completo" onClick={()=>downloadWorkbook('full')}/>
       <ExportCard icon={<Printer size={24}/>} title="Horario en PDF" description="Abre un informe maquetado para imprimir o guardar como PDF desde el navegador." action="Imprimir / PDF" onClick={printReport}/>
-      <ExportCard icon={<ShieldCheck size={24}/>} title="Informe de Auditoría" description="Listado CSV de errores, advertencias y contexto de cada incidencia." action="Descargar auditoría" onClick={downloadAudit}/>
+      <ExportCard icon={<ShieldCheck size={24}/>} title="Informe de validaciones" description="Listado CSV de errores, advertencias y contexto de cada incidencia." action="Descargar validaciones" onClick={downloadAudit}/>
       <ExportCard icon={<DatabaseBackup size={24}/>} title="Respaldo completo JSON" description="Copia íntegra del proyecto, propuesta seleccionada y estado de validación." action="Descargar JSON" onClick={downloadJson}/>
     </section>
 
@@ -251,10 +251,10 @@ function buildPrintableReport(project:ViyeuticaProject,run:GenerationRun,issues:
   return '<!doctype html><html><head><meta charset="utf-8"><title>⩒Yeutika · Propuesta '+proposalNumber+'</title>'
     +'<style>body{font-family:Arial,sans-serif;color:#1e293b;margin:24px}.cover{margin-bottom:28px}.draft{color:#b91c1c;font-weight:800}h1{font-size:24px;margin:0 0 6px}h2{font-size:17px;margin:24px 0 8px}p{font-size:12px}table{width:100%;border-collapse:collapse;margin:8px 0 24px;page-break-inside:avoid}th,td{border:1px solid #cbd5e1;padding:7px;font-size:10px;vertical-align:top}th{background:#edf2f7}.section-break{page-break-before:always}@media print{body{margin:10mm}h2{page-break-after:avoid}}</style>'
     +'</head><body><div class="cover"><h1>'+xml(project.center.name||'⩒Yeutika')+'</h1><p>Curso '+xml(project.academicYear.label)+' · Propuesta '+proposalNumber+'</p>'
-    +(official?'':'<p class="draft">BORRADOR · Auditoría con errores</p>')+'</div>'
+    +(official?'':'<p class="draft">BORRADOR · Validaciones con errores</p>')+'</div>'
     +'<h1>Horarios por grupos</h1>'+groupSections
     +'<div class="section-break"><h1>Horarios por docentes</h1></div>'+teacherSections
-    +'<div class="section-break"><h1>Auditoría</h1><table><thead><tr><th>Severidad</th><th>Categoría</th><th>Mensaje</th><th>Detalle</th></tr></thead><tbody>'+auditRows+'</tbody></table></div>'
+    +'<div class="section-break"><h1>Validaciones</h1><table><thead><tr><th>Severidad</th><th>Categoría</th><th>Mensaje</th><th>Detalle</th></tr></thead><tbody>'+auditRows+'</tbody></table></div>'
     +'</body></html>'
 }
 
