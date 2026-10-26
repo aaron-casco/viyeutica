@@ -570,7 +570,7 @@ function TeacherScheduleModal({
       </div>
       <div className="app-modal-body">
         <div className="staff-schedule-summary">
-          <strong>{entries.length} ${entries.length===1?'sesión':'sesiones'}</strong>
+          <strong>{entries.length} {entries.length===1?'sesión':'sesiones'}</strong>
           <span>Propuesta activa · Materia y grupo por franja</span>
         </div>
         <div className="generated-schedule-wrap staff-schedule-wrap">
