@@ -1846,4 +1846,5 @@ button.btn:disabled:hover{
 .assignment-candidate-chip strong{font-size:9px}
 .assignment-candidate-chip small{display:grid;gap:1px;font-size:7.8px;color:var(--muted)}
 .assignment-candidate-chip small span{display:block}
+.assignment-candidate-chip .candidate-management{color:#9b7418;font-weight:800}
 .assignment-candidate-empty{display:block;margin-top:6px;color:#b53b37;font-weight:800}
