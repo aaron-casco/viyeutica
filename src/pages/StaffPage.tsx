@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import {
-  BriefcaseBusiness, CheckCircle2, ChevronDown, Clock3, GraduationCap, LayoutGrid, List, Pencil, Plus,
+  BriefcaseBusiness, CalendarDays, CheckCircle2, ChevronDown, Clock3, GraduationCap, LayoutGrid, List, Pencil, Plus,
   Trash2, UserRoundCog, Users,
 } from 'lucide-react'
-import type { Teacher, TeacherDedication, TeacherDedicationType, ViyeuticaProject } from '../domain/project'
-import { isStudyPlanComplete, validateStaff } from '../domain/project'
+import type { GenerationRun, Teacher, TeacherDedication, TeacherDedicationType, ViyeuticaProject, Weekday } from '../domain/project'
+import { isGenerationProposalValid, isStudyPlanComplete, uniqueGenerationRuns, validateStaff } from '../domain/project'
 import { saveProject } from '../store/projectStorage'
 import { WizardStepper } from '../components/WizardStepper'
 import { TemplatePanel } from '../components/TemplatePanel'
@@ -93,8 +93,11 @@ export function StaffPage({
   const [dedicationDraft,setDedicationDraft]=useState<DedicationDraft>(emptyDedication)
   const [modalOpen,setModalOpen]=useState(false)
   const [staffView,setStaffView]=useState<'list'|'cards'>('list')
+  const [scheduleTeacherId,setScheduleTeacherId]=useState<string|null>(null)
 
   const teachers=project.teachers
+  const validRuns=uniqueGenerationRuns(project.generationRuns).filter(run=>isGenerationProposalValid(project,run))
+  const scheduleRun=validRuns.find(run=>run.id===project.selectedGenerationRunId)??validRuns[validRuns.length-1]??null
   const activeTeachers=teachers.filter(teacher=>teacher.active)
   const confirmed=activeTeachers.filter(teacher=>teacher.status==='confirmed').length
   const pending=activeTeachers.filter(teacher=>teacher.status==='to_determine').length
@@ -475,7 +478,7 @@ export function StaffPage({
                     <td>{dedications.length?dedications.map(item=>item.label).join(', '):'—'}</td>
                     <td>{teacher.weeklyTeachingMinutes===null?'—':formatMinutes(teacher.weeklyTeachingMinutes)}</td>
                     <td><button className={'status-toggle '+(teacher.active?'active':'')} onClick={()=>toggleActive(teacher.id)}>{teacher.active?'Activo':'Inactivo'}</button></td>
-                    <td><div className="row-actions"><button title="Editar" onClick={()=>edit(teacher)}><Pencil size={15}/></button><button title="Eliminar" className="danger" onClick={()=>remove(teacher.id)}><Trash2 size={15}/></button></div></td>
+                    <td><div className="row-actions"><button title={scheduleRun?'Ver horario':'Horario no disponible'} aria-label={scheduleRun?'Ver horario de '+teacher.name:'Horario no disponible'} disabled={!scheduleRun} onClick={()=>scheduleRun&&setScheduleTeacherId(teacher.id)}><CalendarDays size={15}/></button><button title="Editar" onClick={()=>edit(teacher)}><Pencil size={15}/></button><button title="Eliminar" className="danger" onClick={()=>remove(teacher.id)}><Trash2 size={15}/></button></div></td>
                   </tr>
                 })}</tbody>
               </table>
@@ -502,6 +505,7 @@ export function StaffPage({
                   <div className="staff-card-footer">
                     <button className={'status-toggle '+(teacher.active?'active':'')} onClick={()=>toggleActive(teacher.id)}>{teacher.active?'Activo':'Inactivo'}</button>
                     <div className="row-actions">
+                      <button title={scheduleRun?'Ver horario':'Horario no disponible'} aria-label={scheduleRun?'Ver horario de '+teacher.name:'Horario no disponible'} disabled={!scheduleRun} onClick={()=>scheduleRun&&setScheduleTeacherId(teacher.id)}><CalendarDays size={15}/></button>
                       <button title="Editar" onClick={()=>edit(teacher)}><Pencil size={15}/></button>
                       <button title="Eliminar" className="danger" onClick={()=>remove(teacher.id)}><Trash2 size={15}/></button>
                     </div>
@@ -510,6 +514,13 @@ export function StaffPage({
               })}
             </div>}
     </section>
+
+    {scheduleTeacherId&&scheduleRun&&<TeacherScheduleModal
+      project={project}
+      run={scheduleRun}
+      teacherId={scheduleTeacherId}
+      onClose={()=>setScheduleTeacherId(null)}
+    />}
 
     <div className="staff-template-full">
         <TemplatePanel
@@ -531,6 +542,63 @@ export function StaffPage({
       <article className="panel compact-info-panel"><BriefcaseBusiness size={22}/><div><strong>Dedicaciones estructuradas</strong><p>Dirección, coordinaciones, reducciones y otros programas guardan ahora su carga semanal en periodos o minutos.</p></div></article>
       <article className="panel compact-info-panel"><Clock3 size={22}/><div><strong>Carga lectiva</strong><p>El valor manual es el objetivo o máximo. La carga realmente asignada se calculará después a partir de Asignaciones y del horario generado.</p></div></article>
       <article className="panel compact-info-panel"><GraduationCap size={22}/><div><strong>Tutorías vinculadas</strong><p>La tutoría se guarda directamente en cada grupo. Un grupo ya tutorado por otro docente queda bloqueado en el selector.</p></div></article>
+    </section>
+  </div>
+}
+
+const staffDayLabels:Record<Weekday,string>={
+  L:'Lunes',M:'Martes',X:'Miércoles',J:'Jueves',V:'Viernes',S:'Sábado',
+}
+
+function TeacherScheduleModal({
+  project,run,teacherId,onClose,
+}:{
+  project:ViyeuticaProject
+  run:GenerationRun
+  teacherId:string
+  onClose:()=>void
+}){
+  const teacher=project.teachers.find(item=>item.id===teacherId)
+  const blocks=project.schedule.blocks.filter(block=>block.active&&block.type==='teaching')
+  const entries=run.entries.filter(entry=>entry.teacherId===teacherId)
+
+  return <div className="modal-backdrop staff-modal-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)onClose()}}>
+    <section className="app-modal wide staff-schedule-modal" role="dialog" aria-modal="true" aria-label={'Horario de '+(teacher?.name??'docente')}>
+      <div className="app-modal-header">
+        <div><CalendarDays size={20}/><div><span className="panel-kicker">Horario docente</span><h2>{teacher?.name??'Docente'}</h2></div></div>
+        <button type="button" className="modal-close" onClick={onClose} aria-label="Cerrar">×</button>
+      </div>
+      <div className="app-modal-body">
+        <div className="staff-schedule-summary">
+          <strong>{entries.length} ${entries.length===1?'sesión':'sesiones'}</strong>
+          <span>Propuesta activa · Materia y grupo por franja</span>
+        </div>
+        <div className="generated-schedule-wrap staff-schedule-wrap">
+          <table className="generated-schedule staff-schedule-table">
+            <thead><tr><th>Sesión</th>{project.schedule.activeDays.map(day=><th key={day}>{staffDayLabels[day]}</th>)}</tr></thead>
+            <tbody>{blocks.map(block=><tr key={block.id}>
+              <th><strong>{block.label}</strong><small>{block.start}–{block.end}</small></th>
+              {project.schedule.activeDays.map(day=>{
+                const cell=entries.filter(entry=>entry.day===day&&entry.sessionId===block.id)
+                if(!cell.length)return <td key={day} className="empty-slot"><span>Libre</span></td>
+                return <td key={day}>
+                  {cell.map(entry=>{
+                    const subject=project.subjects.find(item=>item.id===entry.subjectId)
+                    const group=project.groups.find(item=>item.id===entry.groupId)
+                    return <div className="staff-schedule-entry" key={entry.id}>
+                      <strong>{subject?.name??'Materia'}</strong>
+                      <small>{group?.name??'Grupo'}</small>
+                    </div>
+                  })}
+                </td>
+              })}
+            </tr>)}</tbody>
+          </table>
+        </div>
+      </div>
+      <div className="app-modal-footer">
+        <button type="button" className="btn secondary-light" onClick={onClose}>Cerrar</button>
+      </div>
     </section>
   </div>
 }
