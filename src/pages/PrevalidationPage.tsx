@@ -139,7 +139,7 @@ export function PrevalidationPage({
 
     <section className="prevalidation-actions">
       <button className="btn secondary-light" disabled={refreshing} onClick={()=>navigate('/reglas')}>Volver a Reglas</button>
-      <button className="btn primary" disabled={!ready||refreshing} onClick={()=>navigate('/generacion')}><Sparkles size={16}/> Ir a Generación</button>
+      <button className="btn primary" disabled={!ready||refreshing} onClick={()=>navigate('/horarios')}><Sparkles size={16}/> Ir a Horarios</button>
     </section>
   </div>
 }
@@ -194,7 +194,7 @@ function issueGuidance(issue:PrevalidationIssue){
   if(issue.code==='ASIGNACIONES_PENDIENTES_ORGANIZAR')return 'Abre Asignaciones y revisa las cargas marcadas como Pendiente de organizar. Asígnalas cuando conozcas docente/organización o mantenlas pendientes si todavía no pueden resolverse.'
   if(issue.code==='NORMATIVA_SIN_APROBAR')return 'Revisa la normativa detectada y aprueba únicamente las reglas aplicables al horario.'
   if(issue.code==='SIN_NORMATIVA')return 'No es obligatorio corregir nada. Añade normativa solo si quieres trazabilidad normativa en la auditoría.'
-  if(issue.code==='LISTO_PARA_GENERAR')return 'No requiere acción. Puedes continuar a Generación.'
+  if(issue.code==='LISTO_PARA_GENERAR')return 'No requiere acción. Puedes continuar a Horarios.'
   if(issue.section==='Reglas')return 'Abre Reglas y corrige la condición indicada hasta que la prevalidación deje de marcarla.'
   if(issue.section==='Asignaciones')return 'Revisa las asignaciones relacionadas con la incidencia y vuelve a comprobar.'
   if(issue.section==='Profesorado')return 'Revisa los datos del docente afectado y vuelve a comprobar.'
