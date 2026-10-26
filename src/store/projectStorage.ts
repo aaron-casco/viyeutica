@@ -15,6 +15,16 @@ export function loadProject(): ViyeuticaProject {
       generationRuns.some(run=>run.id===parsed.selectedGenerationRunId)
         ? parsed.selectedGenerationRunId
         : null
+    const draftScheduleRun=
+      parsed.draftScheduleRun &&
+      typeof parsed.draftScheduleRun==='object' &&
+      Array.isArray(parsed.draftScheduleRun.entries)
+        ? parsed.draftScheduleRun
+        : null
+    const draftScheduleSavedAt=
+      typeof parsed.draftScheduleSavedAt==='string'
+        ? parsed.draftScheduleSavedAt
+        : null
     const establishedScheduleRun=
       parsed.establishedScheduleRun &&
       typeof parsed.establishedScheduleRun==='object' &&
@@ -41,6 +51,8 @@ export function loadProject(): ViyeuticaProject {
       rules: Array.isArray(parsed.rules) ? parsed.rules : [],
       generationRuns,
       selectedGenerationRunId,
+      draftScheduleRun,
+      draftScheduleSavedAt,
       establishedScheduleRun,
       establishedScheduleSavedAt,
       normativeSources: Array.isArray(parsed.normativeSources) ? parsed.normativeSources : [],
