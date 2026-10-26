@@ -117,6 +117,17 @@ export function StudyPlanPage({
       ?'Indica la carga semanal mediante sesiones o minutos.'
       :'La carga tiene los datos mínimos necesarios. Ya puedes añadirla.'
 
+  useEffect(()=>{
+    const raw=window.location.hash.split('?')[1]
+    if(!raw)return
+    const params=new URLSearchParams(raw)
+    const groupId=params.get('groupId')??''
+    if(!groupId||!project.groups.some(group=>group.id===groupId))return
+    setEntryGroupFilter(groupId)
+    setEntriesExpanded(true)
+    window.setTimeout(()=>document.querySelector('.plan-table')?.scrollIntoView({behavior:'smooth',block:'start'}),80)
+  },[])
+
   const assignedSubjectIdsForGroup=(groupId:string)=>new Set(
     activeEntries
       .filter(entry=>entry.groupId===groupId&&entry.id!==editingEntry)
