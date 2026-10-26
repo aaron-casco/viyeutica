@@ -620,13 +620,20 @@ export function AssignmentsPage({
         {pendingOrganizationEntries.map(entry=>{
           const group=project.groups.find(item=>item.id===entry.groupId)
           const subject=project.subjects.find(item=>item.id===entry.subjectId)
+          const resolved=pendingAssignmentDraft(entry)
+          const suggestedTeacher=project.teachers.find(item=>item.id===resolved.teacherId)
           return <article key={entry.id} className="assignment-missing-item is-pending-organization">
             <div className="assignment-missing-copy">
               <span><strong>{group?.name??'Grupo'}</strong> · {subject?.name??'Materia'}</span>
               <small>{entry.weeklySessions>0?`${entry.weeklySessions} ses./sem.`:''}{entry.weeklyMinutes?`${entry.weeklySessions>0?' · ':''}${entry.weeklyMinutes} min/sem.`:''} · Pendiente de organizar</small>
+              <small className={'assignment-suggestion '+(suggestedTeacher?'ready':'manual')}>
+                {suggestedTeacher
+                  ? `Sugerencia automática: ${suggestedTeacher.name}`
+                  : 'Sin sugerencia inequívoca: selecciona el docente manualmente'}
+              </small>
             </div>
             <div className="assignment-missing-actions">
-              <button type="button" className="btn ghost-inline" onClick={()=>editPendingAssignment(entry)}>Editar</button>
+              <button type="button" className="btn primary" onClick={()=>editPendingAssignment(entry)}>Resolver</button>
               <button type="button" className="btn pending-inline active" onClick={()=>togglePendingOrganization(entry.id)}>Reabrir</button>
             </div>
           </article>
