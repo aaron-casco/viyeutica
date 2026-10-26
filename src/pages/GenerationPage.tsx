@@ -523,7 +523,7 @@ export function GenerationPage({
         <button className="btn danger-modal" onClick={clearRuns}>Eliminar propuestas</button>
       </>}
     >
-      <p>Se eliminará el historial de propuestas generadas, pero <strong>no se modificarán</strong> el centro, profesorado, asignaciones, reglas ni normativa.</p>
+      <p>Se eliminará el historial de propuestas generadas, pero <strong>no se modificarán</strong> el horario establecido del curso, el centro, profesorado, asignaciones, reglas ni normativa.</p>
     </AppModal>}
 
     {showEstablishModal&&selectedRun&&<AppModal
