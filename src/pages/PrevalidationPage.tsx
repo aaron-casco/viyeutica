@@ -152,6 +152,9 @@ function IssueSection({
 
 function issueGuidance(issue:PrevalidationIssue){
   if(issue.code==='SOBRECARGA_DOCENTE')return 'Revisa la carga lectiva del docente y sus asignaciones semanales; reduce carga, cambia asignaciones o corrige el máximo configurado.'
+  if(issue.code==='ASIGNACION_SIN_CAPACIDAD')return 'Revisa la asignación y la disponibilidad del docente. Reduce sesiones, amplía disponibilidad o reasigna la carga a otro docente compatible.'
+  if(issue.code==='GRUPO_SIN_CAPACIDAD')return 'Revisa la carga semanal del grupo y la jornada configurada. Reduce o corrige sesiones del plan de estudios, o amplía las franjas lectivas si la organización del centro lo permite.'
+  if(issue.code==='DOCENTE_SIN_CAPACIDAD')return 'Revisa todas las asignaciones y restricciones temporales del docente. La suma semanal no cabe en sus franjas disponibles.'
   if(issue.code==='DOCENTE_PENDIENTE')return 'Abre la ficha del docente. Si ya conoces quién ocupará el puesto, cambia su estado a Confirmado y actualiza sus datos. Si aún no se conoce, puedes mantenerlo Por determinar; la advertencia seguirá visible como recordatorio.'
   if(issue.code==='REGLA_PENDIENTE_REVISION')return 'Abre la regla, comprueba su origen y parámetros y márcala como revisada cuando sea correcta.'
   if(issue.code==='REGLA_NO_EVALUABLE')return 'Comprueba si esta regla puede expresarse con una condición estructurada compatible con el motor.'
@@ -177,6 +180,12 @@ function issueRoute(issue:PrevalidationIssue,project:ViyeuticaProject){
   }
   if(issue.section==='Profesorado'&&issue.entityId){
     return '/profesorado?teacherId='+encodeURIComponent(issue.entityId)
+  }
+  if(issue.code==='ASIGNACION_SIN_CAPACIDAD'&&issue.entityId){
+    return '/asignaciones?assignmentId='+encodeURIComponent(issue.entityId)
+  }
+  if(issue.code==='GRUPO_SIN_CAPACIDAD'&&issue.entityId){
+    return '/asignaciones?groupId='+encodeURIComponent(issue.entityId)
   }
   if(issue.code==='ASIGNACIONES_PENDIENTES_ORGANIZAR'){
     return '/asignaciones?pendingOrganization=1'
