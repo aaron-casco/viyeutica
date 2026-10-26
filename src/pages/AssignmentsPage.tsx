@@ -85,7 +85,7 @@ export function AssignmentsPage({
   const [assignmentTeacherFilter,setAssignmentTeacherFilter]=useState<'all'|string>('all')
   const [progressExpanded,setProgressExpanded]=useState(false)
   const [showOtherTeachers,setShowOtherTeachers]=useState(false)
-  const [supportCandidateOrder,setSupportCandidateOrder]=useState<'margin'|'supports'|'load'>('margin')
+  const [supportCandidateOrder,setSupportCandidateOrder]=useState<'margin'|'supports'>('margin')
   const [prioritizeNonManagement,setPrioritizeNonManagement]=useState(true)
 
   const activeGroups=project.groups.filter(group=>group.active)
@@ -290,12 +290,6 @@ export function AssignmentsPage({
           return a.supportAssignments-b.supportAssignments ||
             b.margin-a.margin ||
             a.assigned-b.assigned ||
-            a.teacher.name.localeCompare(b.teacher.name,'es')
-        }
-        if(supportCandidateOrder==='load'){
-          return a.assigned-b.assigned ||
-            b.margin-a.margin ||
-            a.supportAssignments-b.supportAssignments ||
             a.teacher.name.localeCompare(b.teacher.name,'es')
         }
         return b.margin-a.margin ||
@@ -683,7 +677,6 @@ export function AssignmentsPage({
         <div className="assignment-candidate-order">
           <button type="button" className={supportCandidateOrder==='margin'?'active':''} onClick={()=>setSupportCandidateOrder('margin')}>Franjas libres</button>
           <button type="button" className={supportCandidateOrder==='supports'?'active':''} onClick={()=>setSupportCandidateOrder('supports')}>Menos apoyos</button>
-          <button type="button" className={supportCandidateOrder==='load'?'active':''} onClick={()=>setSupportCandidateOrder('load')}>Menor carga docente</button>
           <button
             type="button"
             className={'candidate-priority-toggle '+(prioritizeNonManagement?'active':'')}
