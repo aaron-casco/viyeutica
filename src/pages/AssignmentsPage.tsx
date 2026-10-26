@@ -133,6 +133,7 @@ export function AssignmentsPage({
     const session=params.get('sessionId')??''
     const auditCode=params.get('auditCode')??''
     const pendingOrganization=params.get('pendingOrganization')==='1'
+    const focusAvailability=params.get('focusAvailability')==='1'
 
     if(assignmentId){
       const assignment=project.assignments.find(item=>item.id===assignmentId)
@@ -166,8 +167,13 @@ export function AssignmentsPage({
         days:day?[day]:current.days,
         sessions:session?[session]:current.sessions,
       }))
+      if(teacherId)setAvailabilityTeacherFilter(teacherId)
     }
-    if(pendingOrganization){
+    if(focusAvailability){
+      setAvailabilityExpanded(true)
+      setAuditFocus('Prevalidación ha detectado que la carga del docente no cabe en su disponibilidad semanal.')
+      window.setTimeout(()=>document.querySelector('.availability-section')?.scrollIntoView({behavior:'smooth',block:'start'}),80)
+    }else if(pendingOrganization){
       setProgressExpanded(true)
       setAuditFocus('Prevalidación ha señalado cargas pendientes de organizar. Revísalas antes de cerrar el horario.')
       window.setTimeout(()=>document.querySelector('.assignment-progress-alert')?.scrollIntoView({behavior:'smooth',block:'center'}),80)
