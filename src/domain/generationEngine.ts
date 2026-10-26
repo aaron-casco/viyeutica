@@ -452,12 +452,22 @@ function generateAttempt(project:ViyeuticaProject,attempt:number){
     }
   }
 
-  // Apoyos y codocencias: intentan compartir sesiones ya colocadas del mismo grupo/materia.
+  // Apoyos y codocencias comparten una sesión principal ya colocada.
+  // La codocencia debe coincidir con la misma materia; el apoyo genérico puede
+  // acompañar cualquier sesión principal del mismo grupo.
   for(const assignment of shuffle(support,random)){
     const needed=sessionsRequired(project,assignment,teachingBlocks)
     requested+=needed
-    const baseSlots=entries
-      .filter(entry=>entry.groupId===assignment.groupId&&entry.subjectId===assignment.subjectId)
+    const baseEntries=entries.filter(entry=>{
+      if(entry.groupId!==assignment.groupId)return false
+      const baseAssignment=project.assignments.find(item=>item.id===entry.assignmentId)
+      if(!baseAssignment||baseAssignment.assignmentType!=='main')return false
+      if(assignment.assignmentType==='co_teaching'){
+        return entry.subjectId===assignment.subjectId
+      }
+      return true
+    })
+    const baseSlots=baseEntries
       .map(entry=>slots.find(slot=>slot.day===entry.day&&slot.sessionId===entry.sessionId))
       .filter(Boolean) as Slot[]
     let placed=0
