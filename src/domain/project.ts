@@ -642,11 +642,11 @@ export function runPrevalidation(project: ViyeuticaProject): PrevalidationIssue[
   const pendingOrganizationEntries=project.studyPlan.filter(entry=>entry.active&&entry.pendingOrganization)
   if(pendingOrganizationEntries.length){
     push(
-      'warning',
+      'error',
       'Asignaciones',
       'ASIGNACIONES_PENDIENTES_ORGANIZAR',
-      `${pendingOrganizationEntries.length} ${pendingOrganizationEntries.length===1?'carga está':'cargas están'} marcada${pendingOrganizationEntries.length===1?'':'s'} como pendiente${pendingOrganizationEntries.length===1?'':'s'} de organizar.`,
-      'Estas cargas han sido revisadas y no bloquean Reglas, pero todavía deberán resolverse antes de cerrar el horario.'
+      `${pendingOrganizationEntries.length} ${pendingOrganizationEntries.length===1?'carga sigue':'cargas siguen'} pendiente${pendingOrganizationEntries.length===1?'':'s'} de organizar y no pueden generarse todavía.`,
+      'Pueden mantenerse pendientes mientras configuras Reglas, pero deben tener una asignación docente antes de generar un horario completo.'
     )
   }
   for (const message of validateRules(project)) push('error','Reglas','REGLAS',message)
@@ -696,7 +696,16 @@ export function runPrevalidation(project: ViyeuticaProject): PrevalidationIssue[
       push('warning','Reglas','REGLA_PENDIENTE_REVISION',`La regla "${rule.description}" requiere revisión.`,undefined,rule.id)
     }
     if (!isRuleAutomaticallyEvaluable(rule)) {
-      push('warning','Reglas','REGLA_NO_EVALUABLE',`La regla "${rule.description}" todavía no está soportada por el motor común de evaluación y no puede comprobarse automáticamente.`,undefined,rule.id)
+      push(
+        rule.ruleType==='HARD'?'error':'warning',
+        'Reglas',
+        'REGLA_NO_EVALUABLE',
+        `La regla ${rule.ruleType} "${rule.description}" todavía no está soportada por el motor común de evaluación y no puede comprobarse automáticamente.`,
+        rule.ruleType==='HARD'
+          ? 'Una regla HARD debe poder evaluarse automáticamente para garantizar que ninguna propuesta la incumpla.'
+          : 'La preferencia puede conservarse, pero no influirá de forma fiable en la comparación de propuestas hasta que sea evaluable.',
+        rule.id
+      )
     }
     if (rule.ruleType==='SOFT') {
       const priority=
@@ -707,6 +716,82 @@ export function runPrevalidation(project: ViyeuticaProject): PrevalidationIssue[
         rule.weight===10?'Crítica':
         rule.weight?`Personalizada (${rule.weight})`:'Sin definir'
       push('info','Reglas','REGLA_SOFT',`Preferencia activa: ${rule.description}`,`Prioridad: ${priority}`,rule.id)
+    }
+  }
+
+  const activeDays=new Set(project.schedule.activeDays)
+  const activeSessionIds=new Set(project.schedule.blocks.filter(block=>block.active).map(block=>block.id))
+  const availabilityBySlot=new Map<string,Set<string>>()
+  for(const availability of project.teacherAvailability){
+    if(!activeDays.has(availability.day as Weekday)){
+      push(
+        'error',
+        'Asignaciones',
+        'DISPONIBILIDAD_DIA_INVALIDO',
+        'Existe una restricción de disponibilidad vinculada a un día que ya no está activo.',
+        `Día: ${availability.day}`,
+        availability.teacherId
+      )
+    }
+    if(!activeSessionIds.has(availability.session)){
+      push(
+        'error',
+        'Asignaciones',
+        'DISPONIBILIDAD_SESION_INVALIDA',
+        'Existe una restricción de disponibilidad vinculada a una sesión inexistente o inactiva.',
+        `Sesión: ${availability.session}`,
+        availability.teacherId
+      )
+    }
+    const key=`${availability.teacherId}|${availability.day}|${availability.session}`
+    const statuses=availabilityBySlot.get(key)??new Set<string>()
+    statuses.add(availability.status)
+    availabilityBySlot.set(key,statuses)
+  }
+  for(const [key,statuses] of availabilityBySlot){
+    if(statuses.size>1){
+      const [teacherId,day,session]=key.split('|')
+      const teacher=project.teachers.find(item=>item.id===teacherId)
+      const block=project.schedule.blocks.find(item=>item.id===session)
+      push(
+        'error',
+        'Asignaciones',
+        'DISPONIBILIDAD_CONTRADICTORIA',
+        `${teacher?.name??'Un docente'} tiene restricciones contradictorias en la misma franja.`,
+        `${day} · ${block?.label??session} · Estados: ${[...statuses].join(', ')}`,
+        teacherId
+      )
+    }
+  }
+
+  const fixedSlotOwners=new Map<string,{teacherId:string;groupId:string;assignmentId:string}>()
+  for(const assignment of activeAssignments){
+    for(const fixed of assignment.fixedSlots??[]){
+      if(!activeDays.has(fixed.day as Weekday)){
+        push('error','Asignaciones','FRANJA_FIJA_DIA_INVALIDO','Existe una franja fija vinculada a un día que ya no está activo.',`Día: ${fixed.day}`,assignment.id)
+      }
+      if(!activeSessionIds.has(fixed.session)){
+        push('error','Asignaciones','FRANJA_FIJA_SESION_INVALIDA','Existe una franja fija vinculada a una sesión inexistente o inactiva.',`Sesión: ${fixed.session}`,assignment.id)
+      }
+      const teacherKey=`teacher|${assignment.teacherId}|${fixed.day}|${fixed.session}`
+      const groupKey=`group|${assignment.groupId}|${fixed.day}|${fixed.session}`
+      for(const key of [teacherKey,groupKey]){
+        const existing=fixedSlotOwners.get(key)
+        if(existing&&existing.assignmentId!==assignment.id){
+          push(
+            'error',
+            'Asignaciones',
+            'FRANJA_FIJA_SOLAPADA',
+            key.startsWith('teacher|')
+              ? 'Dos asignaciones fijan al mismo docente en la misma franja.'
+              : 'Dos asignaciones fijan al mismo grupo en la misma franja.',
+            undefined,
+            assignment.id
+          )
+        }else{
+          fixedSlotOwners.set(key,{teacherId:assignment.teacherId,groupId:assignment.groupId,assignmentId:assignment.id})
+        }
+      }
     }
   }
 
