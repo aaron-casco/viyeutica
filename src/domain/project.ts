@@ -690,18 +690,10 @@ export function runPrevalidation(project: ViyeuticaProject): PrevalidationIssue[
         (sessionsByTeacher.get(assignment.teacherId)??0)+sessions
       )
       if(assignment.assignmentType==='main'){
-        const studyEntry=project.studyPlan.find(entry=>
-          entry.active&&entry.groupId===assignment.groupId&&entry.subjectId===assignment.subjectId
+        mainSessionsByGroup.set(
+          assignment.groupId,
+          (mainSessionsByGroup.get(assignment.groupId)??0)+sessions
         )
-        const occupiesIndependentGroupSlot=studyEntry
-          ? studyEntry.mode!=='co_teaching'&&studyEntry.mode!=='alternative'
-          : true
-        if(occupiesIndependentGroupSlot){
-          mainSessionsByGroup.set(
-            assignment.groupId,
-            (mainSessionsByGroup.get(assignment.groupId)??0)+sessions
-          )
-        }
       }
 
       const unavailableSlots=project.teacherAvailability.filter(item=>
@@ -727,16 +719,25 @@ export function runPrevalidation(project: ViyeuticaProject): PrevalidationIssue[
       }
     }
 
-    for(const [groupId,sessions] of mainSessionsByGroup){
+    for(const group of project.groups.filter(item=>item.active)){
+      const sessions=mainSessionsByGroup.get(group.id)??0
       if(sessions>teachingSlots){
-        const group=project.groups.find(item=>item.id===groupId)
         push(
           'error',
           'Asignaciones',
           'GRUPO_SIN_CAPACIDAD',
-          `${group?.name??'Un grupo'} necesita más sesiones principales que franjas lectivas tiene la jornada semanal.`,
+          `${group.name} necesita más sesiones principales que franjas lectivas tiene la jornada semanal.`,
           `Necesita: ${sessions} · Franjas lectivas: ${teachingSlots}`,
-          groupId
+          group.id
+        )
+      }else if(sessions<teachingSlots){
+        push(
+          'error',
+          'Plan de estudios',
+          'GRUPO_COBERTURA_INCOMPLETA',
+          `${group.name} tiene menos sesiones principales que franjas lectivas semanales.`,
+          `Sesiones principales: ${sessions} · Franjas lectivas: ${teachingSlots} · Faltan: ${teachingSlots-sessions}`,
+          group.id
         )
       }
     }
