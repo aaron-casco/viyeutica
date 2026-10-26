@@ -404,6 +404,10 @@ button.wizard-step:focus-visible{outline:3px solid rgba(89,180,17,.22);outline-o
 .assignment-missing-list{display:grid;gap:7px}
 .assignment-missing-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;border:1px solid #ead899;border-radius:10px;background:#fffdf6;padding:9px 10px}
 .assignment-missing-copy span,.assignment-missing-copy small{display:block}
+.assignment-suggestion{margin-top:5px;font-weight:800}
+.assignment-suggestion.ready{color:var(--green2)}
+.assignment-suggestion.manual{color:#a76612}
+[data-theme="dark"] .assignment-suggestion.manual{color:#d9a45a}
 .assignment-missing-copy span{font-size:9.5px}.assignment-missing-copy small{margin-top:2px;color:#806c36;font-size:8.5px}
 .assignment-missing-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .assignment-missing-actions .btn{min-height:32px;padding:6px 10px}
