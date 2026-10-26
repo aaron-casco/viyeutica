@@ -682,7 +682,7 @@ export function AssignmentsPage({
               {!suggestedTeacher&&candidates.length>0&&<div className="assignment-candidate-list">
                 {candidates.map(candidate=><span key={candidate.teacher.id} className="assignment-candidate-chip">
                   <strong>{candidate.teacher.name}</strong>
-                  <small>{candidate.specialtyMatch?'Especialidad compatible · ':''}${candidate.margin} franjas de margen</small>
+                  <small>{candidate.specialtyMatch?'Especialidad compatible · ':''}{candidate.margin} franjas de margen</small>
                 </span>)}
               </div>}
               {!suggestedTeacher&&!candidates.length&&<small className="assignment-candidate-empty">No hay docentes con margen semanal disponible.</small>}
