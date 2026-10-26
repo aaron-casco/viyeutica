@@ -855,5 +855,39 @@ function buildGenerationAlternatives(project:ViyeuticaProject,run?:GenerationRun
     })
   }
 
+  for(const auditIssue of auditGeneration(project,run).issues.filter(issue=>issue.severity==='error')){
+    if(alternatives.length>=8)break
+    const key='audit|'+auditIssue.code+'|'+(auditIssue.groupId??'')+'|'+(auditIssue.teacherId??'')+'|'+(auditIssue.subjectId??'')+'|'+(auditIssue.day??'')+'|'+(auditIssue.sessionId??'')
+    if(seen.has(key))continue
+    seen.add(key)
+    const group=project.groups.find(item=>item.id===auditIssue.groupId)
+    const subject=project.subjects.find(item=>item.id===auditIssue.subjectId)
+    const teacher=project.teachers.find(item=>item.id===auditIssue.teacherId)
+    const assignment=project.assignments.find(item=>
+      item.active&&
+      (!auditIssue.groupId||item.groupId===auditIssue.groupId)&&
+      (!auditIssue.subjectId||item.subjectId===auditIssue.subjectId)&&
+      (!auditIssue.teacherId||item.teacherId===auditIssue.teacherId)
+    )
+    const route=assignment
+      ? '/asignaciones?assignmentId='+encodeURIComponent(assignment.id)
+      : auditIssue.category==='Reglas'
+        ? '/reglas'
+        : auditIssue.category==='Cobertura'&&auditIssue.groupId
+          ? '/materias?groupId='+encodeURIComponent(auditIssue.groupId)
+          : auditIssue.teacherId
+            ? '/asignaciones?teacherId='+encodeURIComponent(auditIssue.teacherId)
+            : '/prevalidacion'
+    alternatives.push({
+      id:key,
+      title:'Revisar '+(subject?.name??auditIssue.category)+(group?' en '+group.name:''),
+      detail:auditIssue.message+(auditIssue.detail?' '+auditIssue.detail:'')+(teacher?' Docente: '+teacher.name+'.':''),
+      route,
+      action:assignment
+        ? {kind:'review_assignment',assignmentId:assignment.id}
+        : {kind:'review_plan',groupId:auditIssue.groupId??''},
+    })
+  }
+
   return alternatives.slice(0,8)
 }
