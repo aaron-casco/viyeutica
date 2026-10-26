@@ -205,6 +205,9 @@ function issueRoute(issue:PrevalidationIssue,project:ViyeuticaProject){
     const rule=project.rules.find(item=>item.id===issue.entityId)
     if(rule)return '/reglas?auditCode='+encodeURIComponent(rule.code)
   }
+  if(issue.code==='DOCENTE_SIN_CAPACIDAD'&&issue.entityId){
+    return '/asignaciones?teacherId='+encodeURIComponent(issue.entityId)+'&focusAvailability=1'
+  }
   if(issue.section==='Profesorado'&&issue.entityId){
     return '/profesorado?teacherId='+encodeURIComponent(issue.entityId)
   }
