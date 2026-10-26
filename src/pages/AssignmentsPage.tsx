@@ -673,16 +673,26 @@ export function AssignmentsPage({
       </div>
 
       {progressExpanded&&pendingOrganizationEntries.length>0&&<div className="assignment-candidate-controls">
-        <span>Ordenar candidatos por</span>
-        <div className="assignment-candidate-order">
-          <button type="button" className={supportCandidateOrder==='margin'?'active':''} onClick={()=>setSupportCandidateOrder('margin')}>Franjas libres</button>
-          <button type="button" className={supportCandidateOrder==='supports'?'active':''} onClick={()=>setSupportCandidateOrder('supports')}>Menos apoyos</button>
+        <div className="assignment-candidate-sort-row">
+          <span>Ordenar candidatos por</span>
+          <div className="assignment-candidate-order">
+            <button type="button" className={supportCandidateOrder==='margin'?'active':''} onClick={()=>setSupportCandidateOrder('margin')}>Franjas libres</button>
+            <button type="button" className={supportCandidateOrder==='supports'?'active':''} onClick={()=>setSupportCandidateOrder('supports')}>Menos apoyos</button>
+          </div>
+        </div>
+        <div className="assignment-candidate-priority-row">
+          <div>
+            <strong>Priorizar profesorado no directivo</strong>
+            <small>Si está activo, el equipo directivo se mantiene como candidato pero aparece después.</small>
+          </div>
           <button
             type="button"
-            className={'candidate-priority-toggle '+(prioritizeNonManagement?'active':'')}
-            aria-pressed={prioritizeNonManagement}
+            className={'assignment-switch '+(prioritizeNonManagement?'is-on':'')}
+            role="switch"
+            aria-checked={prioritizeNonManagement}
+            aria-label="Priorizar profesorado no directivo"
             onClick={()=>setPrioritizeNonManagement(value=>!value)}
-          >No dirección primero</button>
+          ><span/></button>
         </div>
       </div>}
 
