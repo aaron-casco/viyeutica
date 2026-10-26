@@ -155,6 +155,10 @@ function issueGuidance(issue:PrevalidationIssue){
   if(issue.code==='DOCENTE_PENDIENTE')return 'Abre la ficha del docente. Si ya conoces quién ocupará el puesto, cambia su estado a Confirmado y actualiza sus datos. Si aún no se conoce, puedes mantenerlo Por determinar; la advertencia seguirá visible como recordatorio.'
   if(issue.code==='REGLA_PENDIENTE_REVISION')return 'Abre la regla, comprueba su origen y parámetros y márcala como revisada cuando sea correcta.'
   if(issue.code==='REGLA_NO_EVALUABLE')return 'Comprueba si esta regla puede expresarse con una condición estructurada compatible con el motor.'
+  if(issue.code==='DISPONIBILIDAD_DIA_INVALIDO'||issue.code==='DISPONIBILIDAD_SESION_INVALIDA')return 'Revisa la disponibilidad del docente y elimina o actualiza la restricción que apunta a un día o sesión que ya no existe.'
+  if(issue.code==='DISPONIBILIDAD_CONTRADICTORIA')return 'Revisa la disponibilidad del docente y deja un único estado para esa combinación de día y sesión.'
+  if(issue.code==='FRANJA_FIJA_DIA_INVALIDO'||issue.code==='FRANJA_FIJA_SESION_INVALIDA')return 'Revisa la asignación y corrige o elimina la franja fija que apunta a un día o sesión inactiva.'
+  if(issue.code==='FRANJA_FIJA_SOLAPADA')return 'Revisa las franjas fijas de las asignaciones implicadas: un mismo docente o grupo no puede quedar fijado dos veces en la misma franja.'
   if(issue.code==='FRANJA_FIJA_DUPLICADA')return 'Revisa las franjas fijadas del profesorado y elimina la duplicidad.'
   if(issue.code==='ASIGNACIONES_PENDIENTES_ORGANIZAR')return 'Abre Asignaciones y revisa las cargas marcadas como Pendiente de organizar. Asígnalas cuando conozcas docente/organización o mantenlas pendientes si todavía no pueden resolverse.'
   if(issue.code==='NORMATIVA_SIN_APROBAR')return 'Revisa la normativa detectada y aprueba únicamente las reglas aplicables al horario.'
@@ -176,6 +180,13 @@ function issueRoute(issue:PrevalidationIssue,project:ViyeuticaProject){
   }
   if(issue.code==='ASIGNACIONES_PENDIENTES_ORGANIZAR'){
     return '/asignaciones?pendingOrganization=1'
+  }
+  if(issue.section==='Asignaciones'&&issue.entityId&&[
+    'DISPONIBILIDAD_DIA_INVALIDO',
+    'DISPONIBILIDAD_SESION_INVALIDA',
+    'DISPONIBILIDAD_CONTRADICTORIA',
+  ].includes(issue.code)){
+    return '/asignaciones?teacherId='+encodeURIComponent(issue.entityId)
   }
   return sectionRoute(issue.section)
 }
