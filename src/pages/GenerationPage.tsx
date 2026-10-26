@@ -28,7 +28,7 @@ import { WizardStepper } from '../components/WizardStepper'
 import { AppModal } from '../components/AppModal'
 
 type GenerationAlternativeAction =
-  | {kind:'increase_load';groupId:string;subjectId:string;assignmentId:string}
+  | {kind:'review_plan';groupId:string}
   | {kind:'free_availability';teacherId:string;day:Weekday;sessionId:string}
   | {kind:'fix_slot';assignmentId:string;day:Weekday;sessionId:string}
 
@@ -181,19 +181,7 @@ export function GenerationPage({
   const projectWithAlternative=(base:ViyeuticaProject,alternative:GenerationAlternative)=>{
     const action=alternative.action
 
-    if(action.kind==='increase_load'){
-      const studyPlan=base.studyPlan.map(entry=>
-        entry.active&&entry.groupId===action.groupId&&entry.subjectId===action.subjectId
-          ? {...entry,weeklySessions:(entry.weeklySessions??0)+1}
-          : entry
-      )
-      const assignments=base.assignments.map(assignment=>
-        assignment.id===action.assignmentId
-          ? {...assignment,weeklySessions:(assignment.weeklySessions??0)+1}
-          : assignment
-      )
-      return {...base,studyPlan,assignments,generationRuns:[],selectedGenerationRunId:null}
-    }
+    if(action.kind==='review_plan')return base
 
     if(action.kind==='free_availability'){
       const teacherAvailability=base.teacherAvailability.map(item=>
@@ -344,10 +332,12 @@ export function GenerationPage({
           <div className="generation-alternative-copy"><strong>{item.title}</strong><p>{item.detail}</p></div>
           <div className="generation-alternative-actions">
             <button className="btn ghost-inline" onClick={()=>navigate(item.route)}>Ver datos</button>
-            <button className="btn secondary-light" disabled={Boolean(simulatingAlternativeId)} onClick={()=>simulateGenerationAlternative(item)}>
-              {simulatingAlternativeId===item.id?'Simulando...':'Simular'}
-            </button>
-            <button className="btn primary" onClick={()=>applyGenerationAlternative(item)}>Aplicar</button>
+            {item.action.kind!=='review_plan'&&<>
+              <button className="btn secondary-light" disabled={Boolean(simulatingAlternativeId)} onClick={()=>simulateGenerationAlternative(item)}>
+                {simulatingAlternativeId===item.id?'Simulando...':'Simular'}
+              </button>
+              <button className="btn primary" onClick={()=>applyGenerationAlternative(item)}>Aplicar</button>
+            </>}
           </div>
           {alternativeSimulation[item.id]&&<div className={'generation-alternative-impact '+(alternativeSimulation[item.id].valid?'valid':'invalid')}>
             <strong>{alternativeSimulation[item.id].valid?'La simulación encuentra una propuesta válida':'La simulación todavía detecta bloqueos'}</strong>
@@ -777,29 +767,17 @@ function buildGenerationAlternatives(project:ViyeuticaProject,run?:GenerationRun
     })
 
     if(!pending.length){
-      const candidates=assignments
-        .map(assignment=>({
-          assignment,
-          subject:project.subjects.find(item=>item.id===assignment.subjectId),
-          teacher:project.teachers.find(item=>item.id===assignment.teacherId),
-        }))
-        .filter(item=>item.subject&&item.teacher)
-        .sort((a,b)=>(a.assignment.weeklySessions??0)-(b.assignment.weeklySessions??0))
-
-      for(const candidate of candidates){
-        const key='increase|'+slot.groupId+'|'+candidate.assignment.subjectId
-        if(seen.has(key))continue
+      const key='review-plan|'+slot.groupId
+      if(!seen.has(key)){
         seen.add(key)
         alternatives.push({
           id:key,
-          title:'Añadir 1 sesión de '+candidate.subject!.name+' en '+(group?.name??'el grupo'),
-          detail:'Aumentará en 1 la carga semanal de '+candidate.subject!.name+' y sincronizará Plan de estudios + Asignaciones con '+candidate.teacher!.name+'.',
-          route:'/materias',
-          action:{kind:'increase_load',groupId:slot.groupId,subjectId:candidate.assignment.subjectId,assignmentId:candidate.assignment.id},
+          title:'Revisar cobertura semanal de '+(group?.name??'el grupo'),
+          detail:'Todas las sesiones exigidas ya están colocadas, pero queda al menos una franja lectiva sin sesión principal. Revisa la distribución del Plan de estudios; ⩒Yeutika no aumentará automáticamente la carga de ninguna materia.',
+          route:'/materias?groupId='+encodeURIComponent(slot.groupId),
+          action:{kind:'review_plan',groupId:slot.groupId},
         })
-        if(alternatives.length>=8)break
       }
-      if(alternatives.length>=8)break
       continue
     }
 
