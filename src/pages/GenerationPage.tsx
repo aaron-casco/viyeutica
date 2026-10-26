@@ -187,7 +187,7 @@ export function GenerationPage({
     if(action.kind==='free_availability'){
       const teacherAvailability=base.teacherAvailability.map(item=>
         item.teacherId===action.teacherId&&item.day===action.day&&item.session===action.sessionId
-          ? {...item,status:'available' as const,detail:'Disponibilidad ajustada desde una alternativa de Generación.'}
+          ? {...item,status:'available' as const,detail:'Disponibilidad ajustada desde una alternativa de Horarios.'}
           : item
       )
       return {...base,teacherAvailability,generationRuns:[],selectedGenerationRunId:null}
@@ -395,7 +395,7 @@ export function GenerationPage({
           <div className="generation-result-heading">
             <div>
               <span className="panel-kicker">Resultado seleccionado</span>
-              <h2>{selectedRun.status==='complete'?'Horario completo':selectedRun.status==='partial'?'Horario parcial':'Generación fallida'}</h2>
+              <h2>{selectedRun.status==='complete'?'Horario completo':selectedRun.status==='partial'?'Horario parcial':'Horario no generado'}</h2>
               <p>{new Date(selectedRun.createdAt).toLocaleString('es-ES')}</p>
             </div>
             <div className="generation-score"><Trophy size={18}/><strong>{selectedRun.score}</strong><small>puntuación</small></div>
@@ -436,7 +436,6 @@ export function GenerationPage({
                 >{group.name}</button>)}
               </div>
             </div>
-            <button className="btn ghost-inline" onClick={()=>window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})}>Ver horarios</button>
           </div>
 
           {baselineRun&&selectedRun.id!==baselineRun.id&&<div className="generation-diff-legend">
