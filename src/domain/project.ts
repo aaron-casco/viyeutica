@@ -653,6 +653,104 @@ export function runPrevalidation(project: ViyeuticaProject): PrevalidationIssue[
 
   const activeTeachers = project.teachers.filter(t=>t.active)
   const activeAssignments = project.assignments.filter(a=>a.active)
+
+  const teachingBlocks=project.schedule.blocks.filter(block=>block.active&&block.type==='teaching')
+  const teachingSlots=project.schedule.activeDays.length*teachingBlocks.length
+  const blockDurations=teachingBlocks
+    .map(block=>timeBlockDuration(block))
+    .filter(duration=>duration>0)
+    .sort((a,b)=>a-b)
+  const medianTeachingMinutes=blockDurations[Math.floor(blockDurations.length/2)]||45
+  const requiredSessions=(assignment:TeachingAssignment)=>{
+    if((assignment.weeklySessions??0)>0)return Math.max(1,Math.round(assignment.weeklySessions!))
+    const studyEntry=project.studyPlan.find(entry=>
+      entry.active&&entry.groupId===assignment.groupId&&entry.subjectId===assignment.subjectId
+    )
+    if((studyEntry?.weeklySessions??0)>0)return Math.max(1,Math.round(studyEntry!.weeklySessions))
+    const targetMinutes=(assignment.weeklyMinutes??0)>0
+      ? assignment.weeklyMinutes!
+      : (studyEntry?.weeklyMinutes??0)
+    return targetMinutes>0?Math.max(1,Math.ceil(targetMinutes/medianTeachingMinutes)):1
+  }
+
+  if(teachingSlots>0){
+    const mainSessionsByGroup=new Map<string,number>()
+    const sessionsByTeacher=new Map<string,number>()
+    for(const assignment of activeAssignments){
+      const sessions=requiredSessions(assignment)
+      sessionsByTeacher.set(
+        assignment.teacherId,
+        (sessionsByTeacher.get(assignment.teacherId)??0)+sessions
+      )
+      if(assignment.assignmentType==='main'){
+        mainSessionsByGroup.set(
+          assignment.groupId,
+          (mainSessionsByGroup.get(assignment.groupId)??0)+sessions
+        )
+      }
+
+      const unavailableSlots=project.teacherAvailability.filter(item=>
+        item.teacherId===assignment.teacherId&&
+        (item.status==='unavailable'||item.status==='travel')&&
+        project.schedule.activeDays.includes(item.day as Weekday)&&
+        teachingBlocks.some(block=>block.id===item.session)
+      )
+      const uniqueUnavailable=new Set(unavailableSlots.map(item=>item.day+'|'+item.session)).size
+      const availableSlots=Math.max(0,teachingSlots-uniqueUnavailable)
+      if(sessions>availableSlots){
+        const teacher=project.teachers.find(item=>item.id===assignment.teacherId)
+        const group=project.groups.find(item=>item.id===assignment.groupId)
+        const subject=project.subjects.find(item=>item.id===assignment.subjectId)
+        push(
+          'error',
+          'Asignaciones',
+          'ASIGNACION_SIN_CAPACIDAD',
+          `La asignación de ${subject?.name??'una materia'} en ${group?.name??'un grupo'} necesita más sesiones de las que permite la disponibilidad de ${teacher?.name??'su docente'}.`,
+          `Necesita: ${sessions} · Franjas disponibles: ${availableSlots}`,
+          assignment.id
+        )
+      }
+    }
+
+    for(const [groupId,sessions] of mainSessionsByGroup){
+      if(sessions>teachingSlots){
+        const group=project.groups.find(item=>item.id===groupId)
+        push(
+          'error',
+          'Asignaciones',
+          'GRUPO_SIN_CAPACIDAD',
+          `${group?.name??'Un grupo'} necesita más sesiones principales que franjas lectivas tiene la jornada semanal.`,
+          `Necesita: ${sessions} · Franjas lectivas: ${teachingSlots}`,
+          groupId
+        )
+      }
+    }
+
+    for(const [teacherId,sessions] of sessionsByTeacher){
+      const unavailableSlots=project.teacherAvailability.filter(item=>
+        item.teacherId===teacherId&&
+        (item.status==='unavailable'||item.status==='travel')&&
+        project.schedule.activeDays.includes(item.day as Weekday)&&
+        teachingBlocks.some(block=>block.id===item.session)
+      )
+      const availableSlots=Math.max(
+        0,
+        teachingSlots-new Set(unavailableSlots.map(item=>item.day+'|'+item.session)).size
+      )
+      if(sessions>availableSlots){
+        const teacher=project.teachers.find(item=>item.id===teacherId)
+        push(
+          'error',
+          'Profesorado',
+          'DOCENTE_SIN_CAPACIDAD',
+          `${teacher?.name??'Un docente'} tiene más sesiones asignadas de las que caben en su disponibilidad semanal.`,
+          `Necesita: ${sessions} · Franjas disponibles: ${availableSlots}`,
+          teacherId
+        )
+      }
+    }
+  }
+
   const assignmentMinutesByTeacher = new Map<string,number>()
   for (const assignment of activeAssignments) {
     const current=assignmentMinutesByTeacher.get(assignment.teacherId)??0
