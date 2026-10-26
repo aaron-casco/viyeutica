@@ -201,11 +201,23 @@ function conditionKindLabel(kind:string){
   return labels[kind]??kind
 }
 
+function uniqueDisplayNames(names:string[]){
+  return [...new Set(names.map(name=>name.trim()).filter(Boolean))]
+}
+
 function selectedNames(ids:string[],items:{id:string;name:string}[]){
-  const names=ids.map(id=>items.find(item=>item.id===id)?.name).filter(Boolean) as string[]
+  const names=uniqueDisplayNames(ids.map(id=>items.find(item=>item.id===id)?.name).filter(Boolean) as string[])
   if(!names.length)return ''
   if(names.length<=2)return names.join(' y ')
   return names.slice(0,2).join(', ')+` y ${names.length-2} más`
+}
+
+function sessionCountLabel(value:string){
+  return Number(value)===1?'sesión':'sesiones'
+}
+
+function ruleCountLabel(count:number){
+  return `${count} ${count===1?'regla activa':'reglas activas'}`
 }
 
 function generateRuleDescription(draft:Draft,project:ViyeuticaProject){
@@ -239,9 +251,9 @@ function generateRuleDescription(draft:Draft,project:ViyeuticaProject){
     const verb=draft.comparison==='not_equals'?'No disponible':draft.comparison==='prefer'?'Preferencia de disponibilidad':'Disponible'
     return `${targetText}: ${verb.toLowerCase()}${place?' en '+place:''}.`
   }
-  if(draft.conditionKind==='daily_limit') return `${targetText}: ${cmp} ${value||'—'} sesiones al día.`
-  if(draft.conditionKind==='consecutive_limit') return `${targetText}: ${cmp} ${value||'—'} sesiones consecutivas.`
-  if(draft.conditionKind==='weekly_load') return `${targetText}: ${cmp} ${value||'—'} sesiones semanales.`
+  if(draft.conditionKind==='daily_limit') return `${targetText}: ${cmp} ${value||'—'} ${sessionCountLabel(value)} al día.`
+  if(draft.conditionKind==='consecutive_limit') return `${targetText}: ${cmp} ${value||'—'} ${sessionCountLabel(value)} consecutivas.`
+  if(draft.conditionKind==='weekly_load') return `${targetText}: ${cmp} ${value||'—'} ${sessionCountLabel(value)} semanales.`
   return `${conditionKindLabel(draft.conditionKind)} · ${targetText}${place?' · '+place:''}${value?' · '+comparisonLabel(draft.comparison)+' '+value:''}.`
 }
 
@@ -435,6 +447,9 @@ export function RulesPage({
     {id:'engine_group_overlap',title:'Sin solape de grupos',description:'Un grupo no puede ocupar dos actividades en la misma franja.',detail:'Aplicación automática durante cada intento de colocación.'},
     {id:'engine_availability',title:'Respetar indisponibilidad docente',description:'No se asigna docencia en franjas registradas como No disponible o Desplazamiento.',detail:'Lee directamente las restricciones de Disponibilidad configuradas en Asignaciones.'},
   ]
+  const effectiveActiveCount=activeRules.length+engineRules.length+normativeDedications.length
+  const effectiveHardCount=hardCount+engineRules.length+normativeDedications.length
+  const effectiveNormativeCount=normativeCount+normativeDedications.length
 
   const automaticDescription=generateRuleDescription(draft,project)
   const displayedDescription=descriptionCustomized?draft.description:automaticDescription
@@ -625,22 +640,22 @@ export function RulesPage({
     {auditFocus&&<section className="template-result audit-context-banner"><CheckCircle2 size={16}/><span>{auditFocus}</span></section>}
 
     <section className="structure-summary">
-      <Summary label="Reglas activas" value={String(activeRules.length)} detail="total aplicable"/>
-      <Summary label="HARD" value={String(hardCount)} detail="obligatorias"/>
+      <Summary label="Reglas activas" value={String(effectiveActiveCount)} detail="total aplicable"/>
+      <Summary label="HARD" value={String(effectiveHardCount)} detail="obligatorias"/>
       <Summary label="SOFT" value={String(softCount)} detail="preferencias ponderadas"/>
-      <Summary label="Normativa / importadas" value={`${normativeCount}/${importedCount}`} detail="por procedencia"/>
+      <Summary label="Normativa / importadas" value={`${effectiveNormativeCount}/${importedCount}`} detail="por procedencia"/>
     </section>
 
-    <article className={'aside-card validation section-prevalidation-card '+(validation.length?'error':activeRules.length?'ready':'incomplete')}>
+    <article className={'aside-card validation section-prevalidation-card '+(validation.length?'error':effectiveActiveCount?'ready':'incomplete')}>
       <span className="panel-kicker">ESTADO:</span>
-      <strong>{validation.length?'Sección Reglas con errores':activeRules.length?'Sección Reglas válida':'Sección Reglas incompleta'}</strong>
+      <strong>{validation.length?'Sección Reglas con errores':effectiveActiveCount?'Sección Reglas válida':'Sección Reglas incompleta'}</strong>
       <p>{validation.length
         ? `${validation[0]} Edita la regla afectada y corrige su condición, ámbito o prioridad antes de generar horarios.`
-        : activeRules.length
-          ? `${activeRules.length} reglas activas · ${hardCount} HARD · ${softCount} SOFT · ${normativeCount} normativas. Todas las reglas activas tienen una estructura válida.`
+        : effectiveActiveCount
+          ? `${ruleCountLabel(effectiveActiveCount)} · ${effectiveHardCount} HARD · ${softCount} SOFT · ${effectiveNormativeCount} normativas. Todas las reglas aplicables tienen una estructura válida.`
           : 'Todavía no hay reglas activas. Añade las restricciones obligatorias y preferencias que debe utilizar el generador.'}</p>
       {validation.length>0&&<button type="button" className="section-status-action" onClick={()=>document.querySelector('.groups-table-card')?.scrollIntoView({behavior:'smooth',block:'start'})}>Revisar reglas</button>}
-      {!validation.length&&!activeRules.length&&<button type="button" className="section-status-action" onClick={openCreate}>Añadir regla</button>}
+      {!validation.length&&!effectiveActiveCount&&<button type="button" className="section-status-action" onClick={openCreate}>Añadir regla</button>}
     </article>
 
     {ruleModalOpen&&<div className="modal-backdrop section-form-modal-backdrop">
@@ -1139,10 +1154,10 @@ function describeParameters(rule:CenterRule, project:ViyeuticaProject){
   const subjectIds=Array.isArray(p.subjectIds)?p.subjectIds.map(String):p.subjectId?[String(p.subjectId)]:[]
   const days=Array.isArray(p.days)?p.days.map(String):p.day?[String(p.day)]:[]
   const sessionIds=Array.isArray(p.sessionIds)?p.sessionIds.map(String):p.sessionId?[String(p.sessionId)]:[]
-  const teacherNames=teacherIds.map(id=>project.teachers.find(item=>item.id===id)?.name).filter(Boolean)
-  const groupNames=groupIds.map(id=>project.groups.find(item=>item.id===id)?.name).filter(Boolean)
-  const subjectNames=subjectIds.map(id=>project.subjects.find(item=>item.id===id)?.name).filter(Boolean)
-  const blockNames=sessionIds.map(id=>project.schedule.blocks.find(item=>item.id===id)?.label).filter(Boolean)
+  const teacherNames=uniqueDisplayNames(teacherIds.map(id=>project.teachers.find(item=>item.id===id)?.name).filter(Boolean) as string[])
+  const groupNames=uniqueDisplayNames(groupIds.map(id=>project.groups.find(item=>item.id===id)?.name).filter(Boolean) as string[])
+  const subjectNames=uniqueDisplayNames(subjectIds.map(id=>project.subjects.find(item=>item.id===id)?.name).filter(Boolean) as string[])
+  const blockNames=uniqueDisplayNames(sessionIds.map(id=>project.schedule.blocks.find(item=>item.id===id)?.label).filter(Boolean) as string[])
   if(teacherNames.length) parts.push('Profesorado: '+teacherNames.join(', '))
   if(groupNames.length) parts.push('Grupos: '+groupNames.join(', '))
   if(subjectNames.length) parts.push('Materias: '+subjectNames.join(', '))
