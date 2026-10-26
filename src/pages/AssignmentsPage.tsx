@@ -696,7 +696,7 @@ export function AssignmentsPage({
                   title={`Resolver con ${candidate.teacher.name}`}
                 >
                   <strong>{candidate.teacher.name}</strong>
-                  <small>{candidate.specialtyMatch?'Especialidad compatible · ':''}{candidate.supportAssignments} {candidate.supportAssignments===1?'apoyo asignado':'apoyos asignados'} · {candidate.margin} franjas de margen</small>
+                  <small>{candidate.specialtyMatch&&<span>Especialidad compatible</span>}<span>{candidate.supportAssignments} {candidate.supportAssignments===1?'apoyo asignado':'apoyos asignados'}</span><span>{candidate.margin} franjas de margen</span></small>
                 </button>)}
               </div>}
               {!suggestedTeacher&&!candidates.length&&<small className="assignment-candidate-empty">No hay docentes con margen semanal disponible.</small>}
