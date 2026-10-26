@@ -20,7 +20,6 @@ import { AssignmentsPage } from './pages/AssignmentsPage'
 import { RulesPage } from './pages/RulesPage'
 import { PrevalidationPage } from './pages/PrevalidationPage'
 import { GenerationPage } from './pages/GenerationPage'
-import { AuditPage } from './pages/AuditPage'
 import { ExportPage } from './pages/ExportPage'
 import { useProject } from './hooks/useProject'
 import { useTheme } from './hooks/useTheme'
@@ -39,7 +38,6 @@ const navigation = [
   { path: '/reglas', label: 'Reglas', icon: ShieldCheck },
   { path: '/prevalidacion', label: 'Prevalidación', icon: ClipboardCheck },
   { path: '/horarios', label: 'Horarios', icon: CalendarDays },
-  { path: '/auditoria', label: 'Auditoría', icon: ShieldCheck },
   { path: '/exportaciones', label: 'Exportaciones', icon: FileOutput },
 ]
 
@@ -52,7 +50,6 @@ const descriptions: Record<string,string> = {
   '/reglas': 'Restricciones legales, reglas del centro y preferencias ponderadas.',
   '/prevalidacion': 'Comprobación de integridad antes de ejecutar la generación automática.',
   '/horarios': 'Generación, comparación y revisión de propuestas de horario.',
-  '/auditoria': 'Comprobación independiente de coherencia, cargas y conflictos.',
   '/exportaciones': 'Excel, PDF e informes del horario y su auditoría.',
 }
 
@@ -100,7 +97,6 @@ export default function App() {
     if (route === '/reglas') return <RulesPage project={project} navigate={go}/>
     if (route === '/prevalidacion') return <PrevalidationPage project={project} navigate={go}/>
     if (route === '/horarios') return <GenerationPage project={project} navigate={go}/>
-    if (route === '/auditoria') return <AuditPage project={project} navigate={go}/>
     if (route === '/exportaciones') return <ExportPage project={project} navigate={go}/>
     return <PlaceholderPage title={active.label} description={descriptions[route] ?? 'Módulo preparado para su implementación.'}/>
   }
