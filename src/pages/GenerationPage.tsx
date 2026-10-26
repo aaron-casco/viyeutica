@@ -260,16 +260,16 @@ export function GenerationPage({
     return <div className="wizard-page generation-page">
       <section className="wizard-intro">
         <div>
-          <h1 className="wizard-page-title"><Sparkles size={28}/> Generación</h1>
+          <h1 className="wizard-page-title"><CalendarDays size={28}/> Horarios</h1>
           <p>Construye propuestas utilizando asignaciones, disponibilidades y reglas activas. Las condiciones HARD restringen la colocación; las SOFT puntúan y permiten comparar soluciones.</p>
         </div>
-        <div className="wizard-progress-summary"><strong>9 <span>de 9</span></strong><small>Generación</small></div>
+        <div className="wizard-progress-summary"><strong>9 <span>de 9</span></strong><small>Horarios</small></div>
       </section>
       <WizardStepper currentStep={9} project={project} navigate={navigate}/>
       <section className="empty-state-card">
         <Sparkles size={34}/>
         <h1>Primero debe superarse la Prevalidación</h1>
-        <p>Generación solo se habilita cuando no existen errores bloqueantes en los pasos anteriores.</p>
+        <p>Horarios solo se habilita cuando no existen errores bloqueantes en los pasos anteriores.</p>
         <button className="btn primary" onClick={()=>navigate('/prevalidacion')}>Ir a Prevalidación</button>
       </section>
     </div>
@@ -278,10 +278,10 @@ export function GenerationPage({
   return <div className="wizard-page generation-page">
     <section className="wizard-intro">
       <div>
-        <h1 className="wizard-page-title"><Sparkles size={28}/> Generación</h1>
+        <h1 className="wizard-page-title"><CalendarDays size={28}/> Horarios</h1>
         <p>Construye propuestas utilizando asignaciones, disponibilidades y reglas activas. Las condiciones HARD restringen la colocación; las SOFT puntúan y permiten comparar soluciones.</p>
       </div>
-      <div className="wizard-progress-summary"><strong>9 <span>de 9</span></strong><small>Generación</small></div>
+      <div className="wizard-progress-summary"><strong>9 <span>de 9</span></strong><small>Horarios</small></div>
     </section>
 
     <WizardStepper currentStep={9} project={project} navigate={navigate}/>
@@ -436,7 +436,7 @@ export function GenerationPage({
                 >{group.name}</button>)}
               </div>
             </div>
-            <button className="btn ghost-inline" onClick={()=>navigate('/horarios')}>Abrir módulo Horarios</button>
+            <button className="btn ghost-inline" onClick={()=>window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})}>Ver horarios</button>
           </div>
 
           {baselineRun&&selectedRun.id!==baselineRun.id&&<div className="generation-diff-legend">
