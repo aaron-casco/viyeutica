@@ -268,17 +268,22 @@ export function AssignmentsPage({
           const label=(assignmentSubject?.name??'').trim().toLocaleLowerCase('es')
           return label.includes('apoyo')||label.includes('refuerzo')
         }).length
-        return {teacher,specialtyMatch,assigned,available,margin,supportAssignments}
+        const management=Boolean(
+          teacher.dedications?.some(dedication=>dedication.type==='management'&&dedication.status!=='planned') ||
+          teacher.roles.some(role=>/direcci|director|jefatura|secretar|equipo directivo/i.test(role))
+        )
+        return {teacher,specialtyMatch,assigned,available,margin,supportAssignments,management}
       })
       .filter(candidate=>candidate.margin>0)
       .sort((a,b)=>
         Number(b.specialtyMatch)-Number(a.specialtyMatch) ||
         Number(b.teacher.status==='confirmed')-Number(a.teacher.status==='confirmed') ||
+        Number(a.management)-Number(b.management) ||
         a.supportAssignments-b.supportAssignments ||
         b.margin-a.margin ||
         a.teacher.name.localeCompare(b.teacher.name,'es')
       )
-      .slice(0,3)
+      .slice(0,4)
   }
 
   const assignmentTeachers=compatibleTeachers(draft.subjectId)
@@ -696,7 +701,7 @@ export function AssignmentsPage({
                   title={`Resolver con ${candidate.teacher.name}`}
                 >
                   <strong>{candidate.teacher.name}</strong>
-                  <small>{candidate.specialtyMatch&&<span>Especialidad compatible</span>}<span>{candidate.supportAssignments} {candidate.supportAssignments===1?'apoyo asignado':'apoyos asignados'}</span><span>{candidate.margin} franjas de margen</span></small>
+                  <small>{candidate.specialtyMatch&&<span>Especialidad compatible</span>}{candidate.management&&<span className="candidate-management">Equipo directivo</span>}<span>{candidate.supportAssignments} {candidate.supportAssignments===1?'apoyo asignado':'apoyos asignados'}</span><span>{candidate.margin} franjas de margen</span></small>
                 </button>)}
               </div>}
               {!suggestedTeacher&&!candidates.length&&<small className="assignment-candidate-empty">No hay docentes con margen semanal disponible.</small>}
