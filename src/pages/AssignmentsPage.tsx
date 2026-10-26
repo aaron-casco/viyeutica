@@ -720,7 +720,7 @@ export function AssignmentsPage({
     {auditFocus&&<section className="template-result audit-context-banner"><CheckCircle2 size={16}/><span>{auditFocus}</span></section>}
 
     <section className="structure-summary">
-      <Summary label="Asignaciones activas" value={String(activeAssignments.length)} detail={`${mainAssignments} titulares · ${supportAssignmentsCount} apoyos · ${coTeachingAssignments} codocencias`}/>
+      <Summary label="Asignaciones activas" value={String(activeAssignments.length)} detail={`${mainAssignments} ${mainAssignments===1?'titular':'titulares'} · ${supportAssignmentsCount} ${supportAssignmentsCount===1?'apoyo':'apoyos'} · ${coTeachingAssignments} ${coTeachingAssignments===1?'codocencia':'codocencias'}`}/>
       <Summary label="Cargas revisadas" value={`${reviewedStudyEntries}/${totalStudyEntries}`} detail={pendingOrganizationEntries.length?`${coveredStudyEntries} asignadas · ${pendingOrganizationEntries.length} pendientes de organizar`:'Plan de estudios'}/>
       <Summary label="Docentes implicados" value={String(teachersWithAssignments)} detail={`De ${activeTeachers.length} activos`}/>
       <Summary label="Restricciones temporales" value={String(project.teacherAvailability.length)} detail="Disponibilidad registrada"/>
