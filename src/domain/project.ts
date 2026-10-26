@@ -639,7 +639,14 @@ export function runPrevalidation(project: ViyeuticaProject): PrevalidationIssue[
   for (const message of validateStudyPlan(project)) push('error','Plan de estudios','PLAN_ESTUDIOS',message)
   for (const message of validateStaff(project)) push('error','Profesorado','PROFESORADO',message)
   for (const message of validateAssignments(project)) push('error','Asignaciones','ASIGNACIONES',message)
-  const pendingOrganizationEntries=project.studyPlan.filter(entry=>entry.active&&entry.pendingOrganization)
+  const coveredStudyPlanKeys=new Set(
+    project.assignments
+      .filter(assignment=>assignment.active)
+      .map(assignment=>assignment.groupId+'|'+assignment.subjectId)
+  )
+  const pendingOrganizationEntries=project.studyPlan.filter(entry=>
+    entry.active&&entry.pendingOrganization&&!coveredStudyPlanKeys.has(entry.groupId+'|'+entry.subjectId)
+  )
   if(pendingOrganizationEntries.length){
     push(
       'error',
