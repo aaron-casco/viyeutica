@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import {
-  AlertTriangle, ArrowDownUp, CalendarDays, CheckCircle2, Info, Plus, RefreshCcw, Sparkles,
+  AlertTriangle, ArrowDownUp, CalendarCheck2, CalendarDays, CheckCircle2, Info, Plus, RefreshCcw, Sparkles,
   Trash2, Trophy, XCircle,
 } from 'lucide-react'
 import {
@@ -58,6 +58,7 @@ export function GenerationPage({
   const [showClearModal,setShowClearModal]=useState(false)
   const [showRegenerateModal,setShowRegenerateModal]=useState(false)
   const [showIssuesModal,setShowIssuesModal]=useState(false)
+  const [showEstablishModal,setShowEstablishModal]=useState(false)
   const [ascending,setAscending]=useState(true)
   const [generationNotice,setGenerationNotice]=useState('')
   const [generationAlternatives,setGenerationAlternatives]=useState<GenerationAlternative[]>([])
@@ -82,6 +83,19 @@ export function GenerationPage({
 
   const proposalIsValid=(run:GenerationRun)=>
     isGenerationProposalValid(project,run)&&auditGeneration(project,run).passed
+  const establishedRun=project.establishedScheduleRun??null
+  const selectedIsEstablished=Boolean(selectedRun&&establishedRun?.id===selectedRun.id)
+
+  const establishSelectedSchedule=()=>{
+    if(!selectedRun||!proposalIsValid(selectedRun))return
+    saveProject({
+      ...project,
+      selectedGenerationRunId:selectedRun.id,
+      establishedScheduleRun:structuredClone(selectedRun),
+      establishedScheduleSavedAt:new Date().toISOString(),
+    },{preserveGeneration:true})
+    setShowEstablishModal(false)
+  }
 
   const toggleGroup=(groupId:string)=>{
     if(groupId==='all'){
@@ -398,7 +412,17 @@ export function GenerationPage({
               <h2>{selectedRun.status==='complete'?'Horario completo':selectedRun.status==='partial'?'Horario parcial':'Horario no generado'}</h2>
               <p>{new Date(selectedRun.createdAt).toLocaleString('es-ES')}</p>
             </div>
-            <div className="generation-score"><Trophy size={18}/><strong>{selectedRun.score}</strong><small>puntuación</small></div>
+            <div className="generation-result-actions">
+              {selectedIsEstablished
+                ? <span className="established-schedule-badge"><CalendarCheck2 size={16}/> Horario establecido</span>
+                : <button
+                    type="button"
+                    className="btn primary"
+                    disabled={!proposalIsValid(selectedRun)}
+                    onClick={()=>setShowEstablishModal(true)}
+                  ><CalendarCheck2 size={16}/> Guardar como horario del curso</button>}
+              <div className="generation-score"><Trophy size={18}/><strong>{selectedRun.score}</strong><small>puntuación</small></div>
+            </div>
           </div>
 
           <section className="structure-summary">
@@ -500,6 +524,22 @@ export function GenerationPage({
       </>}
     >
       <p>Se eliminará el historial de propuestas generadas, pero <strong>no se modificarán</strong> el centro, profesorado, asignaciones, reglas ni normativa.</p>
+    </AppModal>}
+
+    {showEstablishModal&&selectedRun&&<AppModal
+      title={establishedRun?'Sustituir horario establecido':'Guardar horario del curso'}
+      icon={<CalendarCheck2 size={22}/>}
+      onClose={()=>setShowEstablishModal(false)}
+      footer={<>
+        <button className="btn secondary-light" onClick={()=>setShowEstablishModal(false)}>Cancelar</button>
+        <button className="btn primary" onClick={establishSelectedSchedule}>
+          {establishedRun?'Sustituir horario':'Guardar horario'}
+        </button>
+      </>}
+    >
+      <p>{establishedRun
+        ? 'Ya existe un horario establecido para este curso. La propuesta seleccionada pasará a ser el horario oficial guardado y sustituirá al anterior.'
+        : 'La propuesta seleccionada se guardará como horario establecido del curso y permanecerá disponible aunque después compares o generes otras propuestas.'}</p>
     </AppModal>}
 
     {showIssuesModal&&selectedRun&&<GenerationIssuesModal
