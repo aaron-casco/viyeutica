@@ -1937,3 +1937,11 @@ button.btn:disabled:hover{
 /* === Horarios: borrador temporal === */
 .draft-schedule-badge{display:inline-flex;align-items:center;gap:7px;padding:9px 11px;border-radius:10px;border:1px solid #b7c8dc;background:#f2f6fb;color:#4d6784;font-size:9px;font-weight:900}
 [data-theme="dark"] .draft-schedule-badge{background:#172231;border-color:#3a5068;color:#a9c1dc}
+
+/* === Importar | Exportar === */
+.export-embedded-section{margin-top:18px;padding-top:18px;border-top:1px solid var(--border)}
+.import-export-section-heading{align-items:flex-start}
+.import-export-section-heading p{margin:5px 0 0;color:var(--muted);font-size:9px;line-height:1.45}
+.export-embedded-section>.groups-table-heading{margin-bottom:12px}
+.export-embedded-section .export-selected-proposal{margin-top:0}
+@media(max-width:760px){.import-export-section-heading{align-items:stretch;flex-direction:column}.import-export-section-heading .export-audit-status{width:100%}}
