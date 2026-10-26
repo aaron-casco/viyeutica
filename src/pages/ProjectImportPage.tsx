@@ -22,6 +22,7 @@ import {
 } from '../domain/templateIO'
 import { saveProject } from '../store/projectStorage'
 import { AppModal } from '../components/AppModal'
+import { ExportPage } from './ExportPage'
 import {
   deleteStoredTemplateFile,
   loadStoredTemplateFiles,
@@ -167,8 +168,8 @@ export function ProjectImportPage({project,navigate}:{project:ViyeuticaProject;n
   return <div className="project-import-page">
     <section className="wizard-intro">
       <div>
-        <h1 className="wizard-page-title"><FileInput size={28}/> Importar Plantilla</h1>
-        <p>Descarga una plantilla vacía, complétala con los datos del centro y vuelve a importarla en formato JSON o Excel. Proyecto actual: <strong>{project.center.name||'sin centro configurado'}</strong>.</p>
+        <h1 className="wizard-page-title"><FileInput size={28}/> Importar | Exportar</h1>
+        <p>Importa plantillas del centro en JSON o Excel y exporta horarios, informes y respaldos desde un único módulo. Proyecto actual: <strong>{project.center.name||'sin centro configurado'}</strong>.</p>
       </div>
     </section>
 
@@ -300,6 +301,8 @@ export function ProjectImportPage({project,navigate}:{project:ViyeuticaProject;n
       <p style={{marginTop:8}}>La plantilla original no se modificará y podrás seguir editando todos los datos después de importarlos.</p>
       {candidateIssues.length>0&&<p style={{marginTop:8}}><strong>Atención:</strong> se han detectado {candidateIssues.length} {candidateIssues.length===1?'incidencia':'incidencias'} que deberán revisarse antes de generar.</p>}
     </AppModal>}
+
+    <ExportPage project={project} navigate={navigate} embedded/>
   </div>
 }
 
