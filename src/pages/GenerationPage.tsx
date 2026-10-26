@@ -59,6 +59,7 @@ export function GenerationPage({
   const [showRegenerateModal,setShowRegenerateModal]=useState(false)
   const [showIssuesModal,setShowIssuesModal]=useState(false)
   const [showEstablishModal,setShowEstablishModal]=useState(false)
+  const [showDraftModal,setShowDraftModal]=useState(false)
   const [ascending,setAscending]=useState(true)
   const [generationNotice,setGenerationNotice]=useState('')
   const [generationAlternatives,setGenerationAlternatives]=useState<GenerationAlternative[]>([])
@@ -83,14 +84,29 @@ export function GenerationPage({
 
   const proposalIsValid=(run:GenerationRun)=>
     isGenerationProposalValid(project,run)&&auditGeneration(project,run).passed
+  const draftRun=project.draftScheduleRun??null
   const establishedRun=project.establishedScheduleRun??null
+  const selectedIsDraft=Boolean(selectedRun&&draftRun?.id===selectedRun.id)
   const selectedIsEstablished=Boolean(selectedRun&&establishedRun?.id===selectedRun.id)
+
+  const saveSelectedAsDraft=()=>{
+    if(!selectedRun||!proposalIsValid(selectedRun))return
+    saveProject({
+      ...project,
+      selectedGenerationRunId:selectedRun.id,
+      draftScheduleRun:structuredClone(selectedRun),
+      draftScheduleSavedAt:new Date().toISOString(),
+    },{preserveGeneration:true})
+    setShowDraftModal(false)
+  }
 
   const establishSelectedSchedule=()=>{
     if(!selectedRun||!proposalIsValid(selectedRun))return
     saveProject({
       ...project,
       selectedGenerationRunId:selectedRun.id,
+      draftScheduleRun:null,
+      draftScheduleSavedAt:null,
       establishedScheduleRun:structuredClone(selectedRun),
       establishedScheduleSavedAt:new Date().toISOString(),
     },{preserveGeneration:true})
@@ -415,12 +431,22 @@ export function GenerationPage({
             <div className="generation-result-actions">
               {selectedIsEstablished
                 ? <span className="established-schedule-badge"><CalendarCheck2 size={16}/> Horario establecido</span>
-                : <button
-                    type="button"
-                    className="btn primary"
-                    disabled={!proposalIsValid(selectedRun)}
-                    onClick={()=>setShowEstablishModal(true)}
-                  ><CalendarCheck2 size={16}/> Guardar como horario del curso</button>}
+                : <>
+                    {selectedIsDraft
+                      ? <span className="draft-schedule-badge"><CalendarDays size={16}/> Borrador guardado</span>
+                      : <button
+                          type="button"
+                          className="btn secondary-light"
+                          disabled={!proposalIsValid(selectedRun)}
+                          onClick={()=>setShowDraftModal(true)}
+                        ><CalendarDays size={16}/> Guardar borrador</button>}
+                    <button
+                      type="button"
+                      className="btn primary"
+                      disabled={!proposalIsValid(selectedRun)}
+                      onClick={()=>setShowEstablishModal(true)}
+                    ><CalendarCheck2 size={16}/> Guardar como horario del curso</button>
+                  </>}
               <div className="generation-score"><Trophy size={18}/><strong>{selectedRun.score}</strong><small>puntuación</small></div>
             </div>
           </div>
@@ -524,6 +550,22 @@ export function GenerationPage({
       </>}
     >
       <p>Se eliminará el historial de propuestas generadas, pero <strong>no se modificarán</strong> el horario establecido del curso, el centro, profesorado, asignaciones, reglas ni normativa.</p>
+    </AppModal>}
+
+    {showDraftModal&&selectedRun&&<AppModal
+      title={draftRun?'Sustituir borrador guardado':'Guardar borrador del horario'}
+      icon={<CalendarDays size={22}/>}
+      onClose={()=>setShowDraftModal(false)}
+      footer={<>
+        <button className="btn secondary-light" onClick={()=>setShowDraftModal(false)}>Cancelar</button>
+        <button className="btn primary" onClick={saveSelectedAsDraft}>
+          {draftRun?'Sustituir borrador':'Guardar borrador'}
+        </button>
+      </>}
+    >
+      <p>{draftRun
+        ? 'Ya existe un borrador temporal guardado. La propuesta seleccionada sustituirá ese borrador, sin modificar el horario establecido del curso.'
+        : 'La propuesta seleccionada se guardará como borrador temporal para poder seguir haciendo cambios antes de establecer el horario definitivo.'}</p>
     </AppModal>}
 
     {showEstablishModal&&selectedRun&&<AppModal
