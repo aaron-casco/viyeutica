@@ -690,10 +690,18 @@ export function runPrevalidation(project: ViyeuticaProject): PrevalidationIssue[
         (sessionsByTeacher.get(assignment.teacherId)??0)+sessions
       )
       if(assignment.assignmentType==='main'){
-        mainSessionsByGroup.set(
-          assignment.groupId,
-          (mainSessionsByGroup.get(assignment.groupId)??0)+sessions
+        const studyEntry=project.studyPlan.find(entry=>
+          entry.active&&entry.groupId===assignment.groupId&&entry.subjectId===assignment.subjectId
         )
+        const occupiesIndependentGroupSlot=studyEntry
+          ? studyEntry.mode!=='co_teaching'&&studyEntry.mode!=='alternative'
+          : true
+        if(occupiesIndependentGroupSlot){
+          mainSessionsByGroup.set(
+            assignment.groupId,
+            (mainSessionsByGroup.get(assignment.groupId)??0)+sessions
+          )
+        }
       }
 
       const unavailableSlots=project.teacherAvailability.filter(item=>
