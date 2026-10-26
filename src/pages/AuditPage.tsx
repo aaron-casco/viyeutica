@@ -34,7 +34,7 @@ export function AuditPage({
       <SearchCheck size={34}/>
       <h1>No hay una propuesta que auditar</h1>
       <p>Genera primero un horario para poder comprobarlo de forma independiente.</p>
-      <button className="btn primary" onClick={()=>navigate('/generacion')}>Ir a Generación</button>
+      <button className="btn primary" onClick={()=>navigate('/horarios')}>Ir a Horarios</button>
     </section>
   }
 
@@ -69,7 +69,7 @@ export function AuditPage({
       </label>
       <div className="audit-engine-note">
         <ClipboardCheck size={18}/>
-        <span><strong>Comprobación independiente</strong><small>La auditoría recalcula el resultado y no confía únicamente en el estado devuelto por Generación.</small></span>
+        <span><strong>Comprobación independiente</strong><small>La auditoría recalcula el resultado y no confía únicamente en el estado devuelto por Horarios.</small></span>
       </div>
     </section>
 
