@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import {
-  BriefcaseBusiness, CheckCircle2, ChevronDown, Clock3, GraduationCap, Pencil, Plus,
+  BriefcaseBusiness, CheckCircle2, ChevronDown, Clock3, GraduationCap, LayoutGrid, List, Pencil, Plus,
   Trash2, UserRoundCog, Users,
 } from 'lucide-react'
 import type { Teacher, TeacherDedication, TeacherDedicationType, ViyeuticaProject } from '../domain/project'
@@ -92,6 +92,7 @@ export function StaffPage({
   const [templateMessage,setTemplateMessage]=useState('')
   const [dedicationDraft,setDedicationDraft]=useState<DedicationDraft>(emptyDedication)
   const [modalOpen,setModalOpen]=useState(false)
+  const [staffView,setStaffView]=useState<'list'|'cards'>('list')
 
   const teachers=project.teachers
   const activeTeachers=teachers.filter(teacher=>teacher.active)
@@ -434,30 +435,80 @@ export function StaffPage({
     <section className="groups-table-card">
       <div className="groups-table-heading">
         <div><span className="panel-kicker">Plantilla del curso</span><h2>Profesorado</h2></div>
-        <button className="btn ghost-inline" onClick={openCreate}><Plus size={16}/> Añadir docente</button>
+        <div className="staff-heading-actions">
+          <div className="staff-view-toggle" role="group" aria-label="Cambiar vista del profesorado">
+            <button
+              type="button"
+              className={staffView==='list'?'active':''}
+              title="Vista de lista"
+              aria-label="Vista de lista"
+              aria-pressed={staffView==='list'}
+              onClick={()=>setStaffView('list')}
+            ><List size={16}/></button>
+            <button
+              type="button"
+              className={staffView==='cards'?'active':''}
+              title="Vista de tarjetas"
+              aria-label="Vista de tarjetas"
+              aria-pressed={staffView==='cards'}
+              onClick={()=>setStaffView('cards')}
+            ><LayoutGrid size={16}/></button>
+          </div>
+          <button className="btn ghost-inline" onClick={openCreate}><Plus size={16}/> Añadir docente</button>
+        </div>
       </div>
       {teachers.length===0
         ? <div className="groups-empty"><UserRoundCog size={28}/><strong>No hay docentes todavía</strong><p>Añádelos manualmente o importa el JSON del curso anterior.</p></div>
-        : <div className="groups-table-wrap">
-          <table className="groups-table staff-table">
-            <thead><tr><th>Docente</th><th>Estado</th><th>Jornada</th><th>Especialidades</th><th>Tutoría</th><th>Dedicaciones</th><th>Carga objetivo</th><th>Estado</th><th/></tr></thead>
-            <tbody>{teachers.map(teacher=>{
-              const tutorGroups=project.groups.filter(group=>group.tutorTeacherId===teacher.id)
-              const dedications=teacher.dedications??[]
-              return <tr key={teacher.id} className={!teacher.active?'is-inactive':''}>
-                <td><strong>{teacher.name}</strong>{teacher.roles.length>0&&<small className="staff-row-detail">{teacher.roles.join(', ')}</small>}</td>
-                <td>{teacher.status==='confirmed'?<span className="tag">Confirmado</span>:<span className="tag amber">Por determinar</span>}</td>
-                <td>{employmentLabels[teacher.employmentType]}</td>
-                <td>{teacher.specialties.length?teacher.specialties.join(', '):'—'}</td>
-                <td>{tutorGroups.length?tutorGroups.map(group=>group.name).join(', '):'—'}</td>
-                <td>{dedications.length?dedications.map(item=>item.label).join(', '):'—'}</td>
-                <td>{teacher.weeklyTeachingMinutes===null?'—':formatMinutes(teacher.weeklyTeachingMinutes)}</td>
-                <td><button className={'status-toggle '+(teacher.active?'active':'')} onClick={()=>toggleActive(teacher.id)}>{teacher.active?'Activo':'Inactivo'}</button></td>
-                <td><div className="row-actions"><button title="Editar" onClick={()=>edit(teacher)}><Pencil size={15}/></button><button title="Eliminar" className="danger" onClick={()=>remove(teacher.id)}><Trash2 size={15}/></button></div></td>
-              </tr>
-            })}</tbody>
-          </table>
-        </div>}
+        : staffView==='list'
+          ? <div className="groups-table-wrap">
+              <table className="groups-table staff-table">
+                <thead><tr><th>Docente</th><th>Estado</th><th>Jornada</th><th>Especialidades</th><th>Tutoría</th><th>Dedicaciones</th><th>Carga objetivo</th><th>Estado</th><th/></tr></thead>
+                <tbody>{teachers.map(teacher=>{
+                  const tutorGroups=project.groups.filter(group=>group.tutorTeacherId===teacher.id)
+                  const dedications=teacher.dedications??[]
+                  return <tr key={teacher.id} className={!teacher.active?'is-inactive':''}>
+                    <td><strong>{teacher.name}</strong>{teacher.roles.length>0&&<small className="staff-row-detail">{teacher.roles.join(', ')}</small>}</td>
+                    <td>{teacher.status==='confirmed'?<span className="tag">Confirmado</span>:<span className="tag amber">Por determinar</span>}</td>
+                    <td>{employmentLabels[teacher.employmentType]}</td>
+                    <td>{teacher.specialties.length?teacher.specialties.join(', '):'—'}</td>
+                    <td>{tutorGroups.length?tutorGroups.map(group=>group.name).join(', '):'—'}</td>
+                    <td>{dedications.length?dedications.map(item=>item.label).join(', '):'—'}</td>
+                    <td>{teacher.weeklyTeachingMinutes===null?'—':formatMinutes(teacher.weeklyTeachingMinutes)}</td>
+                    <td><button className={'status-toggle '+(teacher.active?'active':'')} onClick={()=>toggleActive(teacher.id)}>{teacher.active?'Activo':'Inactivo'}</button></td>
+                    <td><div className="row-actions"><button title="Editar" onClick={()=>edit(teacher)}><Pencil size={15}/></button><button title="Eliminar" className="danger" onClick={()=>remove(teacher.id)}><Trash2 size={15}/></button></div></td>
+                  </tr>
+                })}</tbody>
+              </table>
+            </div>
+          : <div className="staff-card-grid">
+              {teachers.map(teacher=>{
+                const tutorGroups=project.groups.filter(group=>group.tutorTeacherId===teacher.id)
+                const dedications=teacher.dedications??[]
+                return <article className={'staff-card '+(!teacher.active?'is-inactive':'')} key={teacher.id}>
+                  <div className="staff-card-heading">
+                    <div>
+                      <strong>{teacher.name}</strong>
+                      {teacher.roles.length>0&&<small>{teacher.roles.join(', ')}</small>}
+                    </div>
+                    {teacher.status==='confirmed'?<span className="tag">Confirmado</span>:<span className="tag amber">Por determinar</span>}
+                  </div>
+                  <div className="staff-card-data">
+                    <div><span>Jornada</span><strong>{employmentLabels[teacher.employmentType]}</strong></div>
+                    <div><span>Especialidades</span><strong>{teacher.specialties.length?teacher.specialties.join(', '):'—'}</strong></div>
+                    <div><span>Tutoría</span><strong>{tutorGroups.length?tutorGroups.map(group=>group.name).join(', '):'—'}</strong></div>
+                    <div><span>Dedicaciones</span><strong>{dedications.length?dedications.map(item=>item.label).join(', '):'—'}</strong></div>
+                    <div><span>Carga objetivo</span><strong>{teacher.weeklyTeachingMinutes===null?'—':formatMinutes(teacher.weeklyTeachingMinutes)}</strong></div>
+                  </div>
+                  <div className="staff-card-footer">
+                    <button className={'status-toggle '+(teacher.active?'active':'')} onClick={()=>toggleActive(teacher.id)}>{teacher.active?'Activo':'Inactivo'}</button>
+                    <div className="row-actions">
+                      <button title="Editar" onClick={()=>edit(teacher)}><Pencil size={15}/></button>
+                      <button title="Eliminar" className="danger" onClick={()=>remove(teacher.id)}><Trash2 size={15}/></button>
+                    </div>
+                  </div>
+                </article>
+              })}
+            </div>}
     </section>
 
     <div className="staff-template-full">
