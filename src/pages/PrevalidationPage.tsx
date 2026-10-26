@@ -152,10 +152,11 @@ function IssueSection({
 
 function issueGuidance(issue:PrevalidationIssue){
   if(issue.code==='SOBRECARGA_DOCENTE')return 'Revisa la carga lectiva del docente y sus asignaciones semanales; reduce carga, cambia asignaciones o corrige el máximo configurado.'
-  if(issue.code==='DOCENTE_PENDIENTE')return 'Confirma el docente definitivo o deja constancia de que seguirá pendiente antes de generar.'
+  if(issue.code==='DOCENTE_PENDIENTE')return 'Abre la ficha del docente. Si ya conoces quién ocupará el puesto, cambia su estado a Confirmado y actualiza sus datos. Si aún no se conoce, puedes mantenerlo Por determinar; la advertencia seguirá visible como recordatorio.'
   if(issue.code==='REGLA_PENDIENTE_REVISION')return 'Abre la regla, comprueba su origen y parámetros y márcala como revisada cuando sea correcta.'
   if(issue.code==='REGLA_NO_EVALUABLE')return 'Comprueba si esta regla puede expresarse con una condición estructurada compatible con el motor.'
   if(issue.code==='FRANJA_FIJA_DUPLICADA')return 'Revisa las franjas fijadas del profesorado y elimina la duplicidad.'
+  if(issue.code==='ASIGNACIONES_PENDIENTES_ORGANIZAR')return 'Abre Asignaciones y revisa las cargas marcadas como Pendiente de organizar. Asígnalas cuando conozcas docente/organización o mantenlas pendientes si todavía no pueden resolverse.'
   if(issue.code==='NORMATIVA_SIN_APROBAR')return 'Revisa la normativa detectada y aprueba únicamente las reglas aplicables al horario.'
   if(issue.code==='SIN_NORMATIVA')return 'No es obligatorio corregir nada. Añade normativa solo si quieres trazabilidad normativa en la auditoría.'
   if(issue.code==='LISTO_PARA_GENERAR')return 'No requiere acción. Puedes continuar a Generación.'
@@ -169,6 +170,12 @@ function issueRoute(issue:PrevalidationIssue,project:ViyeuticaProject){
   if(issue.section==='Reglas'&&issue.entityId){
     const rule=project.rules.find(item=>item.id===issue.entityId)
     if(rule)return '/reglas?auditCode='+encodeURIComponent(rule.code)
+  }
+  if(issue.section==='Profesorado'&&issue.entityId){
+    return '/profesorado?teacherId='+encodeURIComponent(issue.entityId)
+  }
+  if(issue.code==='ASIGNACIONES_PENDIENTES_ORGANIZAR'){
+    return '/asignaciones?pendingOrganization=1'
   }
   return sectionRoute(issue.section)
 }
