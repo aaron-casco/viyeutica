@@ -27,8 +27,8 @@ export function ExportPage({project,navigate}:{project:ViyeuticaProject;navigate
     return <section className="empty-state-card">
       <FileOutput size={34}/>
       <h1>No hay una propuesta válida para exportar</h1>
-      <p>Selecciona primero una propuesta completa y sin huecos en Generación.</p>
-      <button className="btn primary" onClick={()=>navigate('/generacion')}>Ir a Generación</button>
+      <p>Selecciona primero una propuesta completa y sin huecos en Horarios.</p>
+      <button className="btn primary" onClick={()=>navigate('/horarios')}>Ir a Horarios</button>
     </section>
   }
 
@@ -101,7 +101,7 @@ export function ExportPage({project,navigate}:{project:ViyeuticaProject;navigate
         <h2>Propuesta {proposalNumber}</h2>
         <p>{selected.placedSessions} sesiones · HARD {selected.hardViolations} · SOFT {selected.softPenalty} · puntuación {selected.score}</p>
       </div>
-      <button className="btn ghost-inline" onClick={()=>navigate('/generacion')}>Cambiar propuesta</button>
+      <button className="btn ghost-inline" onClick={()=>navigate('/horarios')}>Cambiar propuesta</button>
     </section>
 
     {!official&&<section className="export-blocker">
