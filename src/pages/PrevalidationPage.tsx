@@ -59,10 +59,10 @@ export function PrevalidationPage({
     {refreshing
       ? <PrevalidationSummarySkeleton/>
       : <section className="structure-summary">
-          <Summary label="Errores" value={String(errors.length)} detail="bloquean generación"/>
-          <Summary label="Advertencias" value={String(warnings.length)} detail="requieren revisión"/>
-          <Summary label="Información" value={String(infos.length)} detail="observaciones"/>
-          <Summary label="Reglas activas" value={String(effectiveRuleCount)} detail="incluye Motor + HARD + SOFT"/>
+          <Summary label="Errores" value={String(errors.length)} detail="Bloquean generación"/>
+          <Summary label="Advertencias" value={String(warnings.length)} detail="Requieren revisión"/>
+          <Summary label="Información" value={String(infos.length)} detail="Observaciones"/>
+          <Summary label="Reglas activas" value={String(effectiveRuleCount)} detail="Incluye Motor + HARD + SOFT"/>
         </section>}
 
     <section className="prevalidation-hero">
