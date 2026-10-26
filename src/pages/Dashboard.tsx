@@ -1,6 +1,6 @@
 import {
   AlertTriangle, ArrowRight, BookOpenCheck, CalendarClock, CalendarDays, CheckCircle2,
-  Clock3, GraduationCap, LayoutGrid, ShieldCheck, Sparkles, Users,
+  Clock3, FileInput, GraduationCap, LayoutGrid, Sparkles, Users,
 } from 'lucide-react'
 import { isCenterComplete, isStructureComplete, isScheduleComplete, isStudyPlanComplete, isStaffComplete, isAssignmentsComplete, isRulesComplete, isPrevalidationComplete, isGenerationComplete, type ViyeuticaProject } from '../domain/project'
 
@@ -25,19 +25,29 @@ export function Dashboard({
   const teachingSessions = project.schedule.blocks.filter(block => block.active && block.type === 'teaching').length
 
   const setup = [
-    ['Centro', centerDone ? 'done' : 'progress'],
-    ['Estructura y grupos', structureDone ? 'done' : centerDone ? 'progress' : 'pending'],
-    ['Jornada y sesiones', scheduleDone ? 'done' : structureDone ? 'progress' : 'pending'],
-    ['Plan de estudios', studyPlanDone ? 'done' : scheduleDone ? 'progress' : 'pending'],
-    ['Profesorado', staffDone ? 'done' : studyPlanDone ? 'progress' : 'pending'],
-    ['Asignaciones', assignmentsDone ? 'done' : staffDone ? 'progress' : 'pending'],
-    ['Reglas', rulesDone ? 'done' : assignmentsDone ? 'progress' : 'pending'],
-    ['Prevalidación', prevalidationDone ? 'done' : rulesDone ? 'progress' : 'pending'],
-    ['Horarios', generationDone ? 'done' : prevalidationDone ? 'progress' : 'pending'],
+    ['Centro', centerDone ? 'done' : 'progress', '/centro'],
+    ['Estructura y grupos', structureDone ? 'done' : centerDone ? 'progress' : 'pending', '/grupos'],
+    ['Jornada y sesiones', scheduleDone ? 'done' : structureDone ? 'progress' : 'pending', '/jornada'],
+    ['Plan de estudios', studyPlanDone ? 'done' : scheduleDone ? 'progress' : 'pending', '/materias'],
+    ['Profesorado', staffDone ? 'done' : studyPlanDone ? 'progress' : 'pending', '/profesorado'],
+    ['Asignaciones', assignmentsDone ? 'done' : staffDone ? 'progress' : 'pending', '/asignaciones'],
+    ['Reglas', rulesDone ? 'done' : assignmentsDone ? 'progress' : 'pending', '/reglas'],
+    ['Prevalidación', prevalidationDone ? 'done' : rulesDone ? 'progress' : 'pending', '/prevalidacion'],
+    ['Horarios', generationDone ? 'done' : prevalidationDone ? 'progress' : 'pending', '/horarios'],
   ] as const
 
   const progress = generationDone ? 100 : prevalidationDone ? 88 : rulesDone ? 77 : assignmentsDone ? 66 : staffDone ? 55 : studyPlanDone ? 44 : scheduleDone ? 33 : structureDone ? 22 : centerDone ? 11 : 0
   const nextRoute = !centerDone ? '/centro' : !structureDone ? '/grupos' : !scheduleDone ? '/jornada' : !studyPlanDone ? '/materias' : !staffDone ? '/profesorado' : !assignmentsDone ? '/asignaciones' : !rulesDone ? '/reglas' : !prevalidationDone ? '/prevalidacion' : '/horarios'
+  const establishedSchedule=project.establishedScheduleRun??null
+  const draftSchedule=project.draftScheduleRun??null
+  const scheduleStatus=establishedSchedule?'Horario establecido':draftSchedule?'Borrador guardado':generationDone?'Propuesta completa':'Pendiente'
+  const scheduleStatusDetail=establishedSchedule
+    ? 'Horario oficial guardado para el curso.'
+    : draftSchedule
+      ? 'Hay un borrador persistente pendiente de confirmar.'
+      : generationDone
+        ? 'Existe una propuesta completa pendiente de guardar.'
+        : 'Se habilitará al generar un horario completo.'
 
   return <div className="dashboard-stack">
     <section className="hero-card">
@@ -80,54 +90,61 @@ export function Dashboard({
     </section>
 
     <section className="dashboard-grid">
-      <article className="panel">
-        <div className="panel-heading"><div><span className="panel-kicker">Preparación</span><h2>Configuración del curso</h2></div><span className="status-pill warning">{progress}%</span></div>
-        <div className="progress-track"><span style={{width:progress+'%'}}/></div>
-        <div className="setup-list">{setup.map(([label,state]) => <div className="setup-row" key={label}><span className={'setup-dot '+state}>{state==='done'?<CheckCircle2 size={16}/>:state==='progress'?<Clock3 size={16}/>:<span/>}</span><span>{label}</span><span className={'setup-state '+state}>{state==='done'?'Completo':state==='progress'?'En progreso':'Pendiente'}</span></div>)}</div>
-        <button className="text-action" onClick={() => navigate(nextRoute)}>Continuar configuración <ArrowRight size={16}/></button>
-      </article>
+      <div className="dashboard-column">
+        <article className="panel">
+          <div className="panel-heading"><div><span className="panel-kicker">Preparación</span><h2>Configuración del curso</h2></div><span className="status-pill warning">{progress}%</span></div>
+          <div className="progress-track"><span style={{width:progress+'%'}}/></div>
+          <div className="setup-list">{setup.map(([label,state,route]) => <button type="button" className="setup-row" key={label} onClick={()=>navigate(route)}><span className={'setup-dot '+state}>{state==='done'?<CheckCircle2 size={16}/>:state==='progress'?<Clock3 size={16}/>:<span/>}</span><span>{label}</span><span className={'setup-state '+state}>{state==='done'?'Completo':state==='progress'?'En progreso':'Pendiente'}</span></button>)}</div>
+          <button className="text-action" onClick={() => navigate(nextRoute)}>Continuar configuración <ArrowRight size={16}/></button>
+        </article>
 
-      <article className="panel">
-        <div className="panel-heading"><div><span className="panel-kicker">Control</span><h2>Estado de auditoría</h2></div><ShieldCheck className="panel-heading-icon" size={24}/></div>
-        <div className="audit-score"><div className="score-ring"><span>—</span></div><div><strong>Aún no ejecutada</strong><p>Se habilitará cuando exista un horario completo.</p></div></div>
-        <div className="audit-mini-grid"><div><strong>0</strong><span>errores HARD</span></div><div><strong>0</strong><span>advertencias</span></div></div>
-        <button className="btn ghost" onClick={() => navigate('/auditoria')}>Abrir auditoría</button>
-      </article>
+        <article className="panel">
+          <div className="panel-heading"><div><span className="panel-kicker">Siguiente paso</span><h2>{!centerDone ? 'Completar los datos del centro' : !structureDone ? 'Definir grupos y unidades' : !scheduleDone ? 'Configurar jornada y sesiones' : !studyPlanDone ? 'Preparar el plan de estudios' : !staffDone ? 'Configurar profesorado' : !assignmentsDone ? 'Configurar asignaciones' : !rulesDone ? 'Definir reglas' : !prevalidationDone ? 'Ejecutar prevalidación' : !generationDone ? 'Generar horario' : 'Revisar horario generado'}</h2></div><GraduationCap className="panel-heading-icon" size={24}/></div>
+          <p className="panel-copy">{!centerDone
+            ? 'Primero necesitamos identificar el centro, su ubicación y las etapas que imparte.'
+            : !structureDone
+              ? 'Crea la estructura real por etapas, niveles y líneas.'
+              : !scheduleDone
+                ? 'Define los días lectivos y todos los tramos temporales, incluyendo sesiones y recreos.'
+                : !studyPlanDone
+                  ? 'Relaciona cada grupo con sus materias, cargas semanales y requisitos docentes.'
+                  : !staffDone
+                    ? 'Configura la plantilla docente, especialidades, jornadas, cargos y reducciones.'
+                    : !assignmentsDone
+                      ? 'Relaciona profesorado, grupos y materias, incluyendo apoyos, codocencias y disponibilidades.'
+                      : !rulesDone
+                        ? 'Define restricciones HARD/SOFT, reglas del centro y reglas procedentes de normativa.'
+                        : !prevalidationDone
+                          ? 'Comprueba la coherencia completa antes de permitir la generación.'
+                          : !generationDone
+                            ? 'Genera y compara propuestas utilizando las reglas HARD y SOFT activas.'
+                            : 'La propuesta generada puede revisarse ahora en Horarios y guardarse como borrador o como horario establecido.'}</p>
+          <div className="notice amber"><AlertTriangle size={17}/><span>{generationDone ? 'Los 9 pasos de configuración y generación están completos.' : 'Completa este paso antes de seguir.'}</span></div>
+          <button className="btn primary wide" onClick={() => navigate(nextRoute)}>{generationDone ? 'Revisar horarios' : 'Continuar'} <ArrowRight size={16}/></button>
+        </article>
+      </div>
 
-      <article className="panel">
-        <div className="panel-heading"><div><span className="panel-kicker">Siguiente paso</span><h2>{!centerDone ? 'Completar los datos del centro' : !structureDone ? 'Definir grupos y unidades' : !scheduleDone ? 'Configurar jornada y sesiones' : !studyPlanDone ? 'Preparar el plan de estudios' : !staffDone ? 'Configurar profesorado' : !assignmentsDone ? 'Configurar asignaciones' : !rulesDone ? 'Definir reglas' : !prevalidationDone ? 'Ejecutar prevalidación' : !generationDone ? 'Generar horario' : 'Revisar horario generado'}</h2></div><GraduationCap className="panel-heading-icon" size={24}/></div>
-        <p className="panel-copy">{!centerDone
-          ? 'Primero necesitamos identificar el centro, su ubicación y las etapas que imparte.'
-          : !structureDone
-            ? 'Crea la estructura real por etapas, niveles y líneas.'
-            : !scheduleDone
-              ? 'Define los días lectivos y todos los tramos temporales, incluyendo sesiones y recreos.'
-              : !studyPlanDone
-                ? 'Relaciona cada grupo con sus materias, cargas semanales y requisitos docentes.'
-                : !staffDone
-                  ? 'Configura la plantilla docente, especialidades, jornadas, cargos y reducciones.'
-                  : !assignmentsDone
-                    ? 'Relaciona profesorado, grupos y materias, incluyendo apoyos, codocencias y disponibilidades.'
-                    : !rulesDone
-                      ? 'Define restricciones HARD/SOFT, reglas del centro y reglas procedentes de normativa.'
-                      : !prevalidationDone
-                        ? 'Comprueba la coherencia completa antes de permitir la generación.'
-                        : !generationDone
-                          ? 'Genera y compara propuestas utilizando las reglas HARD y SOFT activas.'
-                          : 'La propuesta generada puede revisarse ahora en Horarios y posteriormente auditarse.'}</p>
-        <div className="notice amber"><AlertTriangle size={17}/><span>{generationDone ? 'Los 9 pasos de configuración y generación están completos.' : 'Completa este paso antes de seguir.'}</span></div>
-        <button className="btn primary wide" onClick={() => navigate(nextRoute)}>{generationDone ? 'Revisar generación' : 'Continuar'} <ArrowRight size={16}/></button>
-      </article>
+      <div className="dashboard-column">
+        <article className="panel">
+          <div className="panel-heading"><div><span className="panel-kicker">Control</span><h2>Estado del horario</h2></div><CalendarDays className="panel-heading-icon" size={24}/></div>
+          <div className="audit-score"><div className="score-ring"><span>{establishedSchedule?'✓':draftSchedule?'B':'—'}</span></div><div><strong>{scheduleStatus}</strong><p>{scheduleStatusDetail}</p></div></div>
+          <div className="audit-mini-grid">
+            <div><strong>{establishedSchedule?'Sí':'No'}</strong><span>horario establecido</span></div>
+            <div><strong>{draftSchedule?'Sí':'No'}</strong><span>borrador guardado</span></div>
+          </div>
+          <button className="btn ghost" onClick={() => navigate('/horarios')}>Abrir horarios</button>
+        </article>
 
-      <article className="panel">
-        <div className="panel-heading"><div><span className="panel-kicker">Accesos</span><h2>Trabajo frecuente</h2></div></div>
-        <div className="quick-grid">
-          <Quick icon={<Users/>} label="Profesorado" onClick={() => navigate('/profesorado')}/>
-          <Quick icon={<LayoutGrid/>} label="Estructura y grupos" onClick={() => navigate('/grupos')}/>
-          <Quick icon={<CalendarClock/>} label="Jornada y sesiones" onClick={() => navigate('/jornada')}/>
-          <Quick icon={<ShieldCheck/>} label="Auditoría" onClick={() => navigate('/auditoria')}/>
-        </div>
-      </article>
+        <article className="panel">
+          <div className="panel-heading"><div><span className="panel-kicker">Accesos</span><h2>Trabajo frecuente</h2></div></div>
+          <div className="quick-grid">
+            <Quick icon={<Users/>} label="Profesorado" onClick={() => navigate('/profesorado')}/>
+            <Quick icon={<LayoutGrid/>} label="Estructura y grupos" onClick={() => navigate('/grupos')}/>
+            <Quick icon={<CalendarClock/>} label="Jornada y sesiones" onClick={() => navigate('/jornada')}/>
+            <Quick icon={<FileInput/>} label="Importar | Exportar" onClick={() => navigate('/proyecto-json')}/>
+          </div>
+        </article>
+      </div>
     </section>
   </div>
 }
