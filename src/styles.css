@@ -1981,3 +1981,124 @@ button.btn:disabled:hover{
   display:block;
   margin:0;
 }
+
+
+/* === V2 sidebar behavior port === */
+.sidebar{box-shadow:none}
+.sidebar-brand{
+  height:72px;
+  min-height:72px;
+  padding:0 14px 0 18px;
+  gap:10px;
+  background:#ffffff;
+  color:var(--navy);
+  border-bottom:1px solid var(--border);
+  border-right:1px solid var(--border);
+  backdrop-filter:blur(16px);
+}
+.sidebar-brand .brand-official,
+.sidebar-brand .brand-compact{
+  margin:0;border:0;border-radius:0;background:transparent;box-shadow:none;
+}
+.sidebar-brand .brand-official{
+  flex:0 1 148px;width:148px;height:60px;padding:5px 8px;
+}
+.sidebar-brand .brand-official img{
+  width:100%;max-width:118px;height:46px;object-fit:contain;
+}
+.sidebar-brand .collapse-button{
+  position:static;flex:0 0 34px;width:34px;height:34px;margin-left:auto;align-self:center;
+  color:#7790ad;border:1px solid transparent;
+}
+.sidebar-brand .collapse-button:hover{
+  color:var(--navy2);background:#eef4fb;border-color:#d9e4ef;
+}
+.app-shell.is-collapsed .sidebar-brand{
+  display:flex;align-items:center;justify-content:center;padding:0 8px;
+}
+.app-shell.is-collapsed .sidebar-brand .brand-compact{
+  width:44px;height:44px;min-width:44px;padding:2px;
+}
+.app-shell.is-collapsed .sidebar-brand .brand-compact img{
+  width:40px;height:40px;object-fit:contain;
+}
+[data-theme="dark"] .sidebar{box-shadow:none}
+[data-theme="dark"] .sidebar-brand{
+  background:#ffffff;color:var(--navy);border-color:var(--border);
+}
+[data-theme="dark"] .sidebar-brand .collapse-button{color:#8fa5bd}
+[data-theme="dark"] .sidebar-brand .collapse-button:hover{
+  color:#dce9fb;background:#172538;border-color:#26384d;
+}
+.collapsed-brand-toggle{
+  position:relative;width:48px;height:48px;display:grid;place-items:center;border:0;border-radius:11px;
+  background:transparent;color:#6f86a0;cursor:pointer;
+}
+.collapsed-brand-toggle:hover,
+.collapsed-brand-toggle:focus-visible{background:#eef4fb;color:var(--navy2);outline:none}
+.collapsed-brand-logo,
+.collapsed-brand-open-icon{
+  grid-area:1/1;display:grid;place-items:center;transition:opacity .14s ease,transform .14s ease;
+}
+.collapsed-brand-logo{opacity:1;transform:scale(1)}
+.collapsed-brand-open-icon{opacity:0;transform:scale(.9)}
+.collapsed-brand-toggle:hover .collapsed-brand-logo,
+.collapsed-brand-toggle:focus-visible .collapsed-brand-logo{opacity:0;transform:scale(.92)}
+.collapsed-brand-toggle:hover .collapsed-brand-open-icon,
+.collapsed-brand-toggle:focus-visible .collapsed-brand-open-icon{opacity:1;transform:scale(1)}
+:root{
+  --sidebar-tooltip-bg:#101010;
+  --sidebar-tooltip-text:#ffffff;
+  --sidebar-tooltip-border:rgba(255,255,255,.08);
+}
+[data-theme="dark"]{
+  --sidebar-tooltip-bg:#f4f7fb;
+  --sidebar-tooltip-text:#102039;
+  --sidebar-tooltip-border:#d8e1eb;
+}
+.collapsed-brand-toggle::after,
+.sidebar-tooltip::after,
+.nav-item-tooltip::after{
+  content:attr(data-tooltip);
+  position:absolute;
+  top:50%;
+  left:calc(100% + 10px);
+  transform:translateY(-50%) translateX(-4px);
+  z-index:120;
+  width:max-content;
+  max-width:240px;
+  padding:7px 9px;
+  border:1px solid var(--sidebar-tooltip-border);
+  border-radius:8px;
+  background:var(--sidebar-tooltip-bg);
+  color:var(--sidebar-tooltip-text);
+  font-size:8px;
+  font-weight:750;
+  line-height:1.2;
+  box-shadow:0 5px 16px rgba(0,0,0,.2);
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+  transition:opacity .12s ease,transform .12s ease,visibility .12s ease;
+}
+.collapsed-brand-toggle:hover::after,
+.collapsed-brand-toggle:focus-visible::after,
+.sidebar-tooltip:hover::after,
+.sidebar-tooltip:focus-visible::after,
+.nav-item-tooltip:hover::after,
+.nav-item-tooltip:focus-visible::after{
+  opacity:1;visibility:visible;transform:translateY(-50%) translateX(0);
+}
+.sidebar-tooltip,.nav-item-tooltip{position:relative}
+.sidebar-tooltip:focus-visible,.nav-item-tooltip:focus-visible{
+  outline:2px solid #6d9bc8;outline-offset:2px;
+}
+.app-shell.is-collapsed .nav-list{overflow:visible}
+[data-theme="dark"] .nav-item-tooltip::after{box-shadow:0 5px 16px rgba(0,0,0,.34)}
+[data-theme="dark"] .collapsed-brand-toggle:hover,
+[data-theme="dark"] .collapsed-brand-toggle:focus-visible{background:#edf3f8;color:#245b8e}
+@media(max-width:780px){
+  .sidebar-brand{height:64px;min-height:64px;padding:0 12px 0 14px}
+  .sidebar-brand .brand-official{height:56px}
+  .collapsed-brand-toggle::after,.sidebar-tooltip::after,.nav-item-tooltip::after{display:none}
+}
